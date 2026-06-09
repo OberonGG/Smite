@@ -1,0 +1,2 @@
+# Smite
+a beginner developer
