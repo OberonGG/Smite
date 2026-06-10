@@ -1,33 +1,6 @@
 local CoreGui = game:GetService("CoreGui")
 
-local function waitForReady()
-    while not CoreGui:FindFirstChild("MengHubGui") 
-    or not CoreGui:FindFirstChild("ToggleUIButton")
-    or not CoreGui:FindFirstChild("NotifyGui") do
-        task.wait(60)
-    end
-end
-
-local function waitForFullyLoaded()
-    local lastCount = 0
-    local stableCount = 0
-    while stableCount < 3 do
-        local mengHub = CoreGui:FindFirstChild("MengHubGui")
-        if mengHub then
-            local currentCount = #mengHub:GetDescendants()
-            if currentCount == lastCount then
-                stableCount = stableCount + 1
-            else
-                stableCount = 0
-                lastCount = currentCount
-            end
-        end
-        task.wait(60)
-    end
-end
-
-waitForReady()
-waitForFullyLoaded()
+task.wait(120)
 
 local whitelist = {
     "RobloxGui",
