@@ -1,3 +1,5 @@
+task.wait(10)
+
 local CoreGui = game:GetService("CoreGui")
 
 local screenGui = Instance.new("ScreenGui")
