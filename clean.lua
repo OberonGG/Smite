@@ -57,11 +57,30 @@ for _, v in ipairs(CoreGui:GetChildren()) do
     end
 end
 
-for _, v in ipairs(CoreGui:GetChildren()) do
-    if v.Name == "ToggleUIButton" then
-        local btn = v:FindFirstChild("TextButton", true)
-        if btn then
-            firesignal(btn.MouseButton1Click)
+-- Retry toggle
+local maxRetry = 5
+local attempt = 0
+
+local function tryToggle()
+    for _, v in ipairs(CoreGui:GetChildren()) do
+        if v.Name == "ToggleUIButton" then
+            local btn = v:FindFirstChild("TextButton", true)
+            if btn then
+                firesignal(btn.MouseButton1Click)
+                return true
+            end
         end
+    end
+    return false
+end
+
+while attempt < maxRetry do
+    task.wait(2)
+    local mengHub = CoreGui:FindFirstChild("MengHubGui")
+    if mengHub and mengHub.Enabled then
+        tryToggle()
+        attempt = attempt + 1
+    else
+        break
     end
 end
