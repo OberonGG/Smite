@@ -9,64 +9,52 @@ screenGui.DisplayOrder = 999
 screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 290, 0, 95)
-frame.Position = UDim2.new(0.5, -145, 0, 18)
+frame.Size = UDim2.new(0, 285, 0, 88)
+frame.Position = UDim2.new(0.5, -142, 0, 18)
 frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
 frame.BackgroundTransparency = 0.08
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 12)
+corner.CornerRadius = UDim.new(0,16)
 corner.Parent = frame
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(212,175,55)
-stroke.Thickness = 1.6
+stroke.Thickness = 1.3
 stroke.Parent = frame
 
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1,0,0,28)
-header.BackgroundColor3 = Color3.fromRGB(18,18,18)
+header.Size = UDim2.new(1,0,0,26)
+header.BackgroundColor3 = Color3.fromRGB(12,12,12)
 header.BorderSizePixel = 0
 header.Parent = frame
 
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0,16)
+headerCorner.Parent = header
+
+local goldLine = Instance.new("Frame")
+goldLine.Size = UDim2.new(1,0,0,2)
+goldLine.BackgroundColor3 = Color3.fromRGB(212,175,55)
+goldLine.BorderSizePixel = 0
+goldLine.Parent = header
+
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1,-20,0,20)
-titleLabel.Position = UDim2.new(0,10,0,4)
+titleLabel.Size = UDim2.new(1,-32,1,0)
+titleLabel.Position = UDim2.new(0,12,0,0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Font = Enum.Font.Antique
+titleLabel.Font = Enum.Font.SciFi
 titleLabel.Text = "AUTO CLOSE SYSTEM"
 titleLabel.TextColor3 = Color3.fromRGB(212,175,55)
-titleLabel.TextSize = 13
+titleLabel.TextSize = 15
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = header
 
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1,-20,0,30)
-statusLabel.Position = UDim2.new(0,10,0,36)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Font = Enum.Font.Montserrat
-statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
-statusLabel.TextSize = 15
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Text = "> INITIALIZING..."
-statusLabel.Parent = frame
-
-local subLabel = Instance.new("TextLabel")
-subLabel.Size = UDim2.new(1,-20,0,12)
-subLabel.Position = UDim2.new(0,10,0,28)
-subLabel.BackgroundTransparency = 1
-subLabel.Font = Enum.Font.RobotoMono
-subLabel.Text = "Delta Cleaner • MengHub Handler"
-subLabel.TextColor3 = Color3.fromRGB(160,160,160)
-subLabel.TextSize = 10
-subLabel.TextXAlignment = Enum.TextXAlignment.Left
-subLabel.Parent = frame
-
 local dot = Instance.new("Frame")
 dot.Size = UDim2.new(0,8,0,8)
-dot.Position = UDim2.new(1,-18,0,10)
+dot.Position = UDim2.new(1,-18,0,9)
 dot.BackgroundColor3 = Color3.fromRGB(212,175,55)
 dot.BorderSizePixel = 0
 dot.Parent = header
@@ -74,6 +62,28 @@ dot.Parent = header
 local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(1,0)
 dotCorner.Parent = dot
+
+local subLabel = Instance.new("TextLabel")
+subLabel.Size = UDim2.new(1,-24,0,12)
+subLabel.Position = UDim2.new(0,12,0,31)
+subLabel.BackgroundTransparency = 1
+subLabel.Font = Enum.Font.RobotoMono
+subLabel.Text = "a useless tool."
+subLabel.TextColor3 = Color3.fromRGB(150,150,150)
+subLabel.TextSize = 10
+subLabel.TextXAlignment = Enum.TextXAlignment.Left
+subLabel.Parent = frame
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1,-24,0,28)
+statusLabel.Position = UDim2.new(0,12,0,49)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Code
+statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
+statusLabel.TextSize = 16
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Text = "▸ INITIALIZING..."
+statusLabel.Parent = frame
 
 local function setStatus(text, color, dotColor)
     statusLabel.Text = "> " .. text
