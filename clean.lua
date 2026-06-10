@@ -2,13 +2,32 @@ local CoreGui = game:GetService("CoreGui")
 
 local function waitForReady()
     while not CoreGui:FindFirstChild("MengHubGui") 
-    or not CoreGui:FindFirstChild("ToggleUIButton") do
+    or not CoreGui:FindFirstChild("ToggleUIButton")
+    or not CoreGui:FindFirstChild("NotifyGui") do
+        task.wait(2)
+    end
+end
+
+local function waitForFullyLoaded()
+    local lastCount = 0
+    local stableCount = 0
+    while stableCount < 3 do
+        local mengHub = CoreGui:FindFirstChild("MengHubGui")
+        if mengHub then
+            local currentCount = #mengHub:GetDescendants()
+            if currentCount == lastCount then
+                stableCount = stableCount + 1
+            else
+                stableCount = 0
+                lastCount = currentCount
+            end
+        end
         task.wait(2)
     end
 end
 
 waitForReady()
-task.wait(3)
+waitForFullyLoaded()
 
 local whitelist = {
     "RobloxGui",
@@ -57,30 +76,11 @@ for _, v in ipairs(CoreGui:GetChildren()) do
     end
 end
 
--- Retry toggle
-local maxRetry = 5
-local attempt = 0
-
-local function tryToggle()
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        if v.Name == "ToggleUIButton" then
-            local btn = v:FindFirstChild("TextButton", true)
-            if btn then
-                firesignal(btn.MouseButton1Click)
-                return true
-            end
+for _, v in ipairs(CoreGui:GetChildren()) do
+    if v.Name == "ToggleUIButton" then
+        local btn = v:FindFirstChild("TextButton", true)
+        if btn then
+            firesignal(btn.MouseButton1Click)
         end
-    end
-    return false
-end
-
-while attempt < maxRetry do
-    task.wait(2)
-    local mengHub = CoreGui:FindFirstChild("MengHubGui")
-    if mengHub and mengHub.Enabled then
-        tryToggle()
-        attempt = attempt + 1
-    else
-        break
     end
 end
