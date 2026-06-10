@@ -1,6 +1,6 @@
-local CoreGui = game:GetService("CoreGui")
+task.wait(30)
 
-task.wait(60)
+local CoreGui = game:GetService("CoreGui")
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoCloseStatus"
