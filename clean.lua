@@ -6,66 +6,63 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoCloseStatus"
 screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 999
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 280, 0, 92)
-frame.Position = UDim2.new(0.5, -140, 0, 18)
-frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+frame.Size = UDim2.new(0, 290, 0, 95)
+frame.Position = UDim2.new(0.5, -145, 0, 18)
+frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
 frame.BackgroundTransparency = 0.08
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
-
-local shadow = Instance.new("ImageLabel")
-shadow.Name = "Shadow"
-shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
-shadow.Size = UDim2.new(1, 32, 1, 32)
-shadow.BackgroundTransparency = 1
-shadow.Image = "rbxassetid://1316045217"
-shadow.ImageTransparency = 0.55
-shadow.ScaleType = Enum.ScaleType.Slice
-shadow.SliceCenter = Rect.new(10,10,118,118)
-shadow.ZIndex = 0
-shadow.Parent = frame
 
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(212, 175, 55)
+stroke.Color = Color3.fromRGB(212,175,55)
 stroke.Thickness = 1.6
-stroke.Transparency = 0.15
 stroke.Parent = frame
 
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 28)
+header.Size = UDim2.new(1,0,0,28)
 header.BackgroundColor3 = Color3.fromRGB(18,18,18)
 header.BorderSizePixel = 0
 header.Parent = frame
 
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0,12)
-headerCorner.Parent = header
-
-local goldLine = Instance.new("Frame")
-goldLine.Size = UDim2.new(1,0,0,2)
-goldLine.BackgroundColor3 = Color3.fromRGB(212,175,55)
-goldLine.BorderSizePixel = 0
-goldLine.Parent = header
-
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1,-40,1,0)
-titleLabel.Position = UDim2.new(0,12,0,0)
+titleLabel.Size = UDim2.new(1,-20,0,20)
+titleLabel.Position = UDim2.new(0,10,0,4)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Font = Enum.Font.Antique
 titleLabel.Text = "AUTO CLOSE SYSTEM"
 titleLabel.TextColor3 = Color3.fromRGB(212,175,55)
 titleLabel.TextSize = 13
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = header
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1,-20,0,30)
+statusLabel.Position = UDim2.new(0,10,0,36)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Font = Enum.Font.Montserrat
+statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
+statusLabel.TextSize = 15
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Text = "> INITIALIZING..."
+statusLabel.Parent = frame
+
+local subLabel = Instance.new("TextLabel")
+subLabel.Size = UDim2.new(1,-20,0,12)
+subLabel.Position = UDim2.new(0,10,0,28)
+subLabel.BackgroundTransparency = 1
+subLabel.Font = Enum.Font.RobotoMono
+subLabel.Text = "Delta Cleaner • MengHub Handler"
+subLabel.TextColor3 = Color3.fromRGB(160,160,160)
+subLabel.TextSize = 10
+subLabel.TextXAlignment = Enum.TextXAlignment.Left
+subLabel.Parent = frame
 
 local dot = Instance.new("Frame")
 dot.Size = UDim2.new(0,8,0,8)
@@ -77,29 +74,6 @@ dot.Parent = header
 local dotCorner = Instance.new("UICorner")
 dotCorner.CornerRadius = UDim.new(1,0)
 dotCorner.Parent = dot
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1,-24,0,34)
-statusLabel.Position = UDim2.new(0,12,0,42)
-statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
-statusLabel.Font = Enum.Font.GothamMedium
-statusLabel.TextSize = 15
-statusLabel.TextWrapped = true
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Text = "> INITIALIZING..."
-statusLabel.Parent = frame
-
-local subLabel = Instance.new("TextLabel")
-subLabel.Size = UDim2.new(1,-24,0,14)
-subLabel.Position = UDim2.new(0,12,0,30)
-subLabel.BackgroundTransparency = 1
-subLabel.Text = "Delta Cleaner • MengHub Handler"
-subLabel.Font = Enum.Font.Gotham
-subLabel.TextSize = 10
-subLabel.TextColor3 = Color3.fromRGB(160,160,160)
-subLabel.TextXAlignment = Enum.TextXAlignment.Left
-subLabel.Parent = frame
 
 local function setStatus(text, color, dotColor)
     statusLabel.Text = "> " .. text
