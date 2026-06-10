@@ -22,7 +22,7 @@ local function waitForFullyLoaded()
                 lastCount = currentCount
             end
         end
-        task.wait(30)
+        task.wait(10)
     end
 end
 
@@ -77,23 +77,11 @@ for _, v in ipairs(CoreGui:GetChildren()) do
     end
 end
 
--- Retry toggle sampai MengHubGui.Enabled = false
-local function tryToggle()
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        if v.Name == "ToggleUIButton" then
-            local btn = v:FindFirstChild("TextButton", true)
-            if btn then
-                firesignal(btn.MouseButton1Click)
-            end
+for _, v in ipairs(CoreGui:GetChildren()) do
+    if v.Name == "ToggleUIButton" then
+        local btn = v:FindFirstChild("TextButton", true)
+        if btn then
+            firesignal(btn.MouseButton1Click)
         end
     end
-end
-
-for i = 1, 10 do
-    local mengHub = CoreGui:FindFirstChild("MengHubGui")
-    if mengHub and not mengHub.Enabled then
-        break
-    end
-    tryToggle()
-    task.wait(1)
 end
