@@ -107,14 +107,14 @@ local function fireToggle()
 end
 
 local function waitForMengHub()
-   setStatus("WAITING DENG HUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
+   setStatus("WAITING DENG HUB...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
    while not CoreGui:FindFirstChild("MengHubGui") do
        task.wait(1)
    end
 end
 
 local function waitForDropShadow()
-   setStatus("LOADING DENG HUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
+   setStatus("LOADING DENG HUB...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
    local mengHub = CoreGui:FindFirstChild("MengHubGui")
    local dropShadow
    while not dropShadow do
@@ -129,7 +129,7 @@ end
 waitForMengHub()
 waitForDropShadow()
 
-setStatus("CLOSING DELTA...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
+setStatus("CLOSING DELTA...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
 
 local whitelist = {
    "RobloxGui", "CoreScriptLocalization", "RobloxPromptGui", "TopBarApp",
@@ -153,12 +153,12 @@ for _, v in ipairs(CoreGui:GetChildren()) do
    end
 end
 
-setStatus("CLOSING DENG HUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
+setStatus("CLOSING DENG HUB...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
 
 local startTime = tick()
 while isMengHubVisible() do
    if tick() - startTime > 30 then
-       setStatus("RESTARTING...", Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 50, 50))
+       setStatus("RESTARTING...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
        task.wait(1)
        screenGui:Destroy()
        run()
@@ -168,7 +168,7 @@ while isMengHubVisible() do
    task.wait(2)
 end
 
-setStatus("SYSTEM  //  DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
+setStatus("SYSTEM  //  DONE", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
 task.wait(2)
 screenGui:Destroy()
 
