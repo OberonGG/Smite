@@ -153,19 +153,70 @@ end
 
 setStatus("CLOSING DENG HUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
 
--- Loop dengan timeout 30 detik, kalau gagal restart
-local startTime = tick()
-while isMengHubVisible() do
-    if tick() - startTime > 30 then
-        -- Timeout! Destroy UI dan restart
-        setStatus("RESTARTING...", Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 50, 50))
-        task.wait(1)
-        screenGui:Destroy()
-        run() -- restart dari awal
-        return
+local mengHub = CoreGui:FindFirstChild("MengHubGui")
+local dropShadow = mengHub and mengHub:FindFirstChild("DropShadowHolder", true)
+
+if dropShadow then
+
+    local attempts = 0
+
+    while attempts < 15 do
+
+        attempts += 1
+
+        print("[AUTO CLOSE]")
+        print("[AUTO CLOSE] Attempt:", attempts)
+        print("[AUTO CLOSE] DropShadow.Visible:", dropShadow.Visible)
+
+        if not dropShadow.Visible then
+            print("[AUTO CLOSE] SUCCESS")
+            break
+        end
+
+        fireToggle()
+
+        task.wait(1.5)
+
+        if dropShadow.Visible then
+
+            print("[AUTO CLOSE] Toggle failed")
+
+            if attempts >= 5 then
+
+                print("[AUTO CLOSE] Force Visible = false")
+
+                pcall(function()
+                    dropShadow.Visible = false
+                end)
+
+                task.wait(0.5)
+
+if not dropShadow or not dropShadow.Parent then
+    print("[AUTO CLOSE] DropShadow Destroyed")
+    print("[AUTO CLOSE] FORCE SUCCESS")
+    break
+else
+    print("[AUTO CLOSE] After Force:", dropShadow.Visible)
+
+    if not dropShadow.Visible then
+        print("[AUTO CLOSE] FORCE SUCCESS")
+        break
     end
-    fireToggle()
-    task.wait(2)
+end
+            end
+        end
+    end
+
+if dropShadow and dropShadow.Parent and dropShadow.Visible then
+
+    print("[AUTO CLOSE] FINAL FORCE")
+
+    pcall(function()
+        dropShadow.Visible = false
+    end)
+
+end
+
 end
 
 setStatus("DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
