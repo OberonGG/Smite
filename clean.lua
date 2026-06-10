@@ -1,6 +1,6 @@
-task.wait(30)
-
 local CoreGui = game:GetService("CoreGui")
+
+local function run()
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoCloseStatus"
@@ -78,52 +78,50 @@ dotCorner.CornerRadius = UDim.new(1, 0)
 dotCorner.Parent = dot
 
 local function setStatus(text, color, dotColor)
-   statusLabel.Text = "> " .. text
-   statusLabel.TextColor3 = color
-   dot.BackgroundColor3 = dotColor or color
+    statusLabel.Text = "> " .. text
+    statusLabel.TextColor3 = color
+    dot.BackgroundColor3 = dotColor or color
 end
 
 local function isMengHubVisible()
-   local mengHub = CoreGui:FindFirstChild("MengHubGui")
-   if not mengHub then return false end
-   local dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
-   if dropShadow then
-       return dropShadow.Visible
-   end
-   return false
+    local mengHub = CoreGui:FindFirstChild("MengHubGui")
+    if not mengHub then return false end
+    local dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
+    if dropShadow then return dropShadow.Visible end
+    return false
 end
 
 local function fireToggle()
-   for _, v in ipairs(CoreGui:GetChildren()) do
-       if v.Name == "ToggleUIButton" then
-           local btn = v:FindFirstChild("TextButton", true)
-           if btn then
-               pcall(function() firesignal(btn.MouseButton1Click) end)
-               pcall(function() firesignal(btn.Activated) end)
-               pcall(function() btn.MouseButton1Click:Fire() end)
-           end
-       end
-   end
+    for _, v in ipairs(CoreGui:GetChildren()) do
+        if v.Name == "ToggleUIButton" then
+            local btn = v:FindFirstChild("TextButton", true)
+            if btn then
+                pcall(function() firesignal(btn.MouseButton1Click) end)
+                pcall(function() firesignal(btn.Activated) end)
+                pcall(function() btn.MouseButton1Click:Fire() end)
+            end
+        end
+    end
 end
 
 local function waitForMengHub()
-   setStatus("WAITING MENGHUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
-   while not CoreGui:FindFirstChild("MengHubGui") do
-       task.wait(1)
-   end
+    setStatus("WAITING DENG HUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
+    while not CoreGui:FindFirstChild("MengHubGui") do
+        task.wait(1)
+    end
 end
 
 local function waitForDropShadow()
-   setStatus("LOADING MODULES...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
-   local mengHub = CoreGui:FindFirstChild("MengHubGui")
-   local dropShadow
-   while not dropShadow do
-       dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
-       task.wait(1)
-   end
-   while not dropShadow.Visible do
-       task.wait(1)
-   end
+    setStatus("LOADING...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
+    local mengHub = CoreGui:FindFirstChild("MengHubGui")
+    local dropShadow
+    while not dropShadow do
+        dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
+        task.wait(1)
+    end
+    while not dropShadow.Visible do
+        task.wait(1)
+    end
 end
 
 waitForMengHub()
@@ -132,35 +130,48 @@ waitForDropShadow()
 setStatus("CLOSING DELTA...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
 
 local whitelist = {
-   "RobloxGui", "CoreScriptLocalization", "RobloxPromptGui", "TopBarApp",
-   "ScreenshotsCarousel", "CaptureManager", "CaptureOverlay", "MomentsCreationFlow",
-   "RobloxNetworkPauseNotification", "_FullscreenTestGui", "_DeviceTestGui",
-   "SocialContextToast", "InExperienceInterventionApp", "PurchasePromptApp",
-   "InExperienceDetailsPromptApp", "CallDialogScreen", "PlayerMenuScreen",
-   "ContactList", "StyleSheet", "CursorContainer", "OnRootedListener",
-   "FoundationCursorContainer", "AppChat", "ExperienceChat", "HeadsetDisconnectedDialog",
-   "ShortcutBar", "PlayerList", "MengHubGui", "ToggleUIButton", "NotifyGui",
-   "DevConsoleMaster", "RealPingDisplay", "AutoCloseStatus",
+    "RobloxGui", "CoreScriptLocalization", "RobloxPromptGui", "TopBarApp",
+    "ScreenshotsCarousel", "CaptureManager", "CaptureOverlay", "MomentsCreationFlow",
+    "RobloxNetworkPauseNotification", "_FullscreenTestGui", "_DeviceTestGui",
+    "SocialContextToast", "InExperienceInterventionApp", "PurchasePromptApp",
+    "InExperienceDetailsPromptApp", "CallDialogScreen", "PlayerMenuScreen",
+    "ContactList", "StyleSheet", "CursorContainer", "OnRootedListener",
+    "FoundationCursorContainer", "AppChat", "ExperienceChat", "HeadsetDisconnectedDialog",
+    "ShortcutBar", "PlayerList", "MengHubGui", "ToggleUIButton", "NotifyGui",
+    "DevConsoleMaster", "RealPingDisplay", "AutoCloseStatus",
 }
 
 for _, v in ipairs(CoreGui:GetChildren()) do
-   local allowed = false
-   for _, w in ipairs(whitelist) do
-       if v.Name == w then allowed = true break end
-   end
-   if not allowed then
-       pcall(function() v:Destroy() end)
-   end
+    local allowed = false
+    for _, w in ipairs(whitelist) do
+        if v.Name == w then allowed = true break end
+    end
+    if not allowed then
+        pcall(function() v:Destroy() end)
+    end
 end
 
-setStatus("CLOSING MENGHUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
+setStatus("CLOSING DENG HUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
 
--- Loop sampai berhasil
+-- Loop dengan timeout 30 detik, kalau gagal restart
+local startTime = tick()
 while isMengHubVisible() do
-   fireToggle()
-   task.wait(2)
+    if tick() - startTime > 30 then
+        -- Timeout! Destroy UI dan restart
+        setStatus("RESTARTING...", Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 50, 50))
+        task.wait(1)
+        screenGui:Destroy()
+        run() -- restart dari awal
+        return
+    end
+    fireToggle()
+    task.wait(2)
 end
 
-setStatus("SYSTEM  //  DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
-task.wait(4)
+setStatus("DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
+task.wait(2)
 screenGui:Destroy()
+
+end
+
+run()
