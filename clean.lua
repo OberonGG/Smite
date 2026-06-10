@@ -1,8 +1,6 @@
 local CoreGui = game:GetService("CoreGui")
 
-local function run()
-
-task.wait(10)
+task.wait(60)
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoCloseStatus"
@@ -23,14 +21,14 @@ corner.CornerRadius = UDim.new(0, 6)
 corner.Parent = frame
 
 local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(255, 255, 255)
+stroke.Color = Color3.fromRGB(212, 175, 55)
 stroke.Thickness = 1.5
 stroke.Parent = frame
 
 local topLine = Instance.new("Frame")
 topLine.Size = UDim2.new(1, 0, 0, 2)
 topLine.Position = UDim2.new(0, 0, 0, 0)
-topLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+topLine.BackgroundColor3 = Color3.fromRGB(212, 175, 55)
 topLine.BorderSizePixel = 0
 topLine.Parent = frame
 
@@ -42,7 +40,7 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, -10, 0, 22)
 titleLabel.Position = UDim2.new(0, 10, 0, 6)
 titleLabel.BackgroundTransparency = 1
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextColor3 = Color3.fromRGB(212, 175, 55)
 titleLabel.TextScaled = true
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -52,7 +50,7 @@ titleLabel.Parent = frame
 local divider = Instance.new("Frame")
 divider.Size = UDim2.new(1, -20, 0, 1)
 divider.Position = UDim2.new(0, 10, 0, 30)
-divider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+divider.BackgroundColor3 = Color3.fromRGB(212, 175, 55)
 divider.BackgroundTransparency = 0.7
 divider.BorderSizePixel = 0
 divider.Parent = frame
@@ -71,7 +69,7 @@ statusLabel.Parent = frame
 local dot = Instance.new("Frame")
 dot.Size = UDim2.new(0, 8, 0, 8)
 dot.Position = UDim2.new(1, -18, 0, 10)
-dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+dot.BackgroundColor3 = Color3.fromRGB(212, 175, 55)
 dot.BorderSizePixel = 0
 dot.Parent = frame
 
@@ -89,7 +87,9 @@ local function isMengHubVisible()
    local mengHub = CoreGui:FindFirstChild("MengHubGui")
    if not mengHub then return false end
    local dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
-   if dropShadow then return dropShadow.Visible end
+   if dropShadow then
+       return dropShadow.Visible
+   end
    return false
 end
 
@@ -107,14 +107,14 @@ local function fireToggle()
 end
 
 local function waitForMengHub()
-   setStatus("WAITING DENG HUB...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
+   setStatus("WAITING MENGHUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
    while not CoreGui:FindFirstChild("MengHubGui") do
        task.wait(1)
    end
 end
 
 local function waitForDropShadow()
-   setStatus("LOADING DENG HUB...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
+   setStatus("LOADING MODULES...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
    local mengHub = CoreGui:FindFirstChild("MengHubGui")
    local dropShadow
    while not dropShadow do
@@ -129,7 +129,7 @@ end
 waitForMengHub()
 waitForDropShadow()
 
-setStatus("CLOSING DELTA...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
+setStatus("CLOSING DELTA...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
 
 local whitelist = {
    "RobloxGui", "CoreScriptLocalization", "RobloxPromptGui", "TopBarApp",
@@ -153,25 +153,14 @@ for _, v in ipairs(CoreGui:GetChildren()) do
    end
 end
 
-setStatus("CLOSING DENG HUB...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
+setStatus("CLOSING MENGHUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
 
-local startTime = tick()
+-- Loop sampai berhasil
 while isMengHubVisible() do
-   if tick() - startTime > 30 then
-       setStatus("RESTARTING...", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
-       task.wait(1)
-       screenGui:Destroy()
-       run()
-       return
-   end
    fireToggle()
    task.wait(2)
 end
 
-setStatus("SYSTEM  //  DONE", Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 255, 255))
-task.wait(2)
+setStatus("SYSTEM  //  DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
+task.wait(4)
 screenGui:Destroy()
-
-end
-
-run()
