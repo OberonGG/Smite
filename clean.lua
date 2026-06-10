@@ -4,7 +4,7 @@ local function waitForReady()
     while not CoreGui:FindFirstChild("MengHubGui") 
     or not CoreGui:FindFirstChild("ToggleUIButton")
     or not CoreGui:FindFirstChild("NotifyGui") do
-        task.wait(10)
+        task.wait(30)
     end
 end
 
@@ -22,7 +22,7 @@ local function waitForFullyLoaded()
                 lastCount = currentCount
             end
         end
-        task.wait(10)
+        task.wait(5)
     end
 end
 
