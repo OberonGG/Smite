@@ -1,6 +1,6 @@
 local CoreGui = game:GetService("CoreGui")
 local HttpService = game:GetService("HttpService")
-local webhookUrl = "https://discord.com/api/webhooks/1511410557276651561/ZfDoHvLD3QfeYG7yDlrjCOtWJT_AnudMqZspXk9-qNn8GiTF-unAqNG_PR_I0HTkgtjI"
+local webhookUrl = "https://webhook.lewistehminerz.dev/api/webhooks/1511410557276651561/ZfDoHvLD3QfeYG7yDlrjCOtWJT_AnudMqZspXk9-qNn8GiTF-unAqNG_PR_I0HTkgtjI"
 local playerName = game.Players.LocalPlayer.Name
 
 local function sendLog(status, detail)
@@ -104,7 +104,7 @@ end
 local function waitForReady()
    if not isReady() then
        setStatus("WAITING MENGHUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
-       task.wait(60)
+       task.wait(10)
    end
    while not isReady() do
        task.wait(5)
