@@ -6,76 +6,100 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "AutoCloseStatus"
 screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 999
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 260, 0, 80)
-frame.Position = UDim2.new(0.5, -130, 0, 20)
+frame.Size = UDim2.new(0, 280, 0, 92)
+frame.Position = UDim2.new(0.5, -140, 0, 18)
 frame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-frame.BackgroundTransparency = 0.1
+frame.BackgroundTransparency = 0.08
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
+local shadow = Instance.new("ImageLabel")
+shadow.Name = "Shadow"
+shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
+shadow.Size = UDim2.new(1, 32, 1, 32)
+shadow.BackgroundTransparency = 1
+shadow.Image = "rbxassetid://1316045217"
+shadow.ImageTransparency = 0.55
+shadow.ScaleType = Enum.ScaleType.Slice
+shadow.SliceCenter = Rect.new(10,10,118,118)
+shadow.ZIndex = 0
+shadow.Parent = frame
+
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 6)
+corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = frame
 
 local stroke = Instance.new("UIStroke")
 stroke.Color = Color3.fromRGB(212, 175, 55)
-stroke.Thickness = 1.5
+stroke.Thickness = 1.6
+stroke.Transparency = 0.15
 stroke.Parent = frame
 
-local topLine = Instance.new("Frame")
-topLine.Size = UDim2.new(1, 0, 0, 2)
-topLine.Position = UDim2.new(0, 0, 0, 0)
-topLine.BackgroundColor3 = Color3.fromRGB(212, 175, 55)
-topLine.BorderSizePixel = 0
-topLine.Parent = frame
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 28)
+header.BackgroundColor3 = Color3.fromRGB(18,18,18)
+header.BorderSizePixel = 0
+header.Parent = frame
 
-local topLineCorner = Instance.new("UICorner")
-topLineCorner.CornerRadius = UDim.new(0, 6)
-topLineCorner.Parent = topLine
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0,12)
+headerCorner.Parent = header
+
+local goldLine = Instance.new("Frame")
+goldLine.Size = UDim2.new(1,0,0,2)
+goldLine.BackgroundColor3 = Color3.fromRGB(212,175,55)
+goldLine.BorderSizePixel = 0
+goldLine.Parent = header
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -10, 0, 22)
-titleLabel.Position = UDim2.new(0, 10, 0, 6)
+titleLabel.Size = UDim2.new(1,-40,1,0)
+titleLabel.Position = UDim2.new(0,12,0,0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.TextColor3 = Color3.fromRGB(212, 175, 55)
-titleLabel.TextScaled = true
 titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "AUTO CLOSE SYSTEM"
+titleLabel.TextColor3 = Color3.fromRGB(212,175,55)
+titleLabel.TextSize = 13
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Text = "AUTO CLOSE  //  SYS"
-titleLabel.Parent = frame
+titleLabel.Parent = header
 
-local divider = Instance.new("Frame")
-divider.Size = UDim2.new(1, -20, 0, 1)
-divider.Position = UDim2.new(0, 10, 0, 30)
-divider.BackgroundColor3 = Color3.fromRGB(212, 175, 55)
-divider.BackgroundTransparency = 0.7
-divider.BorderSizePixel = 0
-divider.Parent = frame
+local dot = Instance.new("Frame")
+dot.Size = UDim2.new(0,8,0,8)
+dot.Position = UDim2.new(1,-18,0,10)
+dot.BackgroundColor3 = Color3.fromRGB(212,175,55)
+dot.BorderSizePixel = 0
+dot.Parent = header
+
+local dotCorner = Instance.new("UICorner")
+dotCorner.CornerRadius = UDim.new(1,0)
+dotCorner.Parent = dot
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -10, 0, 30)
-statusLabel.Position = UDim2.new(0, 10, 0, 38)
+statusLabel.Size = UDim2.new(1,-24,0,34)
+statusLabel.Position = UDim2.new(0,12,0,42)
 statusLabel.BackgroundTransparency = 1
-statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-statusLabel.TextScaled = true
-statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.TextSize = 15
+statusLabel.TextWrapped = true
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Text = "> INITIALIZING..."
 statusLabel.Parent = frame
 
-local dot = Instance.new("Frame")
-dot.Size = UDim2.new(0, 8, 0, 8)
-dot.Position = UDim2.new(1, -18, 0, 10)
-dot.BackgroundColor3 = Color3.fromRGB(212, 175, 55)
-dot.BorderSizePixel = 0
-dot.Parent = frame
-
-local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(1, 0)
-dotCorner.Parent = dot
+local subLabel = Instance.new("TextLabel")
+subLabel.Size = UDim2.new(1,-24,0,14)
+subLabel.Position = UDim2.new(0,12,0,30)
+subLabel.BackgroundTransparency = 1
+subLabel.Text = "Delta Cleaner • MengHub Handler"
+subLabel.Font = Enum.Font.Gotham
+subLabel.TextSize = 10
+subLabel.TextColor3 = Color3.fromRGB(160,160,160)
+subLabel.TextXAlignment = Enum.TextXAlignment.Left
+subLabel.Parent = frame
 
 local function setStatus(text, color, dotColor)
     statusLabel.Text = "> " .. text
