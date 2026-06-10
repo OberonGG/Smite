@@ -118,7 +118,9 @@ local function tryToggle()
        if v.Name == "ToggleUIButton" then
            local btn = v:FindFirstChild("TextButton", true)
            if btn then
-               firesignal(btn.MouseButton1Click)
+               pcall(function() firesignal(btn.MouseButton1Click) end)
+               pcall(function() firesignal(btn.MouseButton1Down) end)
+               pcall(function() firesignal(btn.Activated) end)
            end
        end
    end
