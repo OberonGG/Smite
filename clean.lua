@@ -62,7 +62,6 @@ local whitelist = {
     "NotifyGui",
     "DevConsoleMaster",
     "RealPingDisplay",
-    "75b950e8bf450dc11f12ebeadd8d547107c165fa9f8cbe7d9b8968e48427c1bd",
 }
 
 for _, v in ipairs(CoreGui:GetChildren()) do
