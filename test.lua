@@ -10,7 +10,7 @@ screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 240, 0, 60)
-frame.Position = UDim2.new(0.5, -120, 0.4, -30)
+frame.Position = UDim2.new(0.5, -120, 0.2, -30)
 frame.BackgroundColor3 = Color3.fromRGB(13, 13, 13)
 frame.BackgroundTransparency = 0.05
 frame.BorderSizePixel = 0
@@ -42,8 +42,8 @@ titleLabel.Position = UDim2.new(0, 14, 0, 10)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Font = Enum.Font.RobotoMono
 titleLabel.Text = "AUTO CLOSE SYSTEM"
-titleLabel.TextColor3 = Color3.fromRGB(55, 55, 55)
-titleLabel.TextSize = 9
+titleLabel.TextColor3 = Color3.fromRGB(142, 142, 146)
+titleLabel.TextSize = 10
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = frame
 
