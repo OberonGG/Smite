@@ -112,6 +112,44 @@ local function fireToggle()
     end
 end
 
+local function minimizeReduce()
+    setStatus("CLOSING REDUCE...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
+    local Players = game:GetService("Players")
+    local gui = Players.LocalPlayer:WaitForChild("PlayerGui", 10)
+    if not gui then
+        print("[AUTO CLOSE] PlayerGui not found")
+        return
+    end
+
+    local attempts = 0
+    local fired = false
+
+    while attempts < 5 and not fired do
+        attempts += 1
+        print("[AUTO CLOSE] REDUCE Attempt:", attempts)
+
+        local success, err = pcall(function()
+            local monsfams = gui:WaitForChild("MONSFAMS", 5)
+            local btn = monsfams.Frame:WaitForChild("TextButton", 5)
+            pcall(function() firesignal(btn.MouseButton1Click) end)
+            pcall(function() firesignal(btn.Activated) end)
+            pcall(function() btn.MouseButton1Click:Fire() end)
+            fired = true
+        end)
+
+        if not success then
+            print("[AUTO CLOSE] REDUCE failed:", err)
+            task.wait(2)
+        end
+    end
+
+    if not fired then
+        print("[AUTO CLOSE] REDUCE MONSFAMS not found after", attempts, "attempts")
+    else
+        print("[AUTO CLOSE] REDUCE SUCCESS")
+    end
+end
+
 local function waitForMengHub()
     setStatus("WAITING DENG HUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
     while not CoreGui:FindFirstChild("MengHubGui") do
@@ -226,6 +264,9 @@ if dropShadow and dropShadow.Parent and dropShadow.Visible then
 end
 
 end
+
+minimizeReduce()
+task.wait(0.8)
 
 setStatus("DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
 task.wait(2)
