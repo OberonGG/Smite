@@ -9,86 +9,82 @@ screenGui.DisplayOrder = 999
 screenGui.Parent = CoreGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 285, 0, 88)
-frame.Position = UDim2.new(0.5, -142, 0, 18)
-frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
-frame.BackgroundTransparency = 0.08
+frame.Size = UDim2.new(0, 240, 0, 60)
+frame.Position = UDim2.new(0.5, -120, 0.4, -30)
+frame.BackgroundColor3 = Color3.fromRGB(13, 13, 13)
+frame.BackgroundTransparency = 0.05
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0,16)
+corner.CornerRadius = UDim.new(0, 6)
 corner.Parent = frame
 
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(212,175,55)
-stroke.Thickness = 1.3
-stroke.Parent = frame
+local outerStroke = Instance.new("UIStroke")
+outerStroke.Color = Color3.fromRGB(26, 26, 26)
+outerStroke.Thickness = 1
+outerStroke.Parent = frame
 
-local header = Instance.new("Frame")
-header.Size = UDim2.new(1,0,0,26)
-header.BackgroundColor3 = Color3.fromRGB(12,12,12)
-header.BorderSizePixel = 0
-header.Parent = frame
+local accentBar = Instance.new("Frame")
+accentBar.Size = UDim2.new(0, 3, 1, 0)
+accentBar.Position = UDim2.new(0, 0, 0, 0)
+accentBar.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+accentBar.BorderSizePixel = 0
+accentBar.Parent = frame
 
-local headerCorner = Instance.new("UICorner")
-headerCorner.CornerRadius = UDim.new(0,16)
-headerCorner.Parent = header
-
-local goldLine = Instance.new("Frame")
-goldLine.Size = UDim2.new(1,0,0,2)
-goldLine.BackgroundColor3 = Color3.fromRGB(212,175,55)
-goldLine.BorderSizePixel = 0
-goldLine.Parent = header
+local accentBarCorner = Instance.new("UICorner")
+accentBarCorner.CornerRadius = UDim.new(0, 6)
+accentBarCorner.Parent = accentBar
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1,-32,1,0)
-titleLabel.Position = UDim2.new(0,12,0,0)
+titleLabel.Size = UDim2.new(1, -22, 0, 14)
+titleLabel.Position = UDim2.new(0, 14, 0, 10)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Font = Enum.Font.SciFi
+titleLabel.Font = Enum.Font.RobotoMono
 titleLabel.Text = "AUTO CLOSE SYSTEM"
-titleLabel.TextColor3 = Color3.fromRGB(212,175,55)
-titleLabel.TextSize = 15
+titleLabel.TextColor3 = Color3.fromRGB(55, 55, 55)
+titleLabel.TextSize = 9
 titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = header
+titleLabel.Parent = frame
 
 local dot = Instance.new("Frame")
-dot.Size = UDim2.new(0,8,0,8)
-dot.Position = UDim2.new(1,-18,0,9)
-dot.BackgroundColor3 = Color3.fromRGB(212,175,55)
+dot.Size = UDim2.new(0, 6, 0, 6)
+dot.Position = UDim2.new(0, 14, 0, 35)
+dot.BackgroundTransparency = 1
 dot.BorderSizePixel = 0
-dot.Parent = header
+dot.Parent = frame
 
 local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(1,0)
+dotCorner.CornerRadius = UDim.new(1, 0)
 dotCorner.Parent = dot
 
-local subLabel = Instance.new("TextLabel")
-subLabel.Size = UDim2.new(1,-24,0,12)
-subLabel.Position = UDim2.new(0,12,0,31)
-subLabel.BackgroundTransparency = 1
-subLabel.Font = Enum.Font.RobotoMono
-subLabel.Text = "a useless tool."
-subLabel.TextColor3 = Color3.fromRGB(150,150,150)
-subLabel.TextSize = 10
-subLabel.TextXAlignment = Enum.TextXAlignment.Left
-subLabel.Parent = frame
+local dotStroke = Instance.new("UIStroke")
+dotStroke.Color = Color3.fromRGB(200, 200, 200)
+dotStroke.Thickness = 1.5
+dotStroke.Parent = dot
 
 local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1,-24,0,28)
-statusLabel.Position = UDim2.new(0,12,0,49)
+statusLabel.Size = UDim2.new(1, -38, 0, 18)
+statusLabel.Position = UDim2.new(0, 26, 0, 32)
 statusLabel.BackgroundTransparency = 1
 statusLabel.Font = Enum.Font.Code
-statusLabel.TextColor3 = Color3.fromRGB(255,255,255)
-statusLabel.TextSize = 16
+statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+statusLabel.TextSize = 12
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Text = "▸ INITIALIZING..."
+statusLabel.Text = "INITIALIZING..."
 statusLabel.Parent = frame
 
 local function setStatus(text, color, dotColor)
-    statusLabel.Text = "> " .. text
-    statusLabel.TextColor3 = color
-    dot.BackgroundColor3 = dotColor or color
+    statusLabel.Text = text
+    if text == "DONE" then
+        statusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
+        dotStroke.Color = Color3.fromRGB(50, 255, 100)
+        accentBar.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
+    else
+        statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+        dotStroke.Color = Color3.fromRGB(200, 200, 200)
+        accentBar.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    end
 end
 
 local function isMengHubVisible()
