@@ -130,6 +130,12 @@ local function minimizeReduce()
         return
     end
 
+    local MINIMIZED_HEIGHT_THRESHOLD = 35
+
+    local function isMinimized()
+        return targetFrame.Size.Y.Offset <= MINIMIZED_HEIGHT_THRESHOLD
+    end
+
     local attempts = 0
     local minimized = false
 
@@ -138,9 +144,9 @@ local function minimizeReduce()
 
         print("[AUTO CLOSE]")
         print("[AUTO CLOSE] REDUCE Attempt:", attempts)
-        print("[AUTO CLOSE] REDUCE Frame.Visible:", targetFrame.Visible)
+        print("[AUTO CLOSE] REDUCE Frame.Size.Y:", targetFrame.Size.Y.Offset)
 
-        if not targetFrame.Visible then
+        if isMinimized() then
             print("[AUTO CLOSE] REDUCE SUCCESS - already minimized")
             minimized = true
             break
@@ -150,11 +156,18 @@ local function minimizeReduce()
         pcall(function() firesignal(btn.Activated) end)
         pcall(function() btn.MouseButton1Click:Fire() end)
 
-        task.wait(1.5)
+        local pollTime = 0
+        while pollTime < 3 do
+            task.wait(0.2)
+            pollTime += 0.2
+            if isMinimized() then
+                break
+            end
+        end
 
-        print("[AUTO CLOSE] REDUCE After fire, Frame.Visible:", targetFrame.Visible)
+        print("[AUTO CLOSE] REDUCE After fire, Frame.Size.Y:", targetFrame.Size.Y.Offset)
 
-        if not targetFrame.Visible then
+        if isMinimized() then
             print("[AUTO CLOSE] REDUCE SUCCESS")
             minimized = true
             break
@@ -162,7 +175,7 @@ local function minimizeReduce()
     end
 
     if not minimized then
-        print("[AUTO CLOSE] REDUCE FAILED after", attempts, "attempts - Frame.Visible still true")
+        print("[AUTO CLOSE] REDUCE FAILED after", attempts, "attempts - Size.Y:", targetFrame.Size.Y.Offset)
     end
 end
 
@@ -222,6 +235,7 @@ while deltaAttempts < 10 and not deltaCleared do
     task.wait(0.3)
 
     local leftover = 0
+    local leftoverNames = {}
     for _, v in ipairs(CoreGui:GetChildren()) do
         local allowed = false
         for _, w in ipairs(whitelist) do
@@ -229,12 +243,16 @@ while deltaAttempts < 10 and not deltaCleared do
         end
         if not allowed then
             leftover += 1
+            table.insert(leftoverNames, v.Name)
         end
     end
 
     print("[AUTO CLOSE]")
     print("[AUTO CLOSE] DELTA Attempt:", deltaAttempts)
     print("[AUTO CLOSE] DELTA Leftover items:", leftover)
+    if leftover > 0 then
+        print("[AUTO CLOSE] DELTA Leftover names:", table.concat(leftoverNames, ", "))
+    end
 
     if leftover == 0 then
         print("[AUTO CLOSE] DELTA SUCCESS")
