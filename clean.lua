@@ -110,73 +110,161 @@ end
 
 local function minimizeReduce()
     setStatus("MINIMIZE REDUCE...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
-    local Players = game:GetService("Players")
-    local gui = Players.LocalPlayer:WaitForChild("PlayerGui", 10)
-    if not gui then
-        print("[AUTO CLOSE] PlayerGui not found")
-        return
-    end
+-- random biar multi instance ga klik bareng
+task.wait(math.random(10,40)/10)
 
-    local monsfams, targetFrame, btn
+local Players = game:GetService("Players")
 
-    local lookupSuccess, lookupErr = pcall(function()
-        monsfams = gui:WaitForChild("MONSFAMS", 10)
-        targetFrame = monsfams:WaitForChild("Frame", 5)
-        btn = targetFrame:WaitForChild("TextButton", 5)
-    end)
+local gui =
+Players.LocalPlayer:WaitForChild("PlayerGui",10)
 
-    if not lookupSuccess or not btn then
-        print("[AUTO CLOSE] REDUCE lookup failed:", lookupErr)
-        return
-    end
+if not gui then
+print("[AUTO CLOSE] PlayerGui not found")
+return
+end
 
-    local MINIMIZED_HEIGHT_THRESHOLD = 35
+local monsfams =
+gui:FindFirstChild("MONSFAMS")
 
-    local function isMinimized()
-        return targetFrame.Size.Y.Offset <= MINIMIZED_HEIGHT_THRESHOLD
-    end
+if not monsfams then
+print("[AUTO CLOSE] MONSFAMS not found")
+return
+end
 
-    local attempts = 0
-    local minimized = false
+local root =
+monsfams:FindFirstChild("Frame")
 
-    while attempts < 10 do
-        attempts += 1
+if not root then
+print("[AUTO CLOSE] Root frame not found")
+return
+end
 
-        print("[AUTO CLOSE]")
-        print("[AUTO CLOSE] REDUCE Attempt:", attempts)
-        print("[AUTO CLOSE] REDUCE Frame.Size.Y:", targetFrame.Size.Y.Offset)
+local btn
 
-        if isMinimized() then
-            print("[AUTO CLOSE] REDUCE SUCCESS - already minimized")
-            minimized = true
-            break
-        end
+for _,v in ipairs(root:GetDescendants()) do
 
-        pcall(function() firesignal(btn.MouseButton1Click) end)
-        pcall(function() firesignal(btn.Activated) end)
-        pcall(function() btn.MouseButton1Click:Fire() end)
+if v:IsA("TextButton") then
 
-        local pollTime = 0
-        while pollTime < 3 do
-            task.wait(0.2)
-            pollTime += 0.2
-            if isMinimized() then
-                break
-            end
-        end
+local parent=v.Parent
 
-        print("[AUTO CLOSE] REDUCE After fire, Frame.Size.Y:", targetFrame.Size.Y.Offset)
+if parent
+and parent:IsA("Frame")
+and parent.Size.Y.Offset <= 35 then
 
-        if isMinimized() then
-            print("[AUTO CLOSE] REDUCE SUCCESS")
-            minimized = true
-            break
-        end
-    end
+btn=v
+break
 
-    if not minimized then
-        print("[AUTO CLOSE] REDUCE FAILED after", attempts, "attempts - Size.Y:", targetFrame.Size.Y.Offset)
-    end
+end
+
+btn=btn or v
+
+end
+
+end
+
+if not btn then
+print("[AUTO CLOSE] Reduce button not found")
+return
+end
+
+print(
+"[AUTO CLOSE] Selected:",
+btn:GetFullName()
+)
+
+local function isMinimized()
+
+if not root.Parent then
+return true
+end
+
+return (
+root.Size.Y.Offset <= 35
+or not root.Visible
+)
+
+end
+
+local minimized=false
+
+for attempt=1,10 do
+
+print("[AUTO CLOSE]")
+print("[AUTO CLOSE] REDUCE Attempt:",attempt)
+print("[AUTO CLOSE] Current Size:",root.Size.Y.Offset)
+
+if isMinimized() then
+print("[AUTO CLOSE] Already minimized")
+minimized=true
+break
+end
+
+pcall(function()
+btn:Activate()
+end)
+
+pcall(function()
+firesignal(btn.MouseButton1Click)
+end)
+
+pcall(function()
+firesignal(btn.Activated)
+end)
+
+pcall(function()
+btn.MouseButton1Click:Fire()
+end)
+
+local start=tick()
+
+repeat
+
+task.wait(.25)
+
+print(
+"[AUTO CLOSE] Waiting:",
+root.Size.Y.Offset
+)
+
+until
+isMinimized()
+or tick()-start>5
+
+if isMinimized() then
+
+print(
+"[AUTO CLOSE] REDUCE SUCCESS"
+)
+setStatus(
+"REDUCE SUCCESS",
+Color3.fromRGB(50,255,100),
+Color3.fromRGB(50,255,100)
+)
+
+minimized=true
+break
+
+end
+
+task.wait(
+math.random(3,10)/10
+)
+
+end
+
+if not minimized then
+
+print(
+"[AUTO CLOSE] REDUCE FAILED after 10 attempts"
+)
+
+print(
+"[AUTO CLOSE] Final Size:",
+root.Size.Y.Offset
+)
+
+end
+
 end
 
 local function waitForMengHub()
@@ -333,7 +421,7 @@ end
 end
 
 minimizeReduce()
-task.wait(0.8)
+task.wait(math.random(8,15)/10)
 
 setStatus("DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
 task.wait(2)
