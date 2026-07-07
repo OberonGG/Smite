@@ -1,15 +1,21 @@
+---------------------------------------------------------------------
+-- AUTO CLOSE DELTA UI & PROTEKSI UI KETAT (INSTAN)
+---------------------------------------------------------------------
 pcall(function()
     local CoreGui = game:GetService("CoreGui")
-    -- Cari langsung objek UI Delta yang umum di CoreGui
     for _, gui in ipairs(CoreGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            if string.find(string.lower(gui.Name), "delta") or gui:FindFirstChild("Delta") or gui:FindFirstChild("DeltaCore") then
+        if gui:IsA("ScreenGui") and gui.Name ~= "PingTimerUI" and gui.Name ~= "LynxGui" and gui.Name ~= "RobloxGui" then
+            -- Jika namanya mengandung kata delta atau terdeteksi UI asing dari executor, sembunyikan langsung
+            if string.find(string.lower(gui.Name), "delta") or gui:FindFirstChild("Delta") or gui:FindFirstChild("DeltaCore") or #gui:GetChildren() > 0 then
                 gui.Enabled = false
             end
         end
     end
 end)
 
+---------------------------------------------------------------------
+-- SCRIPT UTAMA & UI PING TIMER (LOGIC ASLI KAMU)
+---------------------------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -140,6 +146,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- FIX UTAMA: Sistem filter tombol tutup Lynx agar anti salah klik menu trade
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui")
     if not LynxGui or not LynxGui:FindFirstChild("Frame") then
@@ -149,14 +156,28 @@ local function closeLynx()
 
     local mainFrame = LynxGui.Frame
     local targetButton = nil
-    local maxDist = -math.huge
 
+    -- Cari tombol berdasarkan teks penutup spesifik, bukan rumus matematika posisi koordinat lagi
     for _, btn in ipairs(mainFrame:GetDescendants()) do
         if btn:IsA("TextButton") then
-            local posScore = btn.AbsolutePosition.X - btn.AbsolutePosition.Y
-            if posScore > maxDist then
-                maxDist = posScore
+            local text = string.lower(btn.Text)
+            if text == "x" or text == "close" or string.find(text, "❌") or btn.Name == "Close" or btn.Name == "CloseButton" then
                 targetButton = btn
+                break
+            end
+        end
+    end
+
+    -- Jika teks tombol x tidak ketemu, gunakan cadangan filter ukuran tombol terkecil di area pojok sebagai backup aman
+    if not targetButton then
+        local maxDist = -math.huge
+        for _, btn in ipairs(mainFrame:GetDescendants()) do
+            if btn:IsA("TextButton") and btn.Name ~= "Trade" and not string.find(string.lower(btn.Text), "trade") then
+                local posScore = btn.AbsolutePosition.X - btn.AbsolutePosition.Y
+                if posScore > maxDist then
+                    maxDist = posScore
+                    targetButton = btn
+                end
             end
         end
     end
