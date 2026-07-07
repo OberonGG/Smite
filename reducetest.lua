@@ -1,3 +1,15 @@
+pcall(function()
+    local CoreGui = game:GetService("CoreGui")
+    -- Cari langsung objek UI Delta yang umum di CoreGui
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            if string.find(string.lower(gui.Name), "delta") or gui:FindFirstChild("Delta") or gui:FindFirstChild("DeltaCore") then
+                gui.Enabled = false
+            end
+        end
+    end
+end)
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -244,6 +256,10 @@ RunService.RenderStepped:Connect(function()
     Lighting.FogEnd = 250 
     Lighting.TimeOfDay = "00:00:00" 
     
+    if setfpscap then 
+        setfpscap(20)
+    end 
+    
     if LocalPlayer.Character then
         cleanCharacterAndTools(LocalPlayer.Character)
     end
@@ -271,12 +287,12 @@ local function runReduce()
                 end
             end
 
-            -- Proteksi tambahan agar tidak menghapus objek milik LynxGui secara tidak sengaja
             if not inst:IsDescendantOf(CoreGui) then
                 if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
                     pcall(function() inst:Destroy() end)
                 elseif inst:IsA("BasePart") then
                     inst.Material = Enum.Material.SmoothPlastic
+                    inst.CastShadow = false
                 end
             end
             
