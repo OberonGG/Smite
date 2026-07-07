@@ -190,7 +190,7 @@ end)
 
 local AUTO_REPEAT = true
 local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 30
+local BATCH_SIZE = 100
 
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -244,7 +244,7 @@ RunService.RenderStepped:Connect(function()
     Lighting.TimeOfDay = "00:00:00" 
     
     if setfpscap then 
-        setfpscap(20)
+        setfpscap(30)
     end 
     
     if LocalPlayer.Character then
