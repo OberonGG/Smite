@@ -1,15 +1,15 @@
 --[[
-    Fish It - Multi-Instance Ultra Reduce (Anti-Crash, NPC Wipe & Permanent Mute)
+    Fish It - Multi-Instance Ultra Reduce (Anti-Crash, NPC Wipe & AUDIO ERADICATOR)
     - Jeda waktu pengulangan diatur menjadi 1 jam sekali (3600 detik).
-    - Mematikan suara (Audio) secara permanen, bahkan untuk suara yang baru muncul.
+    - Memusnahkan (Destroy) setiap file audio di seluruh direktori game tanpa ampun.
     - Menghilangkan rendering Joran (Rod), Aura, efek pancingan, dan Pets.
     - Menghapus seluruh NPC (Pedagang, Quest, dll) di seluruh Map.
     - Latar belakang Dark Grey & Karakter Abu-abu Polos tetap aktif.
 ]]
 
 local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3600 -- 1 Jam Sekali
-local BATCH_SIZE = 30        -- Aman untuk 5 instance
+local REPEAT_INTERVAL = 3600 
+local BATCH_SIZE = 30        
 
 local Lighting = game:GetService("Lighting")
 local SoundService = game:GetService("SoundService")
@@ -37,28 +37,39 @@ local CORE_LIMBS = {
 }
 
 -- ==========================================
--- FITUR BARU: PEMBLOKIR SUARA PERMANEN
+-- FITUR BARU: AUDIO ERADICATOR (PEMUSNAH SUARA MUTLAK)
 -- ==========================================
-local function forceMute(inst)
+local function eradicateAudio(inst)
     if inst:IsA("Sound") then
-        inst.Volume = 0
-        -- Jika game mencoba membesarkan volume lagi, langsung set ke 0
-        inst:GetPropertyChangedSignal("Volume"):Connect(function()
+        pcall(function()
+            -- Hentikan paksa pemutaran dan hancurkan sumber suaranya
             inst.Volume = 0
+            inst.Playing = false
+            inst.SoundId = "" 
+            inst:Destroy()
         end)
     end
 end
 
--- Mute semua suara yang sudah ada sekarang
-for _, inst in ipairs(SoundService:GetDescendants()) do forceMute(inst) end
-for _, inst in ipairs(workspace:GetDescendants()) do forceMute(inst) end
+-- Radar target untuk mencari audio yang disembunyikan developer
+local audioTargets = {
+    workspace,
+    SoundService,
+    game:GetService("ReplicatedStorage"),
+    game:GetService("Lighting"),
+    LocalPlayer -- Termasuk PlayerGui (tempat BGM sering disembunyikan)
+}
 
--- Pantau dan mute suara yang baru dibuat oleh game di masa depan
-SoundService.DescendantAdded:Connect(forceMute)
-workspace.DescendantAdded:Connect(forceMute)
+for _, target in ipairs(audioTargets) do
+    -- 1. Musnahkan semua suara yang sudah terlanjur berjalan saat script di-inject
+    for _, inst in ipairs(target:GetDescendants()) do
+        eradicateAudio(inst)
+    end
+    -- 2. Pasang jebakan untuk memusnahkan suara baru secara instan sebelum sempat berbunyi
+    target.DescendantAdded:Connect(eradicateAudio)
+end
 -- ==========================================
 
--- Fungsi membersihkan Karakter dan Joran (Rod)
 local function cleanCharacterAndTools(char)
     if not char then return end
     
@@ -81,7 +92,6 @@ local function cleanCharacterAndTools(char)
     end
 end
 
--- Mengunci pencahayaan dunia (Dark Grey)
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0 
@@ -97,7 +107,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- Fungsi utama pembersihan map & NPC
 local function runReduce()
     pcall(function()
         local sky = workspace:FindFirstChildOfClass("Sky") or Lighting:FindFirstChildOfClass("Sky")
@@ -112,7 +121,6 @@ local function runReduce()
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) then
             
-            -- LOGIKA DELETE ALL NPC & PETS
             if inst:IsA("Humanoid") then
                 local model = inst.Parent
                 if model and model:IsA("Model") then
