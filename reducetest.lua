@@ -17,7 +17,7 @@ ui.Parent = parentUI
 
 local frame = Instance.new("Frame", ui)
 frame.Size = UDim2.new(0, 220, 0, 40)
-frame.Position = UDim2.new(0, 15, 1, -120)
+frame.Position = UDim2.new(0, 15, 0, 80)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
