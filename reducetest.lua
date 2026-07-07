@@ -188,7 +188,7 @@ end)
 
 local AUTO_REPEAT = true
 local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 500
+local BATCH_SIZE = 1000
 
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
