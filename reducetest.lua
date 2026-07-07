@@ -1,14 +1,61 @@
 ---------------------------------------------------------------------
--- AUTO CLOSE DELTA UI & PROTEKSI UI KETAT (INSTAN)
+-- AUTO CLOSE DELTA UI VIA AGGRESSIVE WHITELIST (INSTAN - ANTI-CRASH)
 ---------------------------------------------------------------------
 pcall(function()
     local CoreGui = game:GetService("CoreGui")
-    for _, gui in ipairs(CoreGui:GetChildren()) do
-        if gui:IsA("ScreenGui") and gui.Name ~= "PingTimerUI" and gui.Name ~= "LynxGui" and gui.Name ~= "RobloxGui" then
-            -- Jika namanya mengandung kata delta atau terdeteksi UI asing dari executor, sembunyikan langsung
-            if string.find(string.lower(gui.Name), "delta") or gui:FindFirstChild("Delta") or gui:FindFirstChild("DeltaCore") or #gui:GetChildren() > 0 then
-                gui.Enabled = false
+    
+    -- Daftar UI yang BENAR-BENAR AMAN & TIDAK BOLEH dihancurkan
+    local whitelist = {
+        "RobloxGui", "CoreScriptLocalization", "RobloxPromptGui", "TopBarApp",
+        "ScreenshotsCarousel", "CaptureManager", "CaptureOverlay", "MomentsCreationFlow",
+        "RobloxNetworkPauseNotification", "_FullscreenTestGui", "_DeviceTestGui",
+        "SocialContextToast", "InExperienceInterventionApp", "PurchasePromptApp",
+        "InExperienceDetailsPromptApp", "CallDialogScreen", "PlayerMenuScreen",
+        "ContactList", "StyleSheet", "CursorContainer", "OnRootedListener",
+        "FoundationCursorContainer", "AppChat", "ExperienceChat", "HeadsetDisconnectedDialog",
+        "ShortcutBar", "PlayerList", "MengHubGui", "ToggleUIButton", "NotifyGui",
+        "DevConsoleMaster", "RealPingDisplay", "PingTimerUI", "LynxGui", "LynxCloseButton"
+    }
+
+    local deltaAttempts = 0
+    local deltaCleared = false
+
+    -- Loop pembersihan cepat 10x percobaan di background latar belakang
+    while deltaAttempts < 10 and not deltaCleared do
+        deltaAttempts = deltaAttempts + 1
+
+        for _, v in ipairs(CoreGui:GetChildren()) do
+            local allowed = false
+            local vNameLower = string.lower(v.Name)
+            
+            -- Cek kecocokan nama di whitelist
+            for _, w in ipairs(whitelist) do
+                if v.Name == w or string.find(vNameLower, "lynx") then 
+                    allowed = true 
+                    break 
+                end
             end
+            
+            -- Jika bukan whitelist & bukan milik Lynx, hancurkan total (Delta UI ikut tersapu di sini)
+            if not allowed then
+                pcall(function() v:Destroy() end)
+            end
+        end
+
+        -- Ambil jeda frame kecil agar CPU cloud tidak freeze
+        task.wait(0.1)
+
+        local leftover = 0
+        for _, v in ipairs(CoreGui:GetChildren()) do
+            local allowed = false
+            for _, w in ipairs(whitelist) do
+                if v.Name == w or string.find(string.lower(v.Name), "lynx") then allowed = true break end
+            end
+            if not allowed then leftover = leftover + 1 end
+        end
+
+        if leftover == 0 then
+            deltaCleared = true
         end
     end
 end)
@@ -146,7 +193,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- SOLUSI ANTI-BAC: Memakai filter teks ketat & firesignal murni tanpa klik koordinat layar
+-- SAFEST INTERNAL METHOD: Menutup menu Lynx murni tanpa klik koordinat layar (Anti-BAC Kick)
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui")
     if not LynxGui or not LynxGui:FindFirstChild("Frame") then
@@ -157,13 +204,11 @@ local function closeLynx()
     local mainFrame = LynxGui.Frame
     local targetButton = nil
 
-    -- Scan tombol berdasarkan nama internal & teks tombol silang milik Lynx Hub saja
     for _, btn in ipairs(mainFrame:GetDescendants()) do
         if btn:IsA("TextButton") then
             local text = string.lower(btn.Text)
             local name = string.lower(btn.Name)
             
-            -- Pastikan teks adalah tombol tutup, dan pastikan BUKAN menu trade/gameplay
             if (text == "x" or text == "close" or string.find(text, "❌") or name == "close" or name == "closebutton") 
                and not string.find(name, "trade") and not string.find(text, "trade") then
                 targetButton = btn
@@ -172,7 +217,6 @@ local function closeLynx()
         end
     end
 
-    -- Eksekusi hanya jika tombol 'X' Lynx benar-benar valid ditemukan
     if targetButton then
         pcall(function()
             if firesignal then
@@ -182,7 +226,6 @@ local function closeLynx()
             end
         end)
     else
-        -- Jika tombol X tidak terdeteksi, matikan paksa tampilan Lynx secara aman tanpa klik layar (mencegah BAC kick)
         pcall(function()
             LynxGui.Enabled = false
             print("Lynx Hidden via Safe Protection Mode")
