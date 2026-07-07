@@ -1,21 +1,96 @@
---[[
-    Fish It - Multi-Instance Ultra Reduce (Anti-Crash, NPC Wipe & AUDIO ERADICATOR)
-    - Jeda waktu pengulangan diatur menjadi 1 jam sekali (3600 detik).
-    - Memusnahkan (Destroy) setiap file audio di seluruh direktori game tanpa ampun.
-    - Menghilangkan rendering Joran (Rod), Aura, efek pancingan, dan Pets.
-    - Menghapus seluruh NPC (Pedagang, Quest, dll) di seluruh Map.
-    - Latar belakang Dark Grey & Karakter Abu-abu Polos tetap aktif.
-]]
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
+local Lighting = game:GetService("Lighting")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+
+local ui = Instance.new("ScreenGui")
+ui.Name = "PingTimerUI"
+ui.ResetOnSpawn = false
+ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local parentUI = (gethui and gethui()) or (CoreGui:FindFirstChild("RobloxGui") and CoreGui) or LocalPlayer:WaitForChild("PlayerGui")
+ui.Parent = parentUI
+
+local frame = Instance.new("Frame", ui)
+frame.Size = UDim2.new(0, 220, 0, 40)
+frame.Position = UDim2.new(0, 15, 1, -120)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.15
+frame.BorderSizePixel = 0
+frame.Active = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(1, 0)
+
+local textLabel = Instance.new("TextLabel", frame)
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.Font = Enum.Font.GothamBold
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextSize = 16
+textLabel.Text = "Ping: 0 ms | 0:00:00"
+
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+local startTime = os.time()
+
+task.spawn(function()
+    while task.wait(1) do
+        local ping = 0
+        pcall(function()
+            ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
+        
+        local elapsed = os.time() - startTime
+        local h = math.floor(elapsed / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = elapsed % 60
+        
+        textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
+    end
+end)
 
 local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3600 
-local BATCH_SIZE = 30        
-
-local Lighting = game:GetService("Lighting")
-local SoundService = game:GetService("SoundService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local REPEAT_INTERVAL = 3600
+local BATCH_SIZE = 30
 
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -35,40 +110,6 @@ local CORE_LIMBS = {
     ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
     ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
 }
-
--- ==========================================
--- FITUR BARU: AUDIO ERADICATOR (PEMUSNAH SUARA MUTLAK)
--- ==========================================
-local function eradicateAudio(inst)
-    if inst:IsA("Sound") then
-        pcall(function()
-            -- Hentikan paksa pemutaran dan hancurkan sumber suaranya
-            inst.Volume = 0
-            inst.Playing = false
-            inst.SoundId = "" 
-            inst:Destroy()
-        end)
-    end
-end
-
--- Radar target untuk mencari audio yang disembunyikan developer
-local audioTargets = {
-    workspace,
-    SoundService,
-    game:GetService("ReplicatedStorage"),
-    game:GetService("Lighting"),
-    LocalPlayer -- Termasuk PlayerGui (tempat BGM sering disembunyikan)
-}
-
-for _, target in ipairs(audioTargets) do
-    -- 1. Musnahkan semua suara yang sudah terlanjur berjalan saat script di-inject
-    for _, inst in ipairs(target:GetDescendants()) do
-        eradicateAudio(inst)
-    end
-    -- 2. Pasang jebakan untuk memusnahkan suara baru secara instan sebelum sempat berbunyi
-    target.DescendantAdded:Connect(eradicateAudio)
-end
--- ==========================================
 
 local function cleanCharacterAndTools(char)
     if not char then return end
@@ -120,7 +161,6 @@ local function runReduce()
 
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) then
-            
             if inst:IsA("Humanoid") then
                 local model = inst.Parent
                 if model and model:IsA("Model") then
@@ -142,7 +182,6 @@ local function runReduce()
             end
         end
     end
-    print("[Reduce] Pembersihan map dan NPC selesai.")
 end
 
 LocalPlayer.CharacterAdded:Connect(function(newChar)
