@@ -1,18 +1,21 @@
 --[[
-    Fish It - Reduce Map (Dark Grey Fix & Progressive Delay)
-    Mencegah sistem cuaca/siang-malam game menimpa settingan reduce map.
+    Fish It - Ultra Reduce Map & Grey Character (Strict Sequential Edition)
+    - Mengubah karakter menjadi abu-abu polos tanpa aksesoris/baju.
+    - Menutup layar game (3D View) menjadi hitam pekat seperti foto pertama.
+    - Menggunakan logika tunggu destroy selesai (tanpa hardcoded task.wait delay).
+    - Memaksa material seluruh part menjadi SmoothPlastic agar semakin low-end friendly.
 ]]
 
-local AUTO_REPEAT = true     -- Set ke false jika hanya ingin berjalan sekali
-local REPEAT_INTERVAL = 60   -- Jeda waktu (detik) untuk pembersihan ulang otomatis
-local BATCH_SIZE = 40        -- Jumlah objek yang diproses sebelum memberi jeda frame (mencegah lag)
-local DELAY_STEP = 3         -- Jeda waktu (detik) antar proses sesuai permintaan
+local AUTO_REPEAT = true
+local REPEAT_INTERVAL = 45
 
 local Lighting = game:GetService("Lighting")
 local SoundService = game:GetService("SoundService")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Daftar objek dekorasi, efek cuaca, dan post-processing yang akan dihapus
+-- Daftar objek dekorasi berat yang wajib dimusnahkan
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true,
@@ -22,74 +25,111 @@ local DECORATIVE_CLASSES = {
     SunRaysEffect = true, BlurEffect = true, DepthOfFieldEffect = true
 }
 
--- [PENTING] Mengunci Lighting agar script Day/Night bawaan game tidak bisa mengembalikan cahaya map
+-- Logika Utama: Tunggu part benar-benar selesai ke-destroy baru lanjut
+local function safeDestroy(inst)
+    if not inst or not inst.Parent then return end
+    
+    pcall(function()
+        inst:Destroy()
+    end)
+    
+    -- Loop penahan: Jika part belum benar-benar terhapus (parent bukan nil), tunggu frame berikutnya
+    local frameTimeout = 0
+    while inst.Parent ~= nil and frameTimeout < 10 do 
+        RunService.Heartbeat:Wait()
+        frameTimeout = frameTimeout + 1
+    end
+end
+
+-- Fungsi mengubah karakter menjadi abu-abu polos & hapus semua aksesoris
+local function cleanCharacter(char)
+    if not char then return end
+    
+    -- 1. Hapus aksesoris, baju, celana, dan kustomisasi tubuh secara berurutan
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("Accessory") or child:IsA("Shirt") or child:IsA("Pants") 
+        or child:IsA("CharacterMesh") or child:IsA("ShirtGraphic") or child:IsA("BodyColors") then
+            safeDestroy(child)
+        end
+    end
+    
+    -- 2. Ubah warna tubuh part demi part menjadi abu-abu polos & hapus tekstur wajah
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Color = Color3.fromRGB(120, 120, 120) -- Warna abu-abu delta lite
+            part.Material = Enum.Material.SmoothPlastic
+            
+            -- Cari dan hapus stiker wajah (face decal)
+            local face = part:FindFirstChildOfClass("Decal")
+            if face then safeDestroy(face) end
+        end
+    end
+end
+
+-- Mengunci background layar/3D world agar hitam pekat secara konstan
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0 
-    Lighting.Ambient = Color3.fromRGB(30, 30, 30) 
-    Lighting.OutdoorAmbient = Color3.fromRGB(30, 30, 30) 
-    Lighting.FogColor = Color3.fromRGB(30, 30, 30) 
-    
-    -- Trik Kabut Instan: Memaksa seluruh objek di luar jangkauan 0 stud menjadi flat Dark Grey
+    Lighting.Ambient = Color3.fromRGB(0, 0, 0) -- Hitam pekat sesuai foto pertama
+    Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0) 
+    Lighting.FogColor = Color3.fromRGB(0, 0, 0) 
     Lighting.FogStart = 0
-    Lighting.FogEnd = 0 
-    
+    Lighting.FogEnd = 0 -- Mengunci pandangan dunia 3D agar tertutup hitam flat
     Lighting.TimeOfDay = "00:00:00" 
 end)
 
--- Fungsi eksekusi reduce secara perlahan/bertahap
+-- Eksekusi penghancuran map secara sekuensial (berurutan dan logis)
 local function runReduce()
-    print("[Reduce] Memulai pembersihan map...")
+    -- Langkah 1: Bersihkan objek langit
+    local sky = workspace:FindFirstChildOfClass("Sky") or Lighting:FindFirstChildOfClass("Sky")
+    if sky then safeDestroy(sky) end
+    
+    local clouds = workspace:FindFirstChildOfClass("Clouds") or Lighting:FindFirstChildOfClass("Clouds")
+    if clouds then safeDestroy(clouds) end
 
-    -- Langkah 1: Hapus Sky dan Clouds bawaan biar langit flat
-    pcall(function()
-        local sky = workspace:FindFirstChildOfClass("Sky") or Lighting:FindFirstChildOfClass("Sky")
-        if sky then sky:Destroy() end
-        local clouds = workspace:FindFirstChildOfClass("Clouds") or Lighting:FindFirstChildOfClass("Clouds")
-        if clouds then clouds:Destroy() end
-    end)
-    print("[Reduce] Langkah 1 Selesai: Sky & Clouds dihapus. Menunggu 3 detik...")
-    task.wait(DELAY_STEP)
-
-    -- Langkah 2: Hapus Terrain air/tanah voxels
+    -- Langkah 2: Bersihkan Terrain Voxel
     pcall(function()
         workspace.Terrain:Clear()
     end)
-    print("[Reduce] Langkah 2 Selesai: Terrain dibersihkan. Menunggu 3 detik...")
-    task.wait(DELAY_STEP)
 
-    -- Langkah 3: Hapus partikel, dekorasi, efek pencahayaan, dan sisa post-processing
-    local removed, processed = 0, 0
+    -- Langkah 3: Bersihkan dekorasi & turunkan material part map secara berurutan
     for _, inst in ipairs(workspace:GetDescendants()) do
-        if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") then
-            if pcall(function() inst:Destroy() end) then
-                removed += 1
+        -- Pastikan tidak menghapus part dari karakter kita sendiri saat pembersihan map
+        if not inst:IsDescendantOf(LocalPlayer.Character) then
+            if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") then
+                safeDestroy(inst)
+            elseif inst:IsA("BasePart") then
+                -- Mengubah struktur objek game menjadi SmoothPlastic agar super ringan (semakin low)
+                inst.Material = Enum.Material.SmoothPlastic
+            elseif inst:IsA("Sound") then
+                pcall(function() inst.Volume = 0 end)
             end
-        elseif inst:IsA("Sound") then
-            pcall(function() inst.Volume = 0 end)
-        end
-        
-        processed += 1
-        if processed % BATCH_SIZE == 0 then
-            task.wait(0.05) -- Jeda mikro saat looping agar executor tidak crash/freeze
         end
     end
-    print(("[Reduce] Langkah 3 Selesai: %d objek dekorasi dihancurkan. Menunggu 3 detik..."):format(removed))
-    task.wait(DELAY_STEP)
 
-    -- Langkah 4: Mematikan musik background di SoundService
+    -- Langkah 4: Bersihkan karakter lokal
+    if LocalPlayer.Character then
+        cleanCharacter(LocalPlayer.Character)
+    end
+    
+    -- Langkah 5: Mute Audio global
     for _, inst in ipairs(SoundService:GetDescendants()) do
         if inst:IsA("Sound") then
             pcall(function() inst.Volume = 0 end)
         end
     end
-    print("[Reduce] Langkah 4 Selesai: Seluruh suara berhasil dimatikan.")
 end
 
--- Menjalankan fungsi reduce utama pertama kali
+-- Mengamankan karakter jika respawn/mati agar otomatis kembali abu-abu polos
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    RunService.Heartbeat:Wait() -- Beri jeda 1 frame agar karakter ter-load sempurna
+    cleanCharacter(newChar)
+end)
+
+-- Jalankan performa pertama
 task.spawn(runReduce)
 
--- Perulangan berkala untuk membersihkan objek baru yang di-stream oleh game
+-- Otomatisasi pembersihan berkala untuk part baru yang masuk (streaming-in)
 if AUTO_REPEAT then
     task.spawn(function()
         while task.wait(REPEAT_INTERVAL) do
