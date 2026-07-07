@@ -204,7 +204,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- SAFEST INTERNAL METHOD (FIX: Mencegah Ikon "L" Hilang)
+-- SAFEST INTERNAL METHOD (PERBAIKAN MUTLAK: BYPASS KLIK TRIGGER ASLI LYNX)
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
     if not LynxGui then
@@ -221,43 +221,28 @@ local function closeLynx()
         return
     end
 
-    -- Cari tombol silang asli di dalam Lynx UI
-    local targetButton = nil
-    for _, btn in ipairs(LynxGui:GetDescendants()) do
-        if btn:IsA("TextButton") or btn:IsA("ImageButton") then
-            local text = string.lower(btn:IsA("TextButton") and btn.Text or "")
-            local name = string.lower(btn.Name)
-            
-            if (text == "x" or text == "close" or string.find(text, "❌") or string.find(name, "close")) 
-               and not string.find(name, "trade") and not string.find(text, "trade") then
-                targetButton = btn
+    -- PENCARIAN MANDIRI: Cari Frame utama yang berisi UI cheat Lynx
+    -- Kita ubah .Visible = false secara paksa pada Frame-nya, BUKAN men-trigger tombol close bawaan Lynx
+    local targetFrame = LynxGui:FindFirstChild("Frame") or LynxGui:FindFirstChildOfClass("Frame")
+    
+    if not targetFrame then
+        -- Jika struktur berubah, cari Frame terbesar di dalam LynxGui
+        for _, obj in ipairs(LynxGui:GetChildren()) do
+            if obj:IsA("Frame") then
+                targetFrame = obj
                 break
             end
         end
     end
 
-    -- JALANKAN FIX LOGIC:
-    if targetButton then
+    if targetFrame then
         pcall(function()
-            if firesignal then
-                firesignal(targetButton.MouseButton1Click)
-                firesignal(targetButton.Activated)
-                print("Lynx ditutup via klik simulasi otomatis.")
-            end
+            -- Ubah visibilitas frame menu utamanya saja (Toggle on/off)
+            targetFrame.Visible = not targetFrame.Visible
+            print("[SAFE CLOSE] Berhasil menyembunyikan Frame utama tanpa memicu script pemutus Lynx.")
         end)
     else
-        -- FIX UTAMA: Jika tombol silang tidak ketemu, JANGAN matikan seluruh LynxGui!
-        -- Cari folder/frame menu utama (berdasarkan file logmu namanya 'Frame' atau objek bertipe Frame besar)
-        local mainMenuFrame = LynxGui:FindFirstChild("Frame") or LynxGui:FindFirstChildOfClass("Frame")
-        if mainMenuFrame then
-            pcall(function()
-                mainMenuFrame.Visible = false -- Hanya sembunyikan menu kotaknya saja!
-                print("Menu utama disembunyikan, Ikon 'L' tetap aktif di layar.")
-            end)
-        else
-            -- Jalan terakhir jika struktur tidak terduga, sembunyikan semua secara aman
-            pcall(function() LynxGui.Enabled = false end)
-        end
+        print("[WARN] Gagal mendeteksi Frame utama Lynx.")
     end
 end
 
