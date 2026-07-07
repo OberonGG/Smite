@@ -3,7 +3,7 @@
 ---------------------------------------------------------------------
 pcall(function()
     -- BERIKAN WAKTU 1 DETIK AGAR SCRIPT UTAMA LYNX SELESAI LOAD DULU
-    task.wait(4)
+    task.wait(1)
 
     local CoreGui = game:GetService("CoreGui")
     
@@ -204,33 +204,31 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- SAFEST INTERNAL METHOD: Menutup menu Lynx murni tanpa klik koordinat layar (Anti-BAC Kick)
+-- SAFEST INTERNAL METHOD (FIX: Mencegah Ikon "L" Hilang)
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
     if not LynxGui then
-        -- Cadangan jika namanya mengandung unsur kata lynx secara dinamis
         for _, child in ipairs(CoreGui:GetChildren()) do
-            if string.find(string.lower(child.Name), "lynx") and child:FindFirstChild("Frame") then
+            if string.find(string.lower(child.Name), "lynx") then
                 LynxGui = child
                 break
             end
         end
     end
 
-    if not LynxGui or not LynxGui:FindFirstChild("Frame") then
-        print("Lynx UI tidak ditemukan/sudah tertutup")
+    if not LynxGui then
+        print("Lynx UI tidak ditemukan")
         return
     end
 
-    local mainFrame = LynxGui.Frame
+    -- Cari tombol silang asli di dalam Lynx UI
     local targetButton = nil
-
-    for _, btn in ipairs(mainFrame:GetDescendants()) do
-        if btn:IsA("TextButton") then
-            local text = string.lower(btn.Text)
+    for _, btn in ipairs(LynxGui:GetDescendants()) do
+        if btn:IsA("TextButton") or btn:IsA("ImageButton") then
+            local text = string.lower(btn:IsA("TextButton") and btn.Text or "")
             local name = string.lower(btn.Name)
             
-            if (text == "x" or text == "close" or string.find(text, "❌") or name == "close" or name == "closebutton") 
+            if (text == "x" or text == "close" or string.find(text, "❌") or string.find(name, "close")) 
                and not string.find(name, "trade") and not string.find(text, "trade") then
                 targetButton = btn
                 break
@@ -238,19 +236,28 @@ local function closeLynx()
         end
     end
 
+    -- JALANKAN FIX LOGIC:
     if targetButton then
         pcall(function()
             if firesignal then
                 firesignal(targetButton.MouseButton1Click)
                 firesignal(targetButton.Activated)
-                print("Lynx Closed via Internal Firesignal Safe Mode")
+                print("Lynx ditutup via klik simulasi otomatis.")
             end
         end)
     else
-        pcall(function()
-            LynxGui.Enabled = false
-            print("Lynx Hidden via Safe Protection Mode")
-        end)
+        -- FIX UTAMA: Jika tombol silang tidak ketemu, JANGAN matikan seluruh LynxGui!
+        -- Cari folder/frame menu utama (berdasarkan file logmu namanya 'Frame' atau objek bertipe Frame besar)
+        local mainMenuFrame = LynxGui:FindFirstChild("Frame") or LynxGui:FindFirstChildOfClass("Frame")
+        if mainMenuFrame then
+            pcall(function()
+                mainMenuFrame.Visible = false -- Hanya sembunyikan menu kotaknya saja!
+                print("Menu utama disembunyikan, Ikon 'L' tetap aktif di layar.")
+            end)
+        else
+            -- Jalan terakhir jika struktur tidak terduga, sembunyikan semua secara aman
+            pcall(function() LynxGui.Enabled = false end)
+        end
     end
 end
 
