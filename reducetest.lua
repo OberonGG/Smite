@@ -34,7 +34,7 @@ textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
 
-local LynxButton = Instance.new("ImageButton", ui)
+local LynxButton = Instance.new("ImageButton", "UICorner", "TextLabel")
 LynxButton.Name = "LynxCloseButton"
 LynxButton.Size = UDim2.new(0, 35, 0, 35)
 LynxButton.AnchorPoint = Vector2.new(1, 0)
