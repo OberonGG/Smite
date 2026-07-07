@@ -7,10 +7,6 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
-if CoreGui:FindFirstChild("PingTimerUI") then
-    CoreGui.PingTimerUI:Destroy()
-end
-
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -169,8 +165,7 @@ local function closeLynx()
     end
 end
 
-MainButton = LynxButton
-MainButton.MouseButton1Click:Connect(closeLynx)
+LynxButton.MouseButton1Click:Connect(closeLynx)
 
 local startTime = os.time()
 
@@ -244,10 +239,6 @@ RunService.RenderStepped:Connect(function()
     Lighting.FogStart = 0
     Lighting.FogEnd = 250 
     Lighting.TimeOfDay = "00:00:00" 
-    
-    if setfpscap then 
-        setfpscap(20)
-    end 
     
     if LocalPlayer.Character then
         cleanCharacterAndTools(LocalPlayer.Character)
