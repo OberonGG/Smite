@@ -17,7 +17,7 @@ pcall(function()
         "ContactList", "StyleSheet", "CursorContainer", "OnRootedListener",
         "FoundationCursorContainer", "AppChat", "ExperienceChat", "HeadsetDisconnectedDialog",
         "ShortcutBar", "PlayerList", "MengHubGui", "ToggleUIButton", "NotifyGui",
-        "DevConsoleMaster", "RealPingDisplay", "PingTimerUI", "LynxGui", "LynxCloseButton"
+        "DevConsoleMaster", "ConsoleElements", "RealPingDisplay", "PingTimerUI", "LynxGui", "LynxCloseButton"
     }
 
     local deltaAttempts = 0
