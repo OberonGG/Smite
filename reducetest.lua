@@ -128,7 +128,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- SAFEST INTERNAL METHOD (PERBAIKAN MUTLAK: BYPASS KLIK TRIGGER ASLI LYNX)
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
     if not LynxGui then
@@ -161,7 +160,6 @@ local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChil
         pcall(function()
             -- Ubah visibilitas frame menu utamanya saja (Toggle on/off)
             targetFrame.Visible = not targetFrame.Visible
-            print("[SAFE CLOSE] Berhasil menyembunyikan Frame utama tanpa memicu script pemutus Lynx.")
         end)
     else
         print("[WARN] Gagal mendeteksi Frame utama Lynx.")
