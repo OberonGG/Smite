@@ -221,9 +221,7 @@ local function closeLynx()
         return
     end
 
-    -- PENCARIAN MANDIRI: Cari Frame utama yang berisi UI cheat Lynx
-    -- Kita ubah .Visible = false secara paksa pada Frame-nya, BUKAN men-trigger tombol close bawaan Lynx
-    local targetFrame = LynxGui:FindFirstChild("Frame") or LynxGui:FindFirstChildOfClass("Frame")
+local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
     
     if not targetFrame then
         -- Jika struktur berubah, cari Frame terbesar di dalam LynxGui
