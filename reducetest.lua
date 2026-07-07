@@ -7,6 +7,10 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
+if CoreGui:FindFirstChild("PingTimerUI") then
+    CoreGui.PingTimerUI:Destroy()
+end
+
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -17,7 +21,7 @@ ui.Parent = parentUI
 
 local frame = Instance.new("Frame", ui)
 frame.Size = UDim2.new(0, 220, 0, 40)
-frame.Position = UDim2.new(0, 15, 0, 80)
+frame.Position = UDim2.new(0.02, 0, 0.1, 0)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
@@ -33,6 +37,28 @@ textLabel.Font = Enum.Font.GothamBold
 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
+
+local LynxButton = Instance.new("ImageButton", ui)
+LynxButton.Name = "LynxCloseButton"
+LynxButton.Size = UDim2.new(0, 35, 0, 35)
+LynxButton.AnchorPoint = Vector2.new(1, 0)
+LynxButton.Position = UDim2.new(0.98, 0, 0.1, 0)
+LynxButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+LynxButton.BackgroundTransparency = 0.15
+LynxButton.BorderSizePixel = 0
+LynxButton.AutoButtonColor = true
+LynxButton.Active = true
+
+local LynxCorner = Instance.new("UICorner", LynxButton)
+LynxCorner.CornerRadius = UDim.new(1, 0)
+
+local LynxXLabel = Instance.new("TextLabel", LynxButton)
+LynxXLabel.Size = UDim2.new(1, 0, 1, 0)
+LynxXLabel.BackgroundTransparency = 1
+LynxXLabel.Text = "❌"
+LynxXLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+LynxXLabel.TextSize = 16
+LynxXLabel.Font = Enum.Font.SourceSansBold
 
 local dragging
 local dragInput
@@ -70,6 +96,82 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+local dragging2
+local dragInput2
+local dragStart2
+local startPos2
+
+local function update2(input)
+    local delta = input.Position - dragStart2
+    LynxButton.Position = UDim2.new(startPos2.X.Scale, startPos2.X.Offset + delta.X, startPos2.Y.Scale, startPos2.Y.Offset + delta.Y)
+end
+
+LynxButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging2 = true
+        dragStart2 = input.Position
+        startPos2 = LynxButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging2 = false
+            end
+        end)
+    end
+end)
+
+LynxButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput2 = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput2 and dragging2 then
+        update2(input)
+    end
+end)
+
+local function closeLynx()
+    local LynxGui = CoreGui:FindFirstChild("LynxGui")
+    if not LynxGui or not LynxGui:FindFirstChild("Frame") then
+        print("Lynx UI tidak ditemukan/sudah tertutup")
+        return
+    end
+
+    local mainFrame = LynxGui.Frame
+    local targetButton = nil
+    local maxDist = -math.huge
+
+    for _, btn in ipairs(mainFrame:GetDescendants()) do
+        if btn:IsA("TextButton") then
+            local posScore = btn.AbsolutePosition.X - btn.AbsolutePosition.Y
+            if posScore > maxDist then
+                maxDist = posScore
+                targetButton = btn
+            end
+        end
+    end
+
+    if targetButton then
+        if firesignal then
+            firesignal(targetButton.MouseButton1Click)
+            firesignal(targetButton.Activated)
+            print("Lynx Closed via Gabungan Controller")
+        else
+            local vim = game:GetService("VirtualInputManager")
+            local x = targetButton.AbsolutePosition.X + (targetButton.AbsoluteSize.X / 2)
+            local y = targetButton.AbsolutePosition.Y + (targetButton.AbsoluteSize.Y / 2)
+            vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+            task.wait(0.05)
+            vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+        end
+    end
+end
+
+MainButton = LynxButton
+MainButton.MouseButton1Click:Connect(closeLynx)
+
 local startTime = os.time()
 
 task.spawn(function()
@@ -90,7 +192,10 @@ end)
 
 local AUTO_REPEAT = true
 local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 30
+local BATCH_SIZE = 100
+
+settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+game:GetService("UserGameSettings").SavedQualityLevel = Enum.SavedQualityLevel.Level01
 
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -99,7 +204,8 @@ local DECORATIVE_CLASSES = {
     Decal = true, Texture = true, SurfaceAppearance = true,
     Atmosphere = true, ColorCorrectionEffect = true, BloomEffect = true,
     SunRaysEffect = true, BlurEffect = true, DepthOfFieldEffect = true,
-    Highlight = true, SelectionBox = true
+    Highlight = true, SelectionBox = true, PostEffect = true, RopeConstraint = true,
+    Clothing = true, Shirt = true, Pants = true, Accessory = true, CharacterMesh = true, BodyColors = true
 }
 
 local CORE_LIMBS = {
@@ -136,12 +242,16 @@ end
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0 
-    Lighting.Ambient = Color3.fromRGB(35, 35, 35) 
-    Lighting.OutdoorAmbient = Color3.fromRGB(35, 35, 35) 
-    Lighting.FogColor = Color3.fromRGB(35, 35, 35) 
+    Lighting.Ambient = Color3.fromRGB(20, 20, 20) 
+    Lighting.OutdoorAmbient = Color3.fromRGB(20, 20, 20) 
+    Lighting.FogColor = Color3.fromRGB(20, 20, 20) 
     Lighting.FogStart = 0
     Lighting.FogEnd = 250 
     Lighting.TimeOfDay = "00:00:00" 
+    
+    if setfpscap then 
+        setfpscap(15)
+    end 
     
     if LocalPlayer.Character then
         cleanCharacterAndTools(LocalPlayer.Character)
@@ -155,6 +265,10 @@ local function runReduce()
         local clouds = workspace:FindFirstChildOfClass("Clouds") or Lighting:FindFirstChildOfClass("Clouds")
         if clouds then clouds:Destroy() end
         workspace.Terrain:Clear()
+        workspace.Terrain.WaterWaveSize = 0
+        workspace.Terrain.WaterWaveSpeed = 0
+        workspace.Terrain.WaterReflectance = 0
+        workspace.Terrain.WaterTransparency = 0
     end)
 
     local objectsProcessed = 0
@@ -170,10 +284,15 @@ local function runReduce()
                 end
             end
 
-            if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
+            if DECORATIVE_CLASSES[inst.ClassName] then
                 pcall(function() inst:Destroy() end)
             elseif inst:IsA("BasePart") then
                 inst.Material = Enum.Material.SmoothPlastic
+                inst.CastShadow = false
+                inst.Reflectance = 0
+                inst.Transparency = 1
+            elseif inst:IsA("MeshPart") then
+                inst.Transparency = 1
             end
             
             objectsProcessed = objectsProcessed + 1
