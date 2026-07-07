@@ -1,7 +1,10 @@
 ---------------------------------------------------------------------
--- AUTO CLOSE DELTA UI VIA AGGRESSIVE WHITELIST (INSTAN - ANTI-CRASH)
+-- AUTO CLOSE DELTA UI VIA AGGRESSIVE WHITELIST (FIX LYNX WIPE)
 ---------------------------------------------------------------------
 pcall(function()
+    -- BERIKAN WAKTU 1 DETIK AGAR SCRIPT UTAMA LYNX SELESAI LOAD DULU
+    task.wait(1)
+
     local CoreGui = game:GetService("CoreGui")
     
     -- Daftar UI yang BENAR-BENAR AMAN & TIDAK BOLEH dihancurkan
@@ -20,7 +23,7 @@ pcall(function()
     local deltaAttempts = 0
     local deltaCleared = false
 
-    -- Loop pembersihan cepat 10x percobaan di background latar belakang
+    -- Loop pembersihan cepat 10x percobaan
     while deltaAttempts < 10 and not deltaCleared do
         deltaAttempts = deltaAttempts + 1
 
@@ -28,28 +31,36 @@ pcall(function()
             local allowed = false
             local vNameLower = string.lower(v.Name)
             
-            -- Cek kecocokan nama di whitelist
-            for _, w in ipairs(whitelist) do
-                if v.Name == w or string.find(vNameLower, "lynx") then 
-                    allowed = true 
-                    break 
+            -- Cek kecocokan nama di whitelist atau jika mengandung kata "lynx"
+            if string.find(vNameLower, "lynx") then
+                allowed = true
+            else
+                for _, w in ipairs(whitelist) do
+                    if v.Name == w then 
+                        allowed = true 
+                        break 
+                    end
                 end
             end
             
-            -- Jika bukan whitelist & bukan milik Lynx, hancurkan total (Delta UI ikut tersapu di sini)
+            -- Jika bukan whitelist & bukan komponen Lynx, hancurkan total
             if not allowed then
                 pcall(function() v:Destroy() end)
             end
         end
 
         -- Ambil jeda frame kecil agar CPU cloud tidak freeze
-        task.wait(0.1)
+        task.wait(0.2)
 
         local leftover = 0
         for _, v in ipairs(CoreGui:GetChildren()) do
             local allowed = false
-            for _, w in ipairs(whitelist) do
-                if v.Name == w or string.find(string.lower(v.Name), "lynx") then allowed = true break end
+            if string.find(string.lower(v.Name), "lynx") then
+                allowed = true
+            else
+                for _, w in ipairs(whitelist) do
+                    if v.Name == w then allowed = true break end
+                end
             end
             if not allowed then leftover = leftover + 1 end
         end
@@ -195,7 +206,17 @@ end)
 
 -- SAFEST INTERNAL METHOD: Menutup menu Lynx murni tanpa klik koordinat layar (Anti-BAC Kick)
 local function closeLynx()
-    local LynxGui = CoreGui:FindFirstChild("LynxGui")
+    local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
+    if not LynxGui then
+        -- Cadangan jika namanya mengandung unsur kata lynx secara dinamis
+        for _, child in ipairs(CoreGui:GetChildren()) do
+            if string.find(string.lower(child.Name), "lynx") and child:FindFirstChild("Frame") then
+                LynxGui = child
+                break
+            end
+        end
+    end
+
     if not LynxGui or not LynxGui:FindFirstChild("Frame") then
         print("Lynx UI tidak ditemukan/sudah tertutup")
         return
