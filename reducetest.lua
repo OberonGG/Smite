@@ -3,7 +3,7 @@
 ---------------------------------------------------------------------
 pcall(function()
     -- BERIKAN WAKTU 1 DETIK AGAR SCRIPT UTAMA LYNX SELESAI LOAD DULU
-    task.wait(1)
+    task.wait(4)
 
     local CoreGui = game:GetService("CoreGui")
     
