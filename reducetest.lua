@@ -150,18 +150,22 @@ local function closeLynx()
     end
 
     if targetButton then
-        if firesignal then
-            firesignal(targetButton.MouseButton1Click)
-            firesignal(targetButton.Activated)
-            print("Lynx Closed via Gabungan Controller")
-        else
+        pcall(function()
+            if firesignal then
+                firesignal(targetButton.MouseButton1Click)
+                firesignal(targetButton.Activated)
+            end
+            
             local vim = game:GetService("VirtualInputManager")
             local x = targetButton.AbsolutePosition.X + (targetButton.AbsoluteSize.X / 2)
             local y = targetButton.AbsolutePosition.Y + (targetButton.AbsoluteSize.Y / 2)
-            vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
-            task.wait(0.05)
-            vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
-        end
+            
+            if x > 0 and y > 0 then
+                vim:SendMouseButtonEvent(x, y, 0, true, game, 1)
+                task.wait(0.02)
+                vim:SendMouseButtonEvent(x, y, 0, false, game, 1)
+            end
+        end)
     end
 end
 
@@ -267,10 +271,13 @@ local function runReduce()
                 end
             end
 
-            if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
-                pcall(function() inst:Destroy() end)
-            elseif inst:IsA("BasePart") then
-                inst.Material = Enum.Material.SmoothPlastic
+            -- Proteksi tambahan agar tidak menghapus objek milik LynxGui secara tidak sengaja
+            if not inst:IsDescendantOf(CoreGui) then
+                if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
+                    pcall(function() inst:Destroy() end)
+                elseif inst:IsA("BasePart") then
+                    inst.Material = Enum.Material.SmoothPlastic
+                end
             end
             
             objectsProcessed = objectsProcessed + 1
