@@ -34,6 +34,28 @@ textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
 
+local LynxButton = Instance.new("ImageButton", ui)
+LynxButton.Name = "LynxCloseButton"
+LynxButton.Size = UDim2.new(0, 35, 0, 35)
+LynxButton.AnchorPoint = Vector2.new(1, 0)
+LynxButton.Position = UDim2.new(0.98, 0, 0.1, 0)
+LynxButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+LynxButton.BackgroundTransparency = 0.15
+LynxButton.BorderSizePixel = 0
+LynxButton.AutoButtonColor = true
+LynxButton.Active = true
+
+local LynxCorner = Instance.new("UICorner", LynxButton)
+LynxCorner.CornerRadius = UDim.new(1, 0)
+
+local LynxXLabel = Instance.new("TextLabel", LynxButton)
+LynxXLabel.Size = UDim2.new(1, 0, 1, 0)
+LynxXLabel.BackgroundTransparency = 1
+LynxXLabel.Text = "❌"
+LynxXLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+LynxXLabel.TextSize = 16
+LynxXLabel.Font = Enum.Font.SourceSansBold
+
 local dragging
 local dragInput
 local dragStart
@@ -70,6 +92,82 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+local dragging2
+local dragInput2
+local dragStart2
+local startPos2
+
+local function update2(input)
+    local delta = input.Position - dragStart2
+    LynxButton.Position = UDim2.new(startPos2.X.Scale, startPos2.X.Offset + delta.X, startPos2.Y.Scale, startPos2.Y.Offset + delta.Y)
+end
+
+LynxButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging2 = true
+        dragStart2 = input.Position
+        startPos2 = LynxButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging2 = false
+            end
+        end)
+    end
+end)
+
+LynxButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput2 = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput2 and dragging2 then
+        update2(input)
+    end
+end)
+
+local function closeLynx()
+    local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
+    if not LynxGui then
+        for _, child in ipairs(CoreGui:GetChildren()) do
+            if string.find(string.lower(child.Name), "lynx") then
+                LynxGui = child
+                break
+            end
+        end
+    end
+
+    if not LynxGui then
+        print("Lynx UI tidak ditemukan")
+        return
+    end
+
+local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
+    
+    if not targetFrame then
+        -- Jika struktur berubah, cari Frame terbesar di dalam LynxGui
+        for _, obj in ipairs(LynxGui:GetChildren()) do
+            if obj:IsA("Frame") then
+                targetFrame = obj
+                break
+            end
+        end
+    end
+
+    if targetFrame then
+        pcall(function()
+            -- Ubah visibilitas frame menu utamanya saja (Toggle on/off)
+            targetFrame.Visible = not targetFrame.Visible
+        end)
+    else
+        print("[WARN] Gagal mendeteksi Frame utama Lynx.")
+    end
+end
+
+LynxButton.MouseButton1Click:Connect(closeLynx)
+
 local startTime = os.time()
 
 task.spawn(function()
@@ -90,7 +188,7 @@ end)
 
 local AUTO_REPEAT = true
 local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 30
+local BATCH_SIZE = 1000
 
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -143,6 +241,10 @@ RunService.RenderStepped:Connect(function()
     Lighting.FogEnd = 250 
     Lighting.TimeOfDay = "00:00:00" 
     
+    if setfpscap then 
+        setfpscap(30)
+    end 
+    
     if LocalPlayer.Character then
         cleanCharacterAndTools(LocalPlayer.Character)
     end
@@ -170,10 +272,13 @@ local function runReduce()
                 end
             end
 
-            if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
-                pcall(function() inst:Destroy() end)
-            elseif inst:IsA("BasePart") then
-                inst.Material = Enum.Material.SmoothPlastic
+            if not inst:IsDescendantOf(CoreGui) then
+                if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
+                    pcall(function() inst:Destroy() end)
+                elseif inst:IsA("BasePart") then
+                    inst.Material = Enum.Material.SmoothPlastic
+                    inst.CastShadow = false
+                end
             end
             
             objectsProcessed = objectsProcessed + 1
