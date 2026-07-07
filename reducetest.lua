@@ -192,10 +192,7 @@ end)
 
 local AUTO_REPEAT = true
 local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 100
-
-settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-game:GetService("UserGameSettings").SavedQualityLevel = Enum.SavedQualityLevel.Level01
+local BATCH_SIZE = 30
 
 local DECORATIVE_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -204,8 +201,7 @@ local DECORATIVE_CLASSES = {
     Decal = true, Texture = true, SurfaceAppearance = true,
     Atmosphere = true, ColorCorrectionEffect = true, BloomEffect = true,
     SunRaysEffect = true, BlurEffect = true, DepthOfFieldEffect = true,
-    Highlight = true, SelectionBox = true, PostEffect = true, RopeConstraint = true,
-    Clothing = true, Shirt = true, Pants = true, Accessory = true, CharacterMesh = true, BodyColors = true
+    Highlight = true, SelectionBox = true
 }
 
 local CORE_LIMBS = {
@@ -242,15 +238,15 @@ end
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0 
-    Lighting.Ambient = Color3.fromRGB(20, 20, 20) 
-    Lighting.OutdoorAmbient = Color3.fromRGB(20, 20, 20) 
-    Lighting.FogColor = Color3.fromRGB(20, 20, 20) 
+    Lighting.Ambient = Color3.fromRGB(35, 35, 35) 
+    Lighting.OutdoorAmbient = Color3.fromRGB(35, 35, 35) 
+    Lighting.FogColor = Color3.fromRGB(35, 35, 35) 
     Lighting.FogStart = 0
     Lighting.FogEnd = 250 
     Lighting.TimeOfDay = "00:00:00" 
     
     if setfpscap then 
-        setfpscap(15)
+        setfpscap(20)
     end 
     
     if LocalPlayer.Character then
@@ -265,10 +261,6 @@ local function runReduce()
         local clouds = workspace:FindFirstChildOfClass("Clouds") or Lighting:FindFirstChildOfClass("Clouds")
         if clouds then clouds:Destroy() end
         workspace.Terrain:Clear()
-        workspace.Terrain.WaterWaveSize = 0
-        workspace.Terrain.WaterWaveSpeed = 0
-        workspace.Terrain.WaterReflectance = 0
-        workspace.Terrain.WaterTransparency = 0
     end)
 
     local objectsProcessed = 0
@@ -284,15 +276,10 @@ local function runReduce()
                 end
             end
 
-            if DECORATIVE_CLASSES[inst.ClassName] then
+            if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
                 pcall(function() inst:Destroy() end)
             elseif inst:IsA("BasePart") then
                 inst.Material = Enum.Material.SmoothPlastic
-                inst.CastShadow = false
-                inst.Reflectance = 0
-                inst.Transparency = 1
-            elseif inst:IsA("MeshPart") then
-                inst.Transparency = 1
             end
             
             objectsProcessed = objectsProcessed + 1
