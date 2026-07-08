@@ -211,47 +211,41 @@ local function cleanChar(char)
     end
 end
 
+local Storage = Instance.new("Folder")
+Storage.Name = "WeatherKarantina"
+Storage.Parent = CoreGui
+
+local TARGET_CLASSES = {
+    Sky = true, Atmosphere = true, Clouds = true,
+    ColorCorrectionEffect = true, SunRaysEffect = true,
+    BloomEffect = true, BlurEffect = true, DepthOfFieldEffect = true
+}
+
+local function quarantineObject(obj)
+    if TARGET_CLASSES[obj.ClassName] then
+        obj.Parent = Storage
+    end
+end
+
+Lighting.ChildAdded:Connect(quarantineObject)
+workspace.ChildAdded:Connect(quarantineObject)
+
+for _, obj in ipairs(Lighting:GetChildren()) do quarantineObject(obj) end
+for _, obj in ipairs(workspace:GetChildren()) do quarantineObject(obj) end
+
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
     Lighting.Ambient = Color3.fromRGB(55, 55, 55)
     Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
-    Lighting.TimeOfDay = "12:00:00"
+    Lighting.ExposureCompensation = 0
+    Lighting.EnvironmentDiffuseScale = 0
+    Lighting.EnvironmentSpecularScale = 0
+    Lighting.TimeOfDay = "00:00:00"
+    Lighting.FogColor = Color3.fromRGB(55, 55, 55)
+    Lighting.FogStart = 0
+    Lighting.FogEnd = 0
     
-    local myAtm = Lighting:FindFirstChild("ReduceAtmosphere")
-    if not myAtm then
-        myAtm = Instance.new("Atmosphere")
-        myAtm.Name = "ReduceAtmosphere"
-        myAtm.Parent = Lighting
-    end
-    myAtm.Density = 1
-    myAtm.Offset = 0
-    myAtm.Color = Color3.fromRGB(55, 55, 55)
-    myAtm.Decay = Color3.fromRGB(55, 55, 55)
-    myAtm.Glare = 0
-    myAtm.Haze = 10
-    
-    for _, obj in ipairs(Lighting:GetChildren()) do
-        if obj:IsA("Atmosphere") and obj.Name ~= "ReduceAtmosphere" then
-            pcall(function() obj:Destroy() end)
-        end
-    end
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("Atmosphere") then
-            pcall(function() obj:Destroy() end)
-        end
-    end
-    
-    local sky1 = Lighting:FindFirstChildOfClass("Sky")
-    if sky1 then pcall(function() sky1:Destroy() end) end
-    local sky2 = workspace:FindFirstChildOfClass("Sky")
-    if sky2 then pcall(function() sky2:Destroy() end) end
-
-    local cld1 = Lighting:FindFirstChildOfClass("Clouds")
-    if cld1 then pcall(function() cld1:Destroy() end) end
-    local cld2 = workspace:FindFirstChildOfClass("Clouds")
-    if cld2 then pcall(function() cld2:Destroy() end) end
-
     if setfpscap then
         setfpscap(30)
     end
