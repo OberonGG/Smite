@@ -50,8 +50,13 @@ end
 task.wait(math.random(5, 15)) 
 
 task.spawn(function()
+    -- BERI DELAY AWAL YANG SANGAT BESAR DAN ACAK (1 hingga 300 detik)
+    -- Ini memastikan 140 akunmu tidak akan 'menyerang' server di waktu yang sama saat baru login
+    task.wait(math.random(1, 300))
+    
     while true do
         sendDataToBackend()
-        task.wait(math.random(120, 180)) -- Perpanjang interval jadi 2-3 menit
+        -- Perpanjang interval menjadi 5-10 menit per akun
+        task.wait(math.random(300, 600)) 
     end
 end)
