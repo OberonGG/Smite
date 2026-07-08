@@ -11,13 +11,11 @@ local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
 ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-local parentUI = (gethui and gethui()) or (CoreGui:FindFirstChild("RobloxGui") and CoreGui) or LocalPlayer:WaitForChild("PlayerGui")
-ui.Parent = parentUI
+ui.Parent = (gethui and gethui()) or CoreGui
 
 local frame = Instance.new("Frame", ui)
 frame.Size = UDim2.new(0, 220, 0, 40)
-frame.Position = UDim2.new(0.02, 0, 0.1, 0)
+frame.Position = UDim2.new(0.015, 0, 0.165, 0)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
@@ -37,8 +35,7 @@ textLabel.Text = "Ping: 0 ms | 0:00:00"
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
 LynxButton.Size = UDim2.new(0, 35, 0, 35)
-LynxButton.AnchorPoint = Vector2.new(0, 0)
-LynxButton.Position = UDim2.new(0.04, 0, 0.2, 0)
+LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
 LynxButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 LynxButton.BackgroundTransparency = 0.15
 LynxButton.BorderSizePixel = 0
@@ -71,7 +68,6 @@ frame.InputBegan:Connect(function(input)
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
-        
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
@@ -107,7 +103,6 @@ LynxButton.InputBegan:Connect(function(input)
         dragging2 = true
         dragStart2 = input.Position
         startPos2 = LynxButton.Position
-        
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging2 = false
@@ -138,59 +133,46 @@ local function closeLynx()
             end
         end
     end
-
-    if not LynxGui then
-        print("Lynx UI tidak ditemukan")
-        return
-    end
-
-local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
-    
-    if not targetFrame then
-        -- Jika struktur berubah, cari Frame terbesar di dalam LynxGui
-        for _, obj in ipairs(LynxGui:GetChildren()) do
-            if obj:IsA("Frame") then
-                targetFrame = obj
-                break
+    if LynxGui then
+        local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
+        if not targetFrame then
+            for _, obj in ipairs(LynxGui:GetChildren()) do
+                if obj:IsA("Frame") then
+                    targetFrame = obj
+                    break
+                end
             end
         end
-    end
-
-    if targetFrame then
-        pcall(function()
-            -- Ubah visibilitas frame menu utamanya saja (Toggle on/off)
-            targetFrame.Visible = not targetFrame.Visible
-        end)
-    else
-        print("[WARN] Gagal mendeteksi Frame utama Lynx.")
+        if targetFrame then
+            pcall(function()
+                targetFrame.Visible = not targetFrame.Visible
+            end)
+        end
     end
 end
 
 LynxButton.MouseButton1Click:Connect(closeLynx)
 
 local startTime = os.time()
-
 task.spawn(function()
     while task.wait(1) do
         local ping = 0
         pcall(function()
             ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
         end)
-        
         local elapsed = os.time() - startTime
         local h = math.floor(elapsed / 3600)
         local m = math.floor((elapsed % 3600) / 60)
         local s = elapsed % 60
-        
         textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
     end
 end)
 
 local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3630
+local REPEAT_INTERVAL = 3600
 local BATCH_SIZE = 30
 
-local DECORATIVE_CLASSES = {
+local DECORATIVE = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true,
     Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
@@ -209,12 +191,10 @@ local CORE_LIMBS = {
     ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
 }
 
-local function cleanCharacterAndTools(char)
+local function cleanChar(char)
     if not char then return end
-    
     for _, inst in ipairs(char:GetDescendants()) do
-        if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") 
-        or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
+        if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
             pcall(function() inst:Destroy() end)
         elseif inst:IsA("BasePart") then
             if not CORE_LIMBS[inst.Name] then
@@ -225,44 +205,60 @@ local function cleanCharacterAndTools(char)
                 inst.Material = Enum.Material.SmoothPlastic
                 inst.Transparency = 0
             end
-        elseif DECORATIVE_CLASSES[inst.ClassName] then
+        elseif DECORATIVE[inst.ClassName] then
             pcall(function() inst:Destroy() end)
         end
     end
 end
 
+local TARGET_CLASSES = {
+    Sky = true, Atmosphere = true, Clouds = true,
+    ColorCorrectionEffect = true, SunRaysEffect = true,
+    BloomEffect = true, BlurEffect = true, DepthOfFieldEffect = true
+}
+
+local function destroyWeatherSafe(obj)
+    if TARGET_CLASSES[obj.ClassName] then
+        task.defer(function()
+            pcall(function()
+                obj:Destroy()
+            end)
+        end)
+    end
+end
+
+Lighting.ChildAdded:Connect(destroyWeatherSafe)
+workspace.ChildAdded:Connect(destroyWeatherSafe)
+
+for _, obj in ipairs(Lighting:GetChildren()) do destroyWeatherSafe(obj) end
+for _, obj in ipairs(workspace:GetChildren()) do destroyWeatherSafe(obj) end
+
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
-    Lighting.Brightness = 0 
-    Lighting.Ambient = Color3.fromRGB(35, 35, 35) 
-    Lighting.OutdoorAmbient = Color3.fromRGB(35, 35, 35) 
-    Lighting.FogColor = Color3.fromRGB(35, 35, 35) 
+    Lighting.Brightness = 0
+    Lighting.Ambient = Color3.fromRGB(55, 55, 55)
+    Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
+    Lighting.ExposureCompensation = 0
+    Lighting.EnvironmentDiffuseScale = 0
+    Lighting.EnvironmentSpecularScale = 0
+    Lighting.TimeOfDay = "00:00:00"
+    Lighting.FogColor = Color3.fromRGB(55, 55, 55)
     Lighting.FogStart = 0
-    Lighting.FogEnd = 250 
-    Lighting.TimeOfDay = "00:00:00" 
+    Lighting.FogEnd = 0
     
-    if setfpscap then 
+    if setfpscap then
         setfpscap(30)
-    end 
-    
-    if LocalPlayer.Character then
-        cleanCharacterAndTools(LocalPlayer.Character)
     end
 end)
 
 local function runReduce()
     pcall(function()
-        local sky = workspace:FindFirstChildOfClass("Sky") or Lighting:FindFirstChildOfClass("Sky")
-        if sky then sky:Destroy() end
-        local clouds = workspace:FindFirstChildOfClass("Clouds") or Lighting:FindFirstChildOfClass("Clouds")
-        if clouds then clouds:Destroy() end
         workspace.Terrain:Clear()
     end)
 
     local objectsProcessed = 0
-
     for _, inst in ipairs(workspace:GetDescendants()) do
-        if not inst:IsDescendantOf(LocalPlayer.Character) then
+        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
             if inst:IsA("Humanoid") then
                 local model = inst.Parent
                 if model and model:IsA("Model") then
@@ -272,15 +268,13 @@ local function runReduce()
                 end
             end
 
-            if not inst:IsDescendantOf(CoreGui) then
-                if DECORATIVE_CLASSES[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
-                    pcall(function() inst:Destroy() end)
-                elseif inst:IsA("BasePart") then
-                    inst.Material = Enum.Material.SmoothPlastic
-                    inst.CastShadow = false
-                end
+            if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
+                pcall(function() inst:Destroy() end)
+            elseif inst:IsA("BasePart") then
+                inst.Material = Enum.Material.SmoothPlastic
+                inst.CastShadow = false
             end
-            
+
             objectsProcessed = objectsProcessed + 1
             if objectsProcessed % BATCH_SIZE == 0 then
                 RunService.Heartbeat:Wait()
@@ -289,10 +283,10 @@ local function runReduce()
     end
 end
 
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    RunService.Heartbeat:Wait()
-    cleanCharacterAndTools(newChar)
-end)
+LocalPlayer.CharacterAdded:Connect(cleanChar)
+if LocalPlayer.Character then
+    cleanChar(LocalPlayer.Character)
+end
 
 task.spawn(runReduce)
 
