@@ -216,15 +216,31 @@ RunService.RenderStepped:Connect(function()
     Lighting.Brightness = 0
     Lighting.Ambient = Color3.fromRGB(55, 55, 55)
     Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
-    Lighting.FogColor = Color3.fromRGB(55, 55, 55)
-    Lighting.FogStart = 0
-    Lighting.FogEnd = 0
-    Lighting.TimeOfDay = "00:00:00"
+    Lighting.TimeOfDay = "12:00:00"
     
-    local atm1 = Lighting:FindFirstChildOfClass("Atmosphere")
-    if atm1 then pcall(function() atm1:Destroy() end) end
-    local atm2 = workspace:FindFirstChildOfClass("Atmosphere")
-    if atm2 then pcall(function() atm2:Destroy() end) end
+    local myAtm = Lighting:FindFirstChild("ReduceAtmosphere")
+    if not myAtm then
+        myAtm = Instance.new("Atmosphere")
+        myAtm.Name = "ReduceAtmosphere"
+        myAtm.Parent = Lighting
+    end
+    myAtm.Density = 1
+    myAtm.Offset = 0
+    myAtm.Color = Color3.fromRGB(55, 55, 55)
+    myAtm.Decay = Color3.fromRGB(55, 55, 55)
+    myAtm.Glare = 0
+    myAtm.Haze = 10
+    
+    for _, obj in ipairs(Lighting:GetChildren()) do
+        if obj:IsA("Atmosphere") and obj.Name ~= "ReduceAtmosphere" then
+            pcall(function() obj:Destroy() end)
+        end
+    end
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("Atmosphere") then
+            pcall(function() obj:Destroy() end)
+        end
+    end
     
     local sky1 = Lighting:FindFirstChildOfClass("Sky")
     if sky1 then pcall(function() sky1:Destroy() end) end
