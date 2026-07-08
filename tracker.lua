@@ -1,49 +1,63 @@
-local WORKER_URL = "https://tracker.ursoffboy5.workers.dev/"
+-- [Tracker] Script Pengirim Data (Optimasi Hemat Kuota)
+local URL = "https://tracker.ursoffboy5.workers.dev/"
+local AUTH_TOKEN = "RunicSecure-140-Delta-Vault!"
+local HttpService = game:GetService("HttpService")
 local Player = game.Players.LocalPlayer
-local ITEM_NAME = "Runic Enchant Stone"
-local lastCount = -1 -- Nilai awal agar deteksi pertama kali selalu berjalan
 
+local lastSentRunic = -1
+local lastActivityTime = os.time()
+local KEEP_ALIVE_INTERVAL = 10800 -- 3 Jam (10800 detik)
+
+-- Fungsi deteksi Runic (Tetap sama, efisien)
 local function getRunicCount()
-    local leaderstats = Player:FindFirstChild("leaderstats")
-    if leaderstats and leaderstats:FindFirstChild(ITEM_NAME) then
-        return leaderstats[ITEM_NAME].Value
+    for _, obj in pairs(getgc(true)) do
+        if type(obj) == "table" then
+            local inv = rawget(obj, "Inventory")
+            if type(inv) == "table" and type(rawget(inv, "Items")) == "table" then
+                for _, itemData in pairs(inv.Items) do
+                    if type(itemData) == "table" then
+                        local id = rawget(itemData, "Id") or rawget(itemData, "id") or rawget(itemData, "itemId")
+                        if tostring(id) == "929" then
+                            return tonumber(rawget(itemData, "Quantity") or rawget(itemData, "quantity") or 1)
+                        end
+                    end
+                end
+            end
+        end
     end
-    -- Tambahkan logic Data/Backpack jika perlu...
     return 0
 end
 
-local function sendDataToBackend()
-    local currentRunic = getRunicCount()
-    
-    if currentRunic ~= lastCount then
-        lastCount = currentRunic
-        
-        local payload = {
-            userId = Player.UserId,
-            username = Player.Name,
-            runicCount = currentRunic
-        }
-        
-        local requestFunction = syn and syn.request or http and http.request or request
-        if requestFunction then
-            pcall(function()
-                local response = requestFunction({
-                    Url = WORKER_URL,
-                    Method = "POST",
-                    Headers = { ["Content-Type"] = "application/json" },
-                    Body = game:GetService("HttpService"):JSONEncode(payload)
-                })
-                
-                -- LOG KHUSUS: Hanya muncul jika sukses (Status 200)
-                if response.StatusCode == 200 then
-                    print("Tracker Success [" .. Player.Name .. "]: Runic count updated to " .. currentRunic)
-                end
-            end)
-        end
-    end
+-- Fungsi pengirim (Dengan Jitter acak untuk mencegah DDoS)
+local function sendData(payload)
+    task.wait(math.random(1, 30)) -- Jitter acak
+    pcall(function()
+        HttpService:RequestAsync({
+            Url = URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json", ["X-Auth-Token"] = AUTH_TOKEN},
+            Body = HttpService:JSONEncode(payload)
+        })
+    end)
 end
 
--- LOOPING MONITORING (Tetap dipasang untuk deteksi perubahan)
--- Interval 60 detik sudah sangat ringan karena tidak akan kirim data kecuali angka berubah
--- Tambahkan delay awal agar tidak bentrok saat loading game
-task.wait(math.random(5, 15)) 
+-- Looping Utama
+task.spawn(function()
+    while true do
+        local currentRunic = getRunicCount()
+        local now = os.time()
+        
+        -- 1. Jika Runic berubah, kirim data (Reset timer)
+        if currentRunic ~= lastSentRunic then
+            lastSentRunic = currentRunic
+            lastActivityTime = now
+            sendData({username = Player.Name, runic = currentRunic, status = "online", type = "update"})
+        -- 2. Jika sudah 3 jam tidak ada aktivitas, kirim "Ping" agar web tidak bilang Offline
+        elseif (now - lastActivityTime) > KEEP_ALIVE_INTERVAL then
+            lastActivityTime = now
+            sendData({username = Player.Name, runic = currentRunic, status = "online", type = "keep-alive"})
+        end
+        
+        task.wait(60) -- Scan tiap 1 menit (Sudah cukup untuk mendeteksi perubahan)
+    end
+end)
