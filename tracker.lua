@@ -4,7 +4,7 @@ if not game:IsLoaded() then
 end
 
 -- KONFIGURASI API (Ganti URL di bawah dengan URL Worker Anda)
-local WORKER_URL = "https://URL_WORKER_KAMU_DI_SINI.workers.dev"
+local WORKER_URL = "https://tracker.ursoffboy5.workers.dev/"
 local Player = game.Players.LocalPlayer
 local ITEM_NAME = "Runic Enchant Stone"
 
