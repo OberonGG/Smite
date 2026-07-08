@@ -197,13 +197,15 @@ local function cleanChar(char)
         if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
             pcall(function() inst:Destroy() end)
         elseif inst:IsA("BasePart") then
-            if not CORE_LIMBS[inst.Name] then
-                inst.Transparency = 1
-                inst.LocalTransparencyModifier = 1
-            else
-                inst.Color = Color3.fromRGB(150, 150, 150)
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.Transparency = 0
+            if inst.Name ~= "VisualBlocker" then
+                if not CORE_LIMBS[inst.Name] then
+                    inst.Transparency = 1
+                    inst.LocalTransparencyModifier = 1
+                else
+                    inst.Color = Color3.fromRGB(150, 150, 150)
+                    inst.Material = Enum.Material.SmoothPlastic
+                    inst.Transparency = 0
+                end
             end
         elseif DECORATIVE[inst.ClassName] then
             pcall(function() inst:Destroy() end)
@@ -211,41 +213,33 @@ local function cleanChar(char)
     end
 end
 
-local Storage = Instance.new("Folder")
-Storage.Name = "WeatherKarantina"
-Storage.Parent = CoreGui
-
-local TARGET_CLASSES = {
-    Sky = true, Atmosphere = true, Clouds = true,
-    ColorCorrectionEffect = true, SunRaysEffect = true,
-    BloomEffect = true, BlurEffect = true, DepthOfFieldEffect = true
-}
-
-local function quarantineObject(obj)
-    if TARGET_CLASSES[obj.ClassName] then
-        obj.Parent = Storage
-    end
-end
-
-Lighting.ChildAdded:Connect(quarantineObject)
-workspace.ChildAdded:Connect(quarantineObject)
-
-for _, obj in ipairs(Lighting:GetChildren()) do quarantineObject(obj) end
-for _, obj in ipairs(workspace:GetChildren()) do quarantineObject(obj) end
+local Blocker = instance and instance.new and Instance.new("Part") or Instance.new("Part")
+Blocker.Name = "VisualBlocker"
+Blocker.Size = Vector3.new(300, 300, 300)
+Blocker.Shape = Enum.PartType.Ball
+Blocker.Color = Color3.fromRGB(55, 55, 55)
+Blocker.Material = Enum.Material.SmoothPlastic
+Blocker.CastShadow = false
+Blocker.CanCollide = false
+Blocker.CanTouch = false
+Blocker.CanQuery = false
+Blocker.Anchored = true
+Blocker.Parent = workspace
 
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
     Lighting.Ambient = Color3.fromRGB(55, 55, 55)
     Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
-    Lighting.ExposureCompensation = 0
-    Lighting.EnvironmentDiffuseScale = 0
-    Lighting.EnvironmentSpecularScale = 0
-    Lighting.TimeOfDay = "00:00:00"
-    Lighting.FogColor = Color3.fromRGB(55, 55, 55)
-    Lighting.FogStart = 0
-    Lighting.FogEnd = 0
     
+    local char = LocalPlayer.Character
+    if char then
+        local rRoot = char:FindFirstChild("HumanoidRootPart")
+        if rRoot then
+            Blocker.CFrame = CFrame.new(rRoot.Position)
+        end
+    end
+
     if setfpscap then
         setfpscap(30)
     end
@@ -258,7 +252,7 @@ local function runReduce()
 
     local objectsProcessed = 0
     for _, inst in ipairs(workspace:GetDescendants()) do
-        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
+        if inst ~= Blocker and not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
             if inst:IsA("Humanoid") then
                 local model = inst.Parent
                 if model and model:IsA("Model") then
