@@ -3,7 +3,7 @@ if not game:IsLoaded() then
     game.Loaded:Wait() 
 end
 
-local WORKER_URL = "https://URL_WORKER_KAMU_DI_SINI.workers.dev"
+local WORKER_URL = "https://tracker.ursoffboy5.workers.dev/"
 local Player = game.Players.LocalPlayer
 local ITEM_NAME = "Runic Enchant Stone"
 local lastCount = -1 -- Nilai awal agar deteksi pertama kali selalu berjalan
