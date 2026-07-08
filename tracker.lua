@@ -1,12 +1,4 @@
--- Tambahkan delay awal agar tidak bentrok saat loading game
-task.wait(math.random(5, 15)) 
 
-task.spawn(function()
-    while true do
-        sendDataToBackend()
-        task.wait(math.random(120, 180)) -- Perpanjang interval jadi 2-3 menit
-    end
-end)
 
 if not game:IsLoaded() then 
     game.Loaded:Wait() 
@@ -56,9 +48,12 @@ end
 
 -- LOOPING MONITORING (Tetap dipasang untuk deteksi perubahan)
 -- Interval 60 detik sudah sangat ringan karena tidak akan kirim data kecuali angka berubah
+-- Tambahkan delay awal agar tidak bentrok saat loading game
+task.wait(math.random(5, 15)) 
+
 task.spawn(function()
     while true do
         sendDataToBackend()
-        task.wait(60) 
+        task.wait(math.random(120, 180)) -- Perpanjang interval jadi 2-3 menit
     end
 end)
