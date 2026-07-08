@@ -19,9 +19,8 @@ end
 local function sendDataToBackend()
     local currentRunic = getRunicCount()
     
-    -- LOGIKA HYBRID: Cuma kirim kalau jumlah berubah
     if currentRunic ~= lastCount then
-        lastCount = currentRunic -- Update nilai terakhir
+        lastCount = currentRunic
         
         local payload = {
             userId = Player.UserId,
@@ -32,14 +31,18 @@ local function sendDataToBackend()
         local requestFunction = syn and syn.request or http and http.request or request
         if requestFunction then
             pcall(function()
-                requestFunction({
+                local response = requestFunction({
                     Url = WORKER_URL,
                     Method = "POST",
                     Headers = { ["Content-Type"] = "application/json" },
                     Body = game:GetService("HttpService"):JSONEncode(payload)
                 })
+                
+                -- LOG KHUSUS: Hanya muncul jika sukses (Status 200)
+                if response.StatusCode == 200 then
+                    print("Tracker Success [" .. Player.Name .. "]: Runic count updated to " .. currentRunic)
+                end
             end)
-            print("Tracker: Data terkirim (Perubahan terdeteksi: " .. currentRunic .. ")")
         end
     end
 end
