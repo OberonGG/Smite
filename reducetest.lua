@@ -215,15 +215,30 @@ local Storage = Instance.new("Folder")
 Storage.Name = "WeatherKarantina"
 Storage.Parent = CoreGui
 
+local CustomSky = Instance.new("Sky")
+CustomSky.Name = "ReduceSky"
+CustomSky.CelestialBodiesShown = false
+CustomSky.SkyboxBk = "rbxassetid://0"
+CustomSky.SkyboxDn = "rbxassetid://0"
+CustomSky.SkyboxFt = "rbxassetid://0"
+CustomSky.SkyboxLf = "rbxassetid://0"
+CustomSky.SkyboxRt = "rbxassetid://0"
+CustomSky.SkyboxUp = "rbxassetid://0"
+CustomSky.SunTextureId = "rbxassetid://0"
+CustomSky.MoonTextureId = "rbxassetid://0"
+CustomSky.Parent = Lighting
+
 local TARGET_CLASSES = {
-    Sky = true, Atmosphere = true, Clouds = true,
+    Atmosphere = true, Clouds = true,
     ColorCorrectionEffect = true, SunRaysEffect = true,
     BloomEffect = true, BlurEffect = true, DepthOfFieldEffect = true
 }
 
 local function quarantineObject(obj)
-    if TARGET_CLASSES[obj.ClassName] then
-        obj.Parent = Storage
+    if obj.Name ~= "ReduceSky" then
+        if obj:IsA("Sky") or TARGET_CLASSES[obj.ClassName] then
+            obj.Parent = Storage
+        end
     end
 end
 
@@ -241,11 +256,15 @@ RunService.RenderStepped:Connect(function()
     Lighting.ExposureCompensation = 0
     Lighting.EnvironmentDiffuseScale = 0
     Lighting.EnvironmentSpecularScale = 0
-    Lighting.TimeOfDay = "00:00:00"
+    Lighting.TimeOfDay = "12:00:00"
     Lighting.FogColor = Color3.fromRGB(55, 55, 55)
     Lighting.FogStart = 0
-    Lighting.FogEnd = 0
+    Lighting.FogEnd = 999999
     
+    if CustomSky.Parent ~= Lighting then
+        CustomSky.Parent = Lighting
+    end
+
     if setfpscap then
         setfpscap(30)
     end
