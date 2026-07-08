@@ -215,7 +215,7 @@ end
 
 local Blocker = instance and instance.new and Instance.new("Part") or Instance.new("Part")
 Blocker.Name = "VisualBlocker"
-Blocker.Size = Vector3.new(600, 600, 600)
+Blocker.Size = Vector3.new(300, 300, 300)
 Blocker.Shape = Enum.PartType.Ball
 Blocker.Color = Color3.fromRGB(55, 55, 55)
 Blocker.Material = Enum.Material.SmoothPlastic
