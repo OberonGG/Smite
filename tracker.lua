@@ -1,7 +1,3 @@
-if not game:IsLoaded() then 
-    game.Loaded:Wait() 
-end
-
 local WORKER_URL = "https://tracker.ursoffboy5.workers.dev/"
 local Player = game.Players.LocalPlayer
 local ITEM_NAME = "Runic Enchant Stone"
