@@ -1,4 +1,13 @@
--- KONDISI AWAL
+-- Tambahkan delay awal agar tidak bentrok saat loading game
+task.wait(math.random(5, 15)) 
+
+task.spawn(function()
+    while true do
+        sendDataToBackend()
+        task.wait(math.random(120, 180)) -- Perpanjang interval jadi 2-3 menit
+    end
+end)
+
 if not game:IsLoaded() then 
     game.Loaded:Wait() 
 end
