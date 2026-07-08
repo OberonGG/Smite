@@ -168,127 +168,23 @@ task.spawn(function()
     end
 end)
 
-local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 30
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local BypassUI = Instance.new("ScreenGui")
+BypassUI.Name = "GreyRenderBypass"
+BypassUI.ResetOnSpawn = false
+BypassUI.DisplayOrder = -2147483648
+BypassUI.Parent = PlayerGui
 
-local DECORATIVE = {
-    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
-    Beam = true, Trail = true, Explosion = true, Discharge = true,
-    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
-    Decal = true, Texture = true, SurfaceAppearance = true,
-    Atmosphere = true, ColorCorrectionEffect = true, BloomEffect = true,
-    SunRaysEffect = true, BlurEffect = true, DepthOfFieldEffect = true,
-    Highlight = true, SelectionBox = true
-}
-
-local CORE_LIMBS = {
-    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true,
-    ["HumanoidRootPart"] = true, ["UpperTorso"] = true, ["LowerTorso"] = true, 
-    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
-    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
-    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
-    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
-}
-
-local function cleanChar(char)
-    if not char then return end
-    for _, inst in ipairs(char:GetDescendants()) do
-        if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
-            pcall(function() inst:Destroy() end)
-        elseif inst:IsA("BasePart") then
-            if inst.Name ~= "VisualBlocker" then
-                if not CORE_LIMBS[inst.Name] then
-                    inst.Transparency = 1
-                    inst.LocalTransparencyModifier = 1
-                else
-                    inst.Color = Color3.fromRGB(150, 150, 150)
-                    inst.Material = Enum.Material.SmoothPlastic
-                    inst.Transparency = 0
-                end
-            end
-        elseif DECORATIVE[inst.ClassName] then
-            pcall(function() inst:Destroy() end)
-        end
-    end
-end
-
-local Blocker = instance and instance.new and Instance.new("Part") or Instance.new("Part")
-Blocker.Name = "VisualBlocker"
-Blocker.Size = Vector3.new(300, 300, 300)
-Blocker.Shape = Enum.PartType.Ball
-Blocker.Color = Color3.fromRGB(55, 55, 55)
-Blocker.Material = Enum.Material.SmoothPlastic
-Blocker.CastShadow = false
-Blocker.CanCollide = false
-Blocker.CanTouch = false
-Blocker.CanQuery = false
-Blocker.Anchored = true
-Blocker.Parent = workspace
+local GrayBackground = Instance.new("Frame", BypassUI)
+GrayBackground.Size = UDim2.new(1, 0, 1, 0)
+GrayBackground.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+GrayBackground.BorderSizePixel = 0
 
 RunService.RenderStepped:Connect(function()
-    Lighting.GlobalShadows = false
-    Lighting.Brightness = 0
-    Lighting.Ambient = Color3.fromRGB(55, 55, 55)
-    Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
-    
-    local char = LocalPlayer.Character
-    if char then
-        local rRoot = char:FindFirstChild("HumanoidRootPart")
-        if rRoot then
-            Blocker.CFrame = CFrame.new(rRoot.Position)
-        end
-    end
-
+    pcall(function()
+        RunService:Set3dRenderingEnabled(false)
+    end)
     if setfpscap then
         setfpscap(30)
     end
 end)
-
-local function runReduce()
-    pcall(function()
-        workspace.Terrain:Clear()
-    end)
-
-    local objectsProcessed = 0
-    for _, inst in ipairs(workspace:GetDescendants()) do
-        if inst ~= Blocker and not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
-            if inst:IsA("Humanoid") then
-                local model = inst.Parent
-                if model and model:IsA("Model") then
-                    if not Players:GetPlayerFromCharacter(model) then
-                        pcall(function() model:Destroy() end)
-                    end
-                end
-            end
-
-            if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
-                pcall(function() inst:Destroy() end)
-            elseif inst:IsA("BasePart") then
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.CastShadow = false
-            end
-
-            objectsProcessed = objectsProcessed + 1
-            if objectsProcessed % BATCH_SIZE == 0 then
-                RunService.Heartbeat:Wait()
-            end
-        end
-    end
-end
-
-LocalPlayer.CharacterAdded:Connect(cleanChar)
-if LocalPlayer.Character then
-    cleanChar(LocalPlayer.Character)
-end
-
-task.spawn(runReduce)
-
-if AUTO_REPEAT then
-    task.spawn(function()
-        while true do
-            task.wait(REPEAT_INTERVAL)
-            runReduce()
-        end
-    end)
-end
