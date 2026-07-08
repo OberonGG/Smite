@@ -47,15 +47,3 @@ end
 -- Interval 60 detik sudah sangat ringan karena tidak akan kirim data kecuali angka berubah
 -- Tambahkan delay awal agar tidak bentrok saat loading game
 task.wait(math.random(5, 15)) 
-
-task.spawn(function()
-    -- BERI DELAY AWAL YANG SANGAT BESAR DAN ACAK (1 hingga 300 detik)
-    -- Ini memastikan 140 akunmu tidak akan 'menyerang' server di waktu yang sama saat baru login
-    task.wait(math.random(1, 300))
-    
-    while true do
-        sendDataToBackend()
-        -- Perpanjang interval menjadi 5-10 menit per akun
-        task.wait(math.random(300, 600)) 
-    end
-end)
