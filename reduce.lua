@@ -187,7 +187,7 @@ task.spawn(function()
 end)
 
 local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3600
+local REPEAT_INTERVAL = 3630
 local BATCH_SIZE = 30
 
 local DECORATIVE_CLASSES = {
