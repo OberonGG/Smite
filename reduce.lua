@@ -6,6 +6,7 @@ local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+local ABU_GELAP = Color3.fromRGB(55, 55, 55)
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -177,9 +178,7 @@ local DECORATIVE = {
     Beam = true, Trail = true, Explosion = true, Discharge = true,
     Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
     Decal = true, Texture = true, SurfaceAppearance = true,
-    Atmosphere = true, ColorCorrectionEffect = true, BloomEffect = true,
-    SunRaysEffect = true, BlurEffect = true, DepthOfFieldEffect = true,
-    Highlight = true, SelectionBox = true
+    Highlight = true, SelectionBox = true, RopeConstraint = true
 }
 
 local CORE_LIMBS = {
@@ -212,37 +211,69 @@ local function cleanChar(char)
 end
 
 local TARGET_CLASSES = {
-    Sky = true, Atmosphere = true, Clouds = true,
-    ColorCorrectionEffect = true, SunRaysEffect = true,
-    BloomEffect = true, BlurEffect = true, DepthOfFieldEffect = true
+    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
+    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
 }
 
-local function destroyWeatherSafe(obj)
+local function neutralizeTarget(obj)
+    if obj:IsA("Atmosphere") then
+        if obj.Density ~= 1 then obj.Density = 1 end
+        if obj.Offset ~= 0 then obj.Offset = 0 end
+        if obj.Color ~= ABU_GELAP then obj.Color = ABU_GELAP end
+        if obj.Decay ~= ABU_GELAP then obj.Decay = ABU_GELAP end
+        if obj.Glare ~= 0 then obj.Glare = 0 end
+        if obj.Haze ~= 0 then obj.Haze = 0 end
+    elseif obj:IsA("ColorCorrectionEffect") then
+        if obj.Brightness ~= 0 then obj.Brightness = 0 end
+        if obj.Contrast ~= 0 then obj.Contrast = 0 end
+        if obj.Saturation ~= -1 then obj.Saturation = -1 end
+        if obj.TintColor ~= Color3.new(1, 1, 1) then obj.TintColor = Color3.new(1, 1, 1) end
+    elseif obj:IsA("Sky") then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
+        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
+        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
+        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
+        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
+        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
+        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
+        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+    elseif obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") then
+        if obj.Intensity ~= 0 then obj.Intensity = 0 end
+    elseif obj:IsA("BlurEffect") then
+        if obj.Size ~= 0 then obj.Size = 0 end
+    elseif obj:IsA("Clouds") then
+        if obj.Cover ~= 0 then obj.Cover = 0 end
+        if obj.Density ~= 0 then obj.Density = 0 end
+    end
+end
+
+local function watchObject(obj)
     if TARGET_CLASSES[obj.ClassName] then
-        task.defer(function()
-            pcall(function()
-                obj:Destroy()
-            end)
+        pcall(neutralizeTarget, obj)
+        obj.Changed:Connect(function()
+            pcall(neutralizeTarget, obj)
         end)
     end
 end
 
-Lighting.ChildAdded:Connect(destroyWeatherSafe)
-workspace.ChildAdded:Connect(destroyWeatherSafe)
+Lighting.ChildAdded:Connect(watchObject)
+workspace.ChildAdded:Connect(watchObject)
 
-for _, obj in ipairs(Lighting:GetChildren()) do destroyWeatherSafe(obj) end
-for _, obj in ipairs(workspace:GetChildren()) do destroyWeatherSafe(obj) end
+for _, obj in ipairs(Lighting:GetChildren()) do watchObject(obj) end
+for _, obj in ipairs(workspace:GetChildren()) do watchObject(obj) end
 
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
-    Lighting.Ambient = Color3.fromRGB(55, 55, 55)
-    Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
+    Lighting.Ambient = ABU_GELAP
+    Lighting.OutdoorAmbient = ABU_GELAP
     Lighting.ExposureCompensation = 0
     Lighting.EnvironmentDiffuseScale = 0
     Lighting.EnvironmentSpecularScale = 0
     Lighting.TimeOfDay = "00:00:00"
-    Lighting.FogColor = Color3.fromRGB(55, 55, 55)
+    Lighting.FogColor = ABU_GELAP
     Lighting.FogStart = 0
     Lighting.FogEnd = 0
     
@@ -268,7 +299,7 @@ local function runReduce()
                 end
             end
 
-            if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
+            if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
                 pcall(function() inst:Destroy() end)
             elseif inst:IsA("BasePart") then
                 inst.Material = Enum.Material.SmoothPlastic
