@@ -4,8 +4,17 @@ local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ABU_GELAP = Color3.fromRGB(0, 0, 0)
+local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
+
+local GuiControl = nil
+pcall(function()
+    GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
+end)
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -177,9 +186,8 @@ local DECORATIVE = {
     Beam = true, Trail = true, Explosion = true, Discharge = true,
     Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
     Decal = true, Texture = true, SurfaceAppearance = true,
-    Atmosphere = true, ColorCorrectionEffect = true, BloomEffect = true,
-    SunRaysEffect = true, BlurEffect = true, DepthOfFieldEffect = true,
-    Highlight = true, SelectionBox = true
+    Highlight = true, SelectionBox = true, RopeConstraint = true,
+    BillboardGui = true, SurfaceGui = true
 }
 
 local CORE_LIMBS = {
@@ -211,45 +219,138 @@ local function cleanChar(char)
     end
 end
 
-local Storage = Instance.new("Folder")
-Storage.Name = "WeatherKarantina"
-Storage.Parent = CoreGui
-
 local TARGET_CLASSES = {
-    Sky = true, Atmosphere = true, Clouds = true,
-    ColorCorrectionEffect = true, SunRaysEffect = true,
-    BloomEffect = true, BlurEffect = true, DepthOfFieldEffect = true
+    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
+    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
 }
 
-local function quarantineObject(obj)
-    if TARGET_CLASSES[obj.ClassName] then
-        obj.Parent = Storage
+local function neutralizeTarget(obj)
+    if obj.Name == "BaseGrayCC" then
+        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
+        if obj.Contrast ~= 0 then obj.Contrast = 0 end
+        if obj.Saturation ~= -1 then obj.Saturation = -1 end
+        if obj.Enabled ~= true then obj.Enabled = true end
+        return
+    end
+    if obj.Name == "BaseNormalSky" then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        return
+    end
+
+    if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("Clouds") then
+        if obj.Enabled ~= false then obj.Enabled = false end
+    elseif obj:IsA("Atmosphere") then
+        if obj.Density ~= 0 then obj.Density = 0 end
+        if obj.Glare ~= 0 then obj.Glare = 0 end
+        if obj.Haze ~= 0 then obj.Haze = 0 end
+    elseif obj:IsA("Sky") then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
+        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
+        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
+        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
+        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
+        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
+        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
+        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
     end
 end
 
-Lighting.ChildAdded:Connect(quarantineObject)
-workspace.ChildAdded:Connect(quarantineObject)
+local function handleDescendant(inst)
+    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
 
-for _, obj in ipairs(Lighting:GetChildren()) do quarantineObject(obj) end
-for _, obj in ipairs(workspace:GetChildren()) do quarantineObject(obj) end
+    if inst:IsA("BasePart") then
+        pcall(function()
+            inst.Transparency = 1
+            inst.Color = Color3.fromRGB(0, 0, 0)
+            inst.CastShadow = false
+            inst.Material = Enum.Material.SmoothPlastic
+        end)
+    elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
+        pcall(function() inst:Destroy() end)
+    elseif TARGET_CLASSES[inst.ClassName] then
+        pcall(neutralizeTarget, inst)
+        if not WATCHED_REGISTRY[inst] then
+            WATCHED_REGISTRY[inst] = true
+            inst.Changed:Connect(function()
+                pcall(neutralizeTarget, inst)
+            end)
+        end
+    elseif inst:IsA("Humanoid") then
+        local model = inst.Parent
+        if model and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
+            task.defer(function() pcall(function() model:Destroy() end) end)
+        end
+    end
+end
 
-RunService.RenderStepped:Connect(function()
-    Lighting.GlobalShadows = false
-    Lighting.Brightness = 0
-    Lighting.Ambient = Color3.fromRGB(55, 55, 55)
-    Lighting.OutdoorAmbient = Color3.fromRGB(55, 55, 55)
-    Lighting.ExposureCompensation = 0
-    Lighting.EnvironmentDiffuseScale = 0
-    Lighting.EnvironmentSpecularScale = 0
-    Lighting.TimeOfDay = "00:00:00"
-    Lighting.FogColor = Color3.fromRGB(55, 55, 55)
-    Lighting.FogStart = 0
-    Lighting.FogEnd = 0
-    
-    if setfpscap then
-        setfpscap(30)
+Lighting.DescendantAdded:Connect(handleDescendant)
+workspace.DescendantAdded:Connect(handleDescendant)
+
+for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
+
+local FORCED_LIGHTING = {
+    GlobalShadows = false,
+    Brightness = 0,
+    Ambient = ABU_GELAP,
+    OutdoorAmbient = ABU_GELAP,
+    ExposureCompensation = 0,
+    EnvironmentDiffuseScale = 0,
+    EnvironmentSpecularScale = 0,
+    TimeOfDay = "00:00:00",
+    FogStart = 999999,
+    FogEnd = 999999,
+}
+
+local function applyLightingOverride()
+    for property, value in pairs(FORCED_LIGHTING) do
+        if Lighting[property] ~= value then
+            Lighting[property] = value
+        end
+    end
+end
+
+local function ensureBaseEffects()
+    if not Lighting:FindFirstChild("BaseNormalSky") then
+        local normalSky = Instance.new("Sky")
+        normalSky.Name = "BaseNormalSky"
+        normalSky.CelestialBodiesShown = false
+        normalSky.StarCount = 0
+        normalSky.Parent = Lighting
+    end
+
+    if not Lighting:FindFirstChild("BaseGrayCC") then
+        local grayCC = Instance.new("ColorCorrectionEffect")
+        grayCC.Name = "BaseGrayCC"
+        grayCC.Brightness = 0.07843
+        grayCC.Contrast = 0
+        grayCC.Saturation = -1
+        grayCC.Parent = Lighting
+    end
+end
+
+applyLightingOverride()
+ensureBaseEffects()
+
+Lighting.Changed:Connect(applyLightingOverride)
+
+Lighting.ChildRemoved:Connect(function(child)
+    if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
+        ensureBaseEffects()
     end
 end)
+
+if setfpscap then
+    setfpscap(30)
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            setfpscap(30)
+        end
+    end)
+end
 
 local function runReduce()
     pcall(function()
@@ -259,21 +360,7 @@ local function runReduce()
     local objectsProcessed = 0
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
-            if inst:IsA("Humanoid") then
-                local model = inst.Parent
-                if model and model:IsA("Model") then
-                    if not Players:GetPlayerFromCharacter(model) then
-                        pcall(function() model:Destroy() end)
-                    end
-                end
-            end
-
-            if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") or inst:IsA("RopeConstraint") then
-                pcall(function() inst:Destroy() end)
-            elseif inst:IsA("BasePart") then
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.CastShadow = false
-            end
+            handleDescendant(inst)
 
             objectsProcessed = objectsProcessed + 1
             if objectsProcessed % BATCH_SIZE == 0 then
@@ -298,3 +385,23 @@ if AUTO_REPEAT then
         end
     end)
 end
+
+task.spawn(function()
+    if GuiControl then
+        pcall(function() GuiControl:Close() end)
+        
+        local dailyUI = PlayerGui:WaitForChild("!!! Daily Login", 10)
+        if dailyUI then
+            if dailyUI.Enabled == true then
+                pcall(function() GuiControl:Close() end)
+            end
+
+            dailyUI:GetPropertyChangedSignal("Enabled"):Connect(function()
+                if dailyUI.Enabled == true then
+                    task.wait(0.1)
+                    pcall(function() GuiControl:Close() end)
+                end
+            end)
+        end
+    end
+end)
