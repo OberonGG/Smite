@@ -394,8 +394,12 @@ end
 
 task.spawn(function()
     while task.wait(1) do
-        if GuiControl:IsOpen("!!! Daily Login") then
-            GuiControl:Close()
+        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+        if dailyUI and dailyUI.Enabled == true then
+            pcall(function()
+                GuiControl:Close()
+            end)
+            task.wait(3)
         end
     end
 end)
