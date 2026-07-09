@@ -6,6 +6,7 @@ local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+local ABU_GELAP = Color3.fromRGB(0, 0, 0)
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -215,13 +216,25 @@ local TARGET_CLASSES = {
 }
 
 local function neutralizeTarget(obj)
-    if obj:IsA("Atmosphere") then
-        if obj.Density ~= 0 then obj.Density = 0 end
-    elseif obj:IsA("ColorCorrectionEffect") then
-        if obj.Brightness ~= 0.23529 then obj.Brightness = 0.23529 end
+    if obj.Name == "BaseGrayCC" then
+        if obj.Brightness ~= 0.13725 then obj.Brightness = 0.13725 end
         if obj.Contrast ~= 0 then obj.Contrast = 0 end
         if obj.Saturation ~= -1 then obj.Saturation = -1 end
-        if obj.TintColor ~= Color3.new(1, 1, 1) then obj.TintColor = Color3.new(1, 1, 1) end
+        if obj.Enabled ~= true then obj.Enabled = true end
+        return
+    end
+    if obj.Name == "BaseNormalSky" then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        return
+    end
+
+    if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("Clouds") then
+        if obj.Enabled ~= false then obj.Enabled = false end
+    elseif obj:IsA("Atmosphere") then
+        if obj.Density ~= 0 then obj.Density = 0 end
+        if obj.Glare ~= 0 then obj.Glare = 0 end
+        if obj.Haze ~= 0 then obj.Haze = 0 end
     elseif obj:IsA("Sky") then
         if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
         if obj.StarCount ~= 0 then obj.StarCount = 0 end
@@ -233,12 +246,6 @@ local function neutralizeTarget(obj)
         if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
         if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
         if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
-    elseif obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") then
-        if obj.Intensity ~= 0 then obj.Intensity = 0 end
-    elseif obj:IsA("BlurEffect") then
-        if obj.Size ~= 0 then obj.Size = 0 end
-    elseif obj:IsA("Clouds") then
-        if obj.Enabled ~= false then obj.Enabled = false end
     end
 end
 
@@ -251,17 +258,16 @@ local function watchObject(obj)
     end
 end
 
-Lighting.ChildAdded:Connect(watchObject)
-workspace.ChildAdded:Connect(watchObject)
+Lighting.DescendantAdded:Connect(watchObject)
+workspace.DescendantAdded:Connect(watchObject)
 
-for _, obj in ipairs(Lighting:GetChildren()) do watchObject(obj) end
-for _, obj in ipairs(workspace:GetChildren()) do watchObject(obj) end
+for _, obj in ipairs(Lighting:GetDescendants()) do watchObject(obj) end
 
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
-    Lighting.Ambient = Color3.new(0, 0, 0)
-    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
+    Lighting.Ambient = ABU_GELAP
+    Lighting.OutdoorAmbient = ABU_GELAP
     Lighting.ExposureCompensation = 0
     Lighting.EnvironmentDiffuseScale = 0
     Lighting.EnvironmentSpecularScale = 0
@@ -272,15 +278,16 @@ RunService.RenderStepped:Connect(function()
     local hasSky = false
     local hasCC = false
     for _, obj in ipairs(Lighting:GetChildren()) do
-        if obj:IsA("Sky") then
+        if obj.Name == "BaseNormalSky" then
             hasSky = true
-        elseif obj:IsA("ColorCorrectionEffect") then
+        elseif obj.Name == "BaseGrayCC" then
             hasCC = true
         end
     end
     
     if not hasSky then
         local normalSky = Instance.new("Sky")
+        normalSky.Name = "BaseNormalSky"
         normalSky.CelestialBodiesShown = false
         normalSky.StarCount = 0
         normalSky.Parent = Lighting
@@ -288,7 +295,8 @@ RunService.RenderStepped:Connect(function()
     
     if not hasCC then
         local grayCC = Instance.new("ColorCorrectionEffect")
-        grayCC.Brightness = 0.23529
+        grayCC.Name = "BaseGrayCC"
+        grayCC.Brightness = 0.13725
         grayCC.Contrast = 0
         grayCC.Saturation = -1
         grayCC.Parent = Lighting
@@ -307,6 +315,10 @@ local function runReduce()
     local objectsProcessed = 0
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
+            if TARGET_CLASSES[inst.ClassName] then
+                watchObject(inst)
+            end
+
             if inst:IsA("Humanoid") then
                 local model = inst.Parent
                 if model and model:IsA("Model") then
