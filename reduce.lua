@@ -7,6 +7,7 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local ABU_GELAP = Color3.fromRGB(0, 0, 0)
+local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -178,7 +179,8 @@ local DECORATIVE = {
     Beam = true, Trail = true, Explosion = true, Discharge = true,
     Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
     Decal = true, Texture = true, SurfaceAppearance = true,
-    Highlight = true, SelectionBox = true, RopeConstraint = true
+    Highlight = true, SelectionBox = true, RopeConstraint = true,
+    BillboardGui = true, SurfaceGui = true
 }
 
 local CORE_LIMBS = {
@@ -249,36 +251,38 @@ local function neutralizeTarget(obj)
     end
 end
 
-local function cleanRootChild(child)
-    if child:IsA("Model") and not Players:GetPlayerFromCharacter(child) then
-        task.defer(function()
-            for _, inst in ipairs(child:GetDescendants()) do
-                if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
-                    pcall(function() inst:Destroy() end)
-                elseif inst:IsA("BasePart") then
-                    pcall(function()
-                        inst.Transparency = 1
-                        inst.Color = Color3.fromRGB(0, 0, 0)
-                        inst.CastShadow = false
-                    end)
-                end
-            end
+local function handleDescendant(inst)
+    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
+
+    if inst:IsA("BasePart") then
+        pcall(function()
+            inst.Transparency = 1
+            inst.Color = Color3.fromRGB(0, 0, 0)
+            inst.CastShadow = false
+            inst.Material = Enum.Material.SmoothPlastic
         end)
-    elseif TARGET_CLASSES[child.ClassName] then
-        pcall(neutralizeTarget, child)
-        child.Changed:Connect(function()
-            pcall(neutralizeTarget, child)
-        end)
-    elseif DECORATIVE[child.ClassName] or child:IsA("PostEffect") then
-        pcall(function() child:Destroy() end)
+    elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
+        pcall(function() inst:Destroy() end)
+    elseif TARGET_CLASSES[inst.ClassName] then
+        pcall(neutralizeTarget, inst)
+        if not WATCHED_REGISTRY[inst] then
+            WATCHED_REGISTRY[inst] = true
+            inst.Changed:Connect(function()
+                pcall(neutralizeTarget, inst)
+            end)
+        end
+    elseif inst:IsA("Humanoid") then
+        local model = inst.Parent
+        if model and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
+            task.defer(function() pcall(function() model:Destroy() end) end)
+        end
     end
 end
 
-Lighting.ChildAdded:Connect(cleanRootChild)
-workspace.ChildAdded:Connect(cleanRootChild)
+Lighting.DescendantAdded:Connect(handleDescendant)
+workspace.DescendantAdded:Connect(handleDescendant)
 
-for _, obj in ipairs(Lighting:GetChildren()) do cleanRootChild(obj) end
-for _, obj in ipairs(workspace:GetChildren()) do cleanRootChild(obj) end
+for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
 
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
@@ -332,22 +336,7 @@ local function runReduce()
     local objectsProcessed = 0
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
-            if inst:IsA("Humanoid") then
-                local model = inst.Parent
-                if model and model:IsA("Model") then
-                    if not Players:GetPlayerFromCharacter(model) then
-                        pcall(function() model:Destroy() end)
-                    end
-                end
-            end
-
-            if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
-                pcall(function() inst:Destroy() end)
-            elseif inst:IsA("BasePart") then
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.CastShadow = false
-                inst.Color = Color3.fromRGB(0, 0, 0)
-            end
+            handleDescendant(inst)
 
             objectsProcessed = objectsProcessed + 1
             if objectsProcessed % BATCH_SIZE == 0 then
