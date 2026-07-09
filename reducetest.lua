@@ -388,20 +388,25 @@ end
 
 task.spawn(function()
     if GuiControl then
-        pcall(function() GuiControl:Close() end)
-        
-        local dailyUI = PlayerGui:WaitForChild("!!! Daily Login", 10)
-        if dailyUI then
-            if dailyUI.Enabled == true then
-                pcall(function() GuiControl:Close() end)
-            end
+        local isOpen = false
+        pcall(function()
+            isOpen = GuiControl:IsOpen("!!! Daily Login")
+        end)
+        if isOpen then
+            pcall(function() GuiControl:Close("!!! Daily Login") end)
+        end
 
-            dailyUI:GetPropertyChangedSignal("Enabled"):Connect(function()
-                if dailyUI.Enabled == true then
-                    task.wait(0.1)
-                    pcall(function() GuiControl:Close() end)
+        local oldOpen = GuiControl.Open
+        if oldOpen then
+            GuiControl.Open = function(self, uiName, ...)
+                local result = oldOpen(self, uiName, ...)
+                if uiName == "!!! Daily Login" then
+                    task.defer(function()
+                        pcall(function() self:Close("!!! Daily Login") end)
+                    end)
                 end
-            end)
+                return result
+            end
         end
     end
 end)
