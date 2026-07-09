@@ -38,26 +38,19 @@ textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
 
+-- UI BARU: Lynx ImageButton 70x70 Pixel dengan ZIndex Maksimal
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
-LynxButton.Size = UDim2.new(0, 35, 0, 35)
+LynxButton.Size = UDim2.new(0, 70, 0, 70)
 LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
-LynxButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-LynxButton.BackgroundTransparency = 0.15
+LynxButton.BackgroundTransparency = 1
 LynxButton.BorderSizePixel = 0
 LynxButton.AutoButtonColor = true
 LynxButton.Active = true
-
-local LynxCorner = Instance.new("UICorner", LynxButton)
-LynxCorner.CornerRadius = UDim.new(1, 0)
-
-local LynxXLabel = Instance.new("TextLabel", LynxButton)
-LynxXLabel.Size = UDim2.new(1, 0, 1, 0)
-LynxXLabel.BackgroundTransparency = 1
-LynxXLabel.Text = "❌"
-LynxXLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-LynxXLabel.TextSize = 16
-LynxXLabel.Font = Enum.Font.SourceSansBold
+LynxButton.Image = "rbxassetid://92688990661431"
+LynxButton.ImageTransparency = 0
+LynxButton.ScaleType = Enum.ScaleType.Fit
+LynxButton.ZIndex = 2147483647 -- MEMAKSA ICON LYNX SELALU BERADA DI ATAS UI LAIN
 
 local dragging
 local dragInput
