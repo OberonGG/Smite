@@ -284,37 +284,37 @@ workspace.DescendantAdded:Connect(handleDescendant)
 
 for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
 
-RunService.RenderStepped:Connect(function()
-    Lighting.GlobalShadows = false
-    Lighting.Brightness = 0
-    Lighting.Ambient = ABU_GELAP
-    Lighting.OutdoorAmbient = ABU_GELAP
-    Lighting.ExposureCompensation = 0
-    Lighting.EnvironmentDiffuseScale = 0
-    Lighting.EnvironmentSpecularScale = 0
-    Lighting.TimeOfDay = "00:00:00"
-    Lighting.FogStart = 999999
-    Lighting.FogEnd = 999999
-    
-    local hasSky = false
-    local hasCC = false
-    for _, obj in ipairs(Lighting:GetChildren()) do
-        if obj.Name == "BaseNormalSky" then
-            hasSky = true
-        elseif obj.Name == "BaseGrayCC" then
-            hasCC = true
+local FORCED_LIGHTING = {
+    GlobalShadows = false,
+    Brightness = 0,
+    Ambient = ABU_GELAP,
+    OutdoorAmbient = ABU_GELAP,
+    ExposureCompensation = 0,
+    EnvironmentDiffuseScale = 0,
+    EnvironmentSpecularScale = 0,
+    TimeOfDay = "00:00:00",
+    FogStart = 999999,
+    FogEnd = 999999,
+}
+
+local function applyLightingOverride()
+    for property, value in pairs(FORCED_LIGHTING) do
+        if Lighting[property] ~= value then
+            Lighting[property] = value
         end
     end
-    
-    if not hasSky then
+end
+
+local function ensureBaseEffects()
+    if not Lighting:FindFirstChild("BaseNormalSky") then
         local normalSky = Instance.new("Sky")
         normalSky.Name = "BaseNormalSky"
         normalSky.CelestialBodiesShown = false
         normalSky.StarCount = 0
         normalSky.Parent = Lighting
     end
-    
-    if not hasCC then
+
+    if not Lighting:FindFirstChild("BaseGrayCC") then
         local grayCC = Instance.new("ColorCorrectionEffect")
         grayCC.Name = "BaseGrayCC"
         grayCC.Brightness = 0.07843
@@ -322,11 +322,31 @@ RunService.RenderStepped:Connect(function()
         grayCC.Saturation = -1
         grayCC.Parent = Lighting
     end
+end
 
-    if setfpscap then
-        setfpscap(30)
+-- Terapkan sekali di awal
+applyLightingOverride()
+ensureBaseEffects()
+
+-- Reassert HANYA kalau ada perubahan nyata pada properti Lighting (event-driven, bukan polling)
+Lighting.Changed:Connect(applyLightingOverride)
+
+-- Buat ulang Sky/CC HANYA kalau memang ke-delete
+Lighting.ChildRemoved:Connect(function(child)
+    if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
+        ensureBaseEffects()
     end
 end)
+
+if setfpscap then
+    setfpscap(30)
+    task.spawn(function()
+        while true do
+            task.wait(10)
+            setfpscap(30)
+        end
+    end)
+end
 
 local function runReduce()
     pcall(function()
@@ -360,4 +380,34 @@ if AUTO_REPEAT then
             runReduce()
         end
     end)
+end
+
+-- === Daily Login UI Auto-Disable Listener ===
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local DAILY_UI_WATCHED = setmetatable({}, {__mode = "k"})
+
+local function watchDailyUI(gui)
+    if DAILY_UI_WATCHED[gui] then return end
+    DAILY_UI_WATCHED[gui] = true
+
+    if gui.Enabled == true then
+        gui.Enabled = false
+    end
+
+    gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+        if gui.Enabled == true then
+            gui.Enabled = false
+        end
+    end)
+end
+
+PlayerGui.ChildAdded:Connect(function(child)
+    if child.Name == "!!! Daily Login" then
+        watchDailyUI(child)
+    end
+end)
+
+local existingDailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+if existingDailyUI then
+    watchDailyUI(existingDailyUI)
 end
