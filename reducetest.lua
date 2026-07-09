@@ -9,7 +9,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ABU_GELAP = Color3.fromRGB(0, 0, 0)
-local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
 
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
@@ -225,42 +224,24 @@ local function cleanChar(char)
     end
 end
 
-local TARGET_CLASSES = {
-    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
-    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
-}
-
 local function neutralizeTarget(obj)
     if obj.Name == "BaseGrayCC" then
-        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
-        if obj.Contrast ~= 0 then obj.Contrast = 0 end
-        if obj.Saturation ~= -1 then obj.Saturation = -1 end
-        if obj.Enabled ~= true then obj.Enabled = true end
+        obj.Brightness = 0.07843
+        obj.Contrast = 0
+        obj.Saturation = -1
+        obj.Enabled = true
         return
     end
-    if obj.Name == "BaseNormalSky" then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+    if obj:IsA("Sky") and obj.Name ~= "BaseNormalSky" then
+        task.defer(function() pcall(function() obj:Destroy() end) end)
         return
     end
-
     if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("Clouds") then
-        if obj.Enabled ~= false then obj.Enabled = false end
+        obj.Enabled = false
     elseif obj:IsA("Atmosphere") then
-        if obj.Density ~= 0 then obj.Density = 0 end
-        if obj.Glare ~= 0 then obj.Glare = 0 end
-        if obj.Haze ~= 0 then obj.Haze = 0 end
-    elseif obj:IsA("Sky") then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
-        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
-        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
-        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
-        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
-        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
-        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
-        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+        obj.Density = 0
+        obj.Glare = 0
+        obj.Haze = 0
     end
 end
 
@@ -276,14 +257,8 @@ local function handleDescendant(inst)
         end)
     elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
         pcall(function() inst:Destroy() end)
-    elseif TARGET_CLASSES[inst.ClassName] then
+    elseif inst:IsA("Sky") or inst:IsA("Atmosphere") or inst:IsA("ColorCorrectionEffect") or inst:IsA("SunRaysEffect") or inst:IsA("BloomEffect") or inst:IsA("BlurEffect") or inst:IsA("Clouds") then
         pcall(neutralizeTarget, inst)
-        if not WATCHED_REGISTRY[inst] then
-            WATCHED_REGISTRY[inst] = true
-            inst.Changed:Connect(function()
-                pcall(neutralizeTarget, inst)
-            end)
-        end
     elseif inst:IsA("Humanoid") then
         local model = inst.Parent
         if model and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
@@ -394,12 +369,10 @@ end
 
 task.spawn(function()
     while task.wait(1) do
-        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
-        if dailyUI and dailyUI.Enabled == true then
-            pcall(function()
-                GuiControl:Close()
+        if GuiControl and GuiControl:IsOpen("!!! Daily Login") then
+            pcall(function() 
+                GuiControl:Close() 
             end)
-            task.wait(3)
         end
     end
 end)
