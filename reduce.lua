@@ -4,10 +4,14 @@ local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ABU_GELAP = Color3.fromRGB(0, 0, 0)
 local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
+
+local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -138,7 +142,7 @@ local function closeLynx()
     if LynxGui then
         local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
         if not targetFrame then
-            for _, obj in ipairs(LynxGui:GetChildren()) do
+            for _, obj in ipairs(CoreGui:GetChildren()) do
                 if obj:IsA("Frame") then
                     targetFrame = obj
                     break
@@ -157,6 +161,15 @@ LynxButton.MouseButton1Click:Connect(closeLynx)
 
 local startTime = os.time()
 task.spawn(function()
+    for _, child in ipairs(CoreGui:GetChildren()) do
+        if string.find(string.lower(child.Name), "lynx") then
+            local targetFrame = child:FindFirstChild("MainFrame") or child:FindFirstChildOfClass("Frame")
+            if targetFrame then
+                pcall(function() targetFrame.Visible = false end)
+            end
+            break
+        end
+    end
     while task.wait(1) do
         local ping = 0
         pcall(function()
@@ -324,14 +337,11 @@ local function ensureBaseEffects()
     end
 end
 
--- Terapkan sekali di awal
 applyLightingOverride()
 ensureBaseEffects()
 
--- Reassert HANYA kalau ada perubahan nyata pada properti Lighting (event-driven, bukan polling)
 Lighting.Changed:Connect(applyLightingOverride)
 
--- Buat ulang Sky/CC HANYA kalau memang ke-delete
 Lighting.ChildRemoved:Connect(function(child)
     if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
         ensureBaseEffects()
@@ -382,32 +392,14 @@ if AUTO_REPEAT then
     end)
 end
 
--- === Daily Login UI Auto-Disable Listener ===
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local DAILY_UI_WATCHED = setmetatable({}, {__mode = "k"})
-
-local function watchDailyUI(gui)
-    if DAILY_UI_WATCHED[gui] then return end
-    DAILY_UI_WATCHED[gui] = true
-
-    if gui.Enabled == true then
-        gui.Enabled = false
-    end
-
-    gui:GetPropertyChangedSignal("Enabled"):Connect(function()
-        if gui.Enabled == true then
-            gui.Enabled = false
+task.spawn(function()
+    while task.wait(1) do
+        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+        if dailyUI and dailyUI.Enabled == true then
+            pcall(function()
+                GuiControl:Close()
+            end)
+            task.wait(3)
         end
-    end)
-end
-
-PlayerGui.ChildAdded:Connect(function(child)
-    if child.Name == "!!! Daily Login" then
-        watchDailyUI(child)
     end
 end)
-
-local existingDailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
-if existingDailyUI then
-    watchDailyUI(existingDailyUI)
-end
