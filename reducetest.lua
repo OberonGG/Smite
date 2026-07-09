@@ -145,7 +145,7 @@ local function closeLynx()
     if LynxGui then
         local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
         if not targetFrame then
-            for _, obj in ipairs(LynxGui:GetChildren()) do
+            for _, obj in ipairs(CoreGui:GetChildren()) do
                 if obj:IsA("Frame") then
                     targetFrame = obj
                     break
@@ -164,6 +164,15 @@ LynxButton.MouseButton1Click:Connect(closeLynx)
 
 local startTime = os.time()
 task.spawn(function()
+    for _, child in ipairs(CoreGui:GetChildren()) do
+        if string.find(string.lower(child.Name), "lynx") then
+            local targetFrame = child:FindFirstChild("MainFrame") or child:FindFirstChildOfClass("Frame")
+            if targetFrame then
+                pcall(function() targetFrame.Visible = false end)
+            end
+            break
+        end
+    end
     while task.wait(1) do
         local ping = 0
         pcall(function()
@@ -387,25 +396,16 @@ if AUTO_REPEAT then
 end
 
 task.spawn(function()
-    if GuiControl then
-        local isOpen = false
-        pcall(function()
-            isOpen = GuiControl:IsOpen("!!! Daily Login")
-        end)
-        if isOpen then
-            pcall(function() GuiControl:Close("!!! Daily Login") end)
-        end
-
-        local oldOpen = GuiControl.Open
-        if oldOpen then
-            GuiControl.Open = function(self, uiName, ...)
-                local result = oldOpen(self, uiName, ...)
-                if uiName == "!!! Daily Login" then
-                    task.defer(function()
-                        pcall(function() self:Close("!!! Daily Login") end)
-                    end)
-                end
-                return result
+    while task.wait(1) do
+        if GuiControl then
+            local isOpen = false
+            pcall(function()
+                isOpen = GuiControl:IsOpen("!!! Daily Login")
+            end)
+            if isOpen then
+                pcall(function() 
+                    GuiControl:Close("!!! Daily Login") 
+                end)
             end
         end
     end
