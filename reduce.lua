@@ -6,7 +6,6 @@ local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local ABU_GELAP = Color3.fromRGB(55, 55, 55)
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -217,14 +216,9 @@ local TARGET_CLASSES = {
 
 local function neutralizeTarget(obj)
     if obj:IsA("Atmosphere") then
-        if obj.Density ~= 1 then obj.Density = 1 end
-        if obj.Offset ~= 0 then obj.Offset = 0 end
-        if obj.Color ~= ABU_GELAP then obj.Color = ABU_GELAP end
-        if obj.Decay ~= ABU_GELAP then obj.Decay = ABU_GELAP end
-        if obj.Glare ~= 0 then obj.Glare = 0 end
-        if obj.Haze ~= 0 then obj.Haze = 0 end
+        if obj.Density ~= 0 then obj.Density = 0 end
     elseif obj:IsA("ColorCorrectionEffect") then
-        if obj.Brightness ~= 0 then obj.Brightness = 0 end
+        if obj.Brightness ~= 0.23529 then obj.Brightness = 0.23529 end
         if obj.Contrast ~= 0 then obj.Contrast = 0 end
         if obj.Saturation ~= -1 then obj.Saturation = -1 end
         if obj.TintColor ~= Color3.new(1, 1, 1) then obj.TintColor = Color3.new(1, 1, 1) end
@@ -244,8 +238,7 @@ local function neutralizeTarget(obj)
     elseif obj:IsA("BlurEffect") then
         if obj.Size ~= 0 then obj.Size = 0 end
     elseif obj:IsA("Clouds") then
-        if obj.Cover ~= 0 then obj.Cover = 0 end
-        if obj.Density ~= 0 then obj.Density = 0 end
+        if obj.Enabled ~= false then obj.Enabled = false end
     end
 end
 
@@ -267,16 +260,40 @@ for _, obj in ipairs(workspace:GetChildren()) do watchObject(obj) end
 RunService.RenderStepped:Connect(function()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
-    Lighting.Ambient = ABU_GELAP
-    Lighting.OutdoorAmbient = ABU_GELAP
+    Lighting.Ambient = Color3.new(0, 0, 0)
+    Lighting.OutdoorAmbient = Color3.new(0, 0, 0)
     Lighting.ExposureCompensation = 0
     Lighting.EnvironmentDiffuseScale = 0
     Lighting.EnvironmentSpecularScale = 0
     Lighting.TimeOfDay = "00:00:00"
-    Lighting.FogColor = ABU_GELAP
-    Lighting.FogStart = 0
-    Lighting.FogEnd = 0
+    Lighting.FogStart = 999999
+    Lighting.FogEnd = 999999
     
+    local hasSky = false
+    local hasCC = false
+    for _, obj in ipairs(Lighting:GetChildren()) do
+        if obj:IsA("Sky") then
+            hasSky = true
+        elseif obj:IsA("ColorCorrectionEffect") then
+            hasCC = true
+        end
+    end
+    
+    if not hasSky then
+        local normalSky = Instance.new("Sky")
+        normalSky.CelestialBodiesShown = false
+        normalSky.StarCount = 0
+        normalSky.Parent = Lighting
+    end
+    
+    if not hasCC then
+        local grayCC = Instance.new("ColorCorrectionEffect")
+        grayCC.Brightness = 0.23529
+        grayCC.Contrast = 0
+        grayCC.Saturation = -1
+        grayCC.Parent = Lighting
+    end
+
     if setfpscap then
         setfpscap(30)
     end
