@@ -217,7 +217,7 @@ local TARGET_CLASSES = {
 
 local function neutralizeTarget(obj)
     if obj.Name == "BaseGrayCC" then
-        if obj.Brightness ~= 0.13725 then obj.Brightness = 0.13725 end
+        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
         if obj.Contrast ~= 0 then obj.Contrast = 0 end
         if obj.Saturation ~= -1 then obj.Saturation = -1 end
         if obj.Enabled ~= true then obj.Enabled = true end
@@ -256,8 +256,11 @@ local function cleanRootChild(child)
                 if DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
                     pcall(function() inst:Destroy() end)
                 elseif inst:IsA("BasePart") then
-                    inst.Material = Enum.Material.SmoothPlastic
-                    inst.CastShadow = false
+                    pcall(function()
+                        inst.Transparency = 1
+                        inst.Color = Color3.fromRGB(0, 0, 0)
+                        inst.CastShadow = false
+                    end)
                 end
             end
         end)
@@ -310,7 +313,7 @@ RunService.RenderStepped:Connect(function()
     if not hasCC then
         local grayCC = Instance.new("ColorCorrectionEffect")
         grayCC.Name = "BaseGrayCC"
-        grayCC.Brightness = 0.13725
+        grayCC.Brightness = 0.07843
         grayCC.Contrast = 0
         grayCC.Saturation = -1
         grayCC.Parent = Lighting
@@ -343,6 +346,7 @@ local function runReduce()
             elseif inst:IsA("BasePart") then
                 inst.Material = Enum.Material.SmoothPlastic
                 inst.CastShadow = false
+                inst.Color = Color3.fromRGB(0, 0, 0)
             end
 
             objectsProcessed = objectsProcessed + 1
