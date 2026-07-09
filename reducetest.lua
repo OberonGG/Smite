@@ -10,9 +10,6 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
--- ==========================================
--- 1. SETUP UI
--- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -51,9 +48,6 @@ LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
--- ==========================================
--- 2. SISTEM DRAG (Anti-Nyangkut) & KLIK LYNX
--- ==========================================
 local function makeDraggable(obj, frameToDrag)
     local dragging, dragInput, dragStart, startPos
     
@@ -116,37 +110,24 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- 3. PENCAHAYAAN (Kembali ke Hitam/Abu-abu Asli)
--- ==========================================
 local ABU_GELAP = Color3.fromRGB(30, 30, 30)
-Lighting.GlobalShadows = false
-Lighting.Brightness = 0
-Lighting.Ambient = ABU_GELAP
-Lighting.OutdoorAmbient = ABU_GELAP
-Lighting.ExposureCompensation = 0
-Lighting.EnvironmentDiffuseScale = 0
-Lighting.EnvironmentSpecularScale = 0
-Lighting.TimeOfDay = "00:00:00"
-Lighting.FogColor = Color3.fromRGB(0, 0, 0) -- Memastikan background kejauhan berwarna hitam pekat
-Lighting.FogStart = 0
-Lighting.FogEnd = 999999
-
--- Mengembalikan Skybox abu-abu gelap agar tidak terlihat putih menyilaukan
-if not Lighting:FindFirstChild("BaseNormalSky") then
-    local normalSky = Instance.new("Sky", Lighting)
-    normalSky.Name = "BaseNormalSky"
-    normalSky.CelestialBodiesShown = false
-    normalSky.StarCount = 0
-    normalSky.SkyboxBk = "rbxassetid://0"
-    normalSky.SkyboxDn = "rbxassetid://0"
-    normalSky.SkyboxFt = "rbxassetid://0"
-    normalSky.SkyboxLf = "rbxassetid://0"
-    normalSky.SkyboxRt = "rbxassetid://0"
-    normalSky.SkyboxUp = "rbxassetid://0"
+local function applyBaseLighting()
+    pcall(function()
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 0
+        Lighting.Ambient = ABU_GELAP
+        Lighting.OutdoorAmbient = ABU_GELAP
+        Lighting.ExposureCompensation = 0
+        Lighting.EnvironmentDiffuseScale = 0
+        Lighting.EnvironmentSpecularScale = 0
+        Lighting.TimeOfDay = "00:00:00"
+        Lighting.FogColor = Color3.fromRGB(0, 0, 0)
+        Lighting.FogStart = 0
+        Lighting.FogEnd = 999999
+    end)
 end
+applyBaseLighting()
 
--- Mengembalikan ColorCorrection abu-abu bawaan script lamamu
 if not Lighting:FindFirstChild("BaseGrayCC") then
     local grayCC = Instance.new("ColorCorrectionEffect", Lighting)
     grayCC.Name = "BaseGrayCC"
@@ -155,59 +136,74 @@ if not Lighting:FindFirstChild("BaseGrayCC") then
     grayCC.Saturation = -1
 end
 
--- ==========================================
--- 4. PEMBERSIHAN PASIF
--- ==========================================
-local BATCH_SIZE = 30
-local REPEAT_INTERVAL = 3600
-
-local DECORATIVE = {
-    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
-    Beam = true, Trail = true, Explosion = true, Discharge = true,
-    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
-    Decal = true, Texture = true, SurfaceAppearance = true,
-    Highlight = true, SelectionBox = true, RopeConstraint = true,
-    BillboardGui = true, SurfaceGui = true
-}
-
-local TARGET_CLASSES = {
-    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
-    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
-}
+local WATCHED_REGISTRY = {}
+local isCheckingLighting = false
 
 local function neutralizeTarget(obj)
-    if obj.Name == "BaseGrayCC" or obj.Name == "BaseNormalSky" then return end
+    if obj.Name == "BaseGrayCC" then return end
     
     if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("Clouds") then
-        if obj.Enabled ~= false then obj.Enabled = false end
+        if obj.Enabled ~= false then pcall(function() obj.Enabled = false end) end
     elseif obj:IsA("Atmosphere") then
-        if obj.Density ~= 0 then obj.Density = 0 end
-        if obj.Glare ~= 0 then obj.Glare = 0 end
-        if obj.Haze ~= 0 then obj.Haze = 0 end
+        pcall(function() obj.Density = 0; obj.Glare = 0; obj.Haze = 0 end)
     elseif obj:IsA("Sky") then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        pcall(function() 
+            obj.SkyboxBk = "rbxassetid://0"
+            obj.SkyboxDn = "rbxassetid://0"
+            obj.SkyboxFt = "rbxassetid://0"
+            obj.SkyboxLf = "rbxassetid://0"
+            obj.SkyboxRt = "rbxassetid://0"
+            obj.SkyboxUp = "rbxassetid://0"
+            obj.CelestialBodiesShown = false
+            obj.StarCount = 0 
+        end)
     end
 end
 
+Lighting.Changed:Connect(function()
+    if isCheckingLighting then return end
+    isCheckingLighting = true
+    task.wait(2)
+    applyBaseLighting()
+    for _, child in ipairs(Lighting:GetChildren()) do
+        neutralizeTarget(child)
+    end
+    isCheckingLighting = false
+end)
+
+workspace.DescendantAdded:Connect(function(inst)
+    if inst:IsA("Atmosphere") or inst:IsA("Clouds") or inst:IsA("Sky") or inst:IsA("PostEffect") then
+        if not WATCHED_REGISTRY[inst] then
+            WATCHED_REGISTRY[inst] = true
+            task.wait(1)
+            neutralizeTarget(inst)
+            
+            inst.Changed:Connect(function()
+                task.wait(1)
+                neutralizeTarget(inst)
+            end)
+        end
+    end
+end)
+
+local BATCH_SIZE = 10
+local REDUCE_INTERVAL = 45
+
 local function runReduce()
     pcall(function() workspace.Terrain:Clear() end)
-
     local objectsProcessed = 0
+    
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
-            
             if inst:IsA("BasePart") then
                 pcall(function()
-                    inst.Transparency = 1
-                    inst.Color = Color3.fromRGB(0, 0, 0)
-                    inst.CastShadow = false
-                    inst.Material = Enum.Material.SmoothPlastic
+                    if inst.Transparency ~= 1 then inst.Transparency = 1 end
+                    if inst.Color ~= Color3.fromRGB(0, 0, 0) then inst.Color = Color3.fromRGB(0, 0, 0) end
+                    if inst.CastShadow ~= false then inst.CastShadow = false end
+                    if inst.Material ~= Enum.Material.SmoothPlastic then inst.Material = Enum.Material.SmoothPlastic end
                 end)
-            elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
+            elseif inst:IsA("ParticleEmitter") or inst:IsA("Smoke") or inst:IsA("Fire") or inst:IsA("Fog") then
                 pcall(function() inst:Destroy() end)
-            elseif TARGET_CLASSES[inst.ClassName] then
-                pcall(neutralizeTarget, inst)
             end
 
             objectsProcessed = objectsProcessed + 1
@@ -218,9 +214,6 @@ local function runReduce()
     end
 end
 
--- ==========================================
--- 5. LOOP (Real Ping 1 Detik & Daily Close 5 Detik)
--- ==========================================
 if setfpscap then
     setfpscap(30)
 end
@@ -249,10 +242,9 @@ task.spawn(function()
     end
 end)
 
-task.spawn(runReduce)
 task.spawn(function()
     while true do
-        task.wait(REPEAT_INTERVAL)
         runReduce()
+        task.wait(REDUCE_INTERVAL)
     end
 end)
