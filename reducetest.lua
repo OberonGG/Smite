@@ -10,6 +10,9 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
+-- ==========================================
+-- 1. SETUP UI
+-- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -37,34 +40,48 @@ textLabel.Text = "Ping: 0 ms | 0:00:00"
 
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
-LynxButton.Size = UDim2.new(0, 70, 0, 70)
+LynxButton.Size = UDim2.new(0, 40, 0, 40)
 LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
 LynxButton.BackgroundTransparency = 1
 LynxButton.BorderSizePixel = 0
 LynxButton.AutoButtonColor = true
 LynxButton.Active = true
-LynxButton.Image = "rbxassetid://92688990661431"
+LynxButton.Image = "rbxassetid://118176705805619"
 LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
+-- ==========================================
+-- 2. SISTEM DRAG (Anti-Nyangkut) & KLIK LYNX
+-- ==========================================
 local function makeDraggable(obj, frameToDrag)
-    local dragging, dragStart, startPos
+    local dragging, dragInput, dragStart, startPos
+    
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = frameToDrag.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
+    
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
     UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input == dragInput and dragging then
             local delta = input.Position - dragStart
             frameToDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input.UserInputState == Enum.UserInputState.End then dragging = false end
     end)
 end
 
@@ -99,25 +116,37 @@ task.spawn(function()
     end
 end)
 
-local ABU_SEDANG = Color3.fromRGB(50, 50, 50)
+-- ==========================================
+-- 3. PENCAHAYAAN (Kembali ke Hitam/Abu-abu Asli)
+-- ==========================================
+local ABU_GELAP = Color3.fromRGB(30, 30, 30)
 Lighting.GlobalShadows = false
-Lighting.Brightness = 1
-Lighting.Ambient = ABU_SEDANG
-Lighting.OutdoorAmbient = ABU_SEDANG
+Lighting.Brightness = 0
+Lighting.Ambient = ABU_GELAP
+Lighting.OutdoorAmbient = ABU_GELAP
 Lighting.ExposureCompensation = 0
-Lighting.EnvironmentDiffuseScale = 0.5
-Lighting.EnvironmentSpecularScale = 0.5
+Lighting.EnvironmentDiffuseScale = 0
+Lighting.EnvironmentSpecularScale = 0
 Lighting.TimeOfDay = "00:00:00"
+Lighting.FogColor = Color3.fromRGB(0, 0, 0) -- Memastikan background kejauhan berwarna hitam pekat
 Lighting.FogStart = 0
 Lighting.FogEnd = 999999
 
+-- Mengembalikan Skybox abu-abu gelap agar tidak terlihat putih menyilaukan
 if not Lighting:FindFirstChild("BaseNormalSky") then
     local normalSky = Instance.new("Sky", Lighting)
     normalSky.Name = "BaseNormalSky"
     normalSky.CelestialBodiesShown = false
     normalSky.StarCount = 0
+    normalSky.SkyboxBk = "rbxassetid://0"
+    normalSky.SkyboxDn = "rbxassetid://0"
+    normalSky.SkyboxFt = "rbxassetid://0"
+    normalSky.SkyboxLf = "rbxassetid://0"
+    normalSky.SkyboxRt = "rbxassetid://0"
+    normalSky.SkyboxUp = "rbxassetid://0"
 end
 
+-- Mengembalikan ColorCorrection abu-abu bawaan script lamamu
 if not Lighting:FindFirstChild("BaseGrayCC") then
     local grayCC = Instance.new("ColorCorrectionEffect", Lighting)
     grayCC.Name = "BaseGrayCC"
@@ -126,6 +155,9 @@ if not Lighting:FindFirstChild("BaseGrayCC") then
     grayCC.Saturation = -1
 end
 
+-- ==========================================
+-- 4. PEMBERSIHAN PASIF
+-- ==========================================
 local BATCH_SIZE = 30
 local REPEAT_INTERVAL = 3600
 
@@ -155,14 +187,6 @@ local function neutralizeTarget(obj)
     elseif obj:IsA("Sky") then
         if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
         if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
-        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
-        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
-        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
-        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
-        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
-        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
-        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
     end
 end
 
@@ -194,6 +218,9 @@ local function runReduce()
     end
 end
 
+-- ==========================================
+-- 5. LOOP (Real Ping 1 Detik & Daily Close 5 Detik)
+-- ==========================================
 if setfpscap then
     setfpscap(30)
 end
