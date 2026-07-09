@@ -11,10 +11,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ABU_GELAP = Color3.fromRGB(0, 0, 0)
 local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
 
-local GuiControl = nil
-pcall(function()
-    GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
-end)
+local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -397,16 +394,8 @@ end
 
 task.spawn(function()
     while task.wait(1) do
-        if GuiControl then
-            local isOpen = false
-            pcall(function()
-                isOpen = GuiControl:IsOpen("!!! Daily Login")
-            end)
-            if isOpen then
-                pcall(function() 
-                    GuiControl:Close("!!! Daily Login") 
-                end)
-            end
+        if GuiControl:IsOpen("!!! Daily Login") then
+            GuiControl:Close()
         end
     end
 end)
