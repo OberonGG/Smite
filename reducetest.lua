@@ -1,3 +1,7 @@
+
+
+
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -38,19 +42,18 @@ textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
 
--- UI BARU: Lynx ImageButton 70x70 Pixel dengan ZIndex Maksimal
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
-LynxButton.Size = UDim2.new(0, 70, 0, 70)
+LynxButton.Size = UDim2.new(0, 40, 0, 40)
 LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
 LynxButton.BackgroundTransparency = 1
 LynxButton.BorderSizePixel = 0
 LynxButton.AutoButtonColor = true
 LynxButton.Active = true
-LynxButton.Image = "rbxassetid://92688990661431"
+LynxButton.Image = "rbxassetid://118176705805619"
 LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
-LynxButton.ZIndex = 2147483647 -- MEMAKSA ICON LYNX SELALU BERADA DI ATAS UI LAIN
+LynxButton.ZIndex = 2147483647
 
 local dragging
 local dragInput
