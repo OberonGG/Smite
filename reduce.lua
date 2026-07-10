@@ -40,94 +40,51 @@ textLabel.Text = "Ping: 0 ms | 0:00:00"
 
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
-LynxButton.Size = UDim2.new(0, 35, 0, 35)
+LynxButton.Size = UDim2.new(0, 40, 0, 40)
 LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
-LynxButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-LynxButton.BackgroundTransparency = 0.15
+LynxButton.BackgroundTransparency = 1
 LynxButton.BorderSizePixel = 0
 LynxButton.AutoButtonColor = true
 LynxButton.Active = true
+LynxButton.Image = "rbxassetid://118176705805619"
+LynxButton.ImageTransparency = 0
+LynxButton.ScaleType = Enum.ScaleType.Fit
+LynxButton.ZIndex = 2147483647
 
-local LynxCorner = Instance.new("UICorner", LynxButton)
-LynxCorner.CornerRadius = UDim.new(1, 0)
-
-local LynxXLabel = Instance.new("TextLabel", LynxButton)
-LynxXLabel.Size = UDim2.new(1, 0, 1, 0)
-LynxXLabel.BackgroundTransparency = 1
-LynxXLabel.Text = "❌"
-LynxXLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-LynxXLabel.TextSize = 16
-LynxXLabel.Font = Enum.Font.SourceSansBold
-
-local dragging
-local dragInput
-local dragStart
-local startPos
-
-local function update(input)
-    local delta = input.Position - dragStart
-    frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+-- SISTEM DRAG (Anti-Nyangkut)
+local function makeDraggable(obj, frameToDrag)
+    local dragging, dragInput, dragStart, startPos
+    
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frameToDrag.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frameToDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
-local dragging2
-local dragInput2
-local dragStart2
-local startPos2
-
-local function update2(input)
-    local delta = input.Position - dragStart2
-    LynxButton.Position = UDim2.new(startPos2.X.Scale, startPos2.X.Offset + delta.X, startPos2.Y.Scale, startPos2.Y.Offset + delta.Y)
-end
-
-LynxButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging2 = true
-        dragStart2 = input.Position
-        startPos2 = LynxButton.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging2 = false
-            end
-        end)
-    end
-end)
-
-LynxButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput2 = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput2 and dragging2 then
-        update2(input)
-    end
-end)
+makeDraggable(frame, frame)
+makeDraggable(LynxButton, LynxButton)
 
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
@@ -144,14 +101,14 @@ local function closeLynx()
         if not targetFrame then
             for _, obj in ipairs(CoreGui:GetChildren()) do
                 if obj:IsA("Frame") then
-                    targetFrame = obj
+                     targetFrame = obj
                     break
                 end
             end
         end
         if targetFrame then
             pcall(function()
-                targetFrame.Visible = not targetFrame.Visible
+                 targetFrame.Visible = not targetFrame.Visible
             end)
         end
     end
@@ -165,7 +122,7 @@ task.spawn(function()
         if string.find(string.lower(child.Name), "lynx") then
             local targetFrame = child:FindFirstChild("MainFrame") or child:FindFirstChildOfClass("Frame")
             if targetFrame then
-                pcall(function() targetFrame.Visible = false end)
+               pcall(function() targetFrame.Visible = false end)
             end
             break
         end
@@ -313,7 +270,7 @@ local FORCED_LIGHTING = {
 local function applyLightingOverride()
     for property, value in pairs(FORCED_LIGHTING) do
         if Lighting[property] ~= value then
-            Lighting[property] = value
+             Lighting[property] = value
         end
     end
 end
@@ -352,7 +309,7 @@ if setfpscap then
     setfpscap(30)
     task.spawn(function()
         while true do
-            task.wait(10)
+           task.wait(10)
             setfpscap(30)
         end
     end)
