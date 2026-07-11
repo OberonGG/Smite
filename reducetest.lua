@@ -10,13 +10,12 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [WARNA TEMA: Abu-abu Gelap (Tetap 50, 50, 50)]
+-- [WARNA TEMA MUTLAK]
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
--- UI PING & DRAG (Dipertahankan Utuh)
+-- UI PING, TIMER & DRAG (Asli Milikmu)
 -- ==========================================
-local GuiControl = pcall(function() return require(ReplicatedStorage.Modules.GuiControl) end)
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -104,44 +103,38 @@ task.spawn(function()
     end
 end)
 
-
 -- ==========================================
--- PENJAGA CUACA (INSTAN GELAP TANPA BOCOR CAHAYA)
+-- SISTEM SATPAM LIGHTING (Hard-Kill Mutlak)
 -- ==========================================
 local function lockLighting()
-    pcall(function()
-        -- Kita cek dulu agar tidak terjadi infinite loop
-        if Lighting.GlobalShadows ~= false then Lighting.GlobalShadows = false end
-        if Lighting.Brightness ~= 1 then Lighting.Brightness = 1 end
-        if Lighting.Ambient ~= WARNA_GELAP then Lighting.Ambient = WARNA_GELAP end
-        if Lighting.OutdoorAmbient ~= WARNA_GELAP then Lighting.OutdoorAmbient = WARNA_GELAP end
-        if Lighting.TimeOfDay ~= "00:00:00" then Lighting.TimeOfDay = "00:00:00" end
-        if Lighting.FogStart ~= 9999999 then Lighting.FogStart = 9999999 end
-        if Lighting.FogEnd ~= 9999999 then Lighting.FogEnd = 9999999 end
-    end)
+    -- Bypass semua interupsi cuaca secara brutal
+    if Lighting.Ambient ~= WARNA_GELAP then Lighting.Ambient = WARNA_GELAP end
+    if Lighting.OutdoorAmbient ~= WARNA_GELAP then Lighting.OutdoorAmbient = WARNA_GELAP end
+    if Lighting.TimeOfDay ~= "00:00:00" then Lighting.TimeOfDay = "00:00:00" end
+    if Lighting.Brightness ~= 1 then Lighting.Brightness = 1 end
+    if Lighting.GlobalShadows ~= false then Lighting.GlobalShadows = false end
+    if Lighting.FogStart ~= 9999999 then Lighting.FogStart = 9999999 end
+    if Lighting.FogEnd ~= 9999999 then Lighting.FogEnd = 9999999 end
 end
 
-local function destroyLightingChildren(obj)
-    if obj:IsA("Sky") or obj:IsA("Atmosphere") or obj:IsA("BloomEffect") or obj:IsA("SunRaysEffect") or obj:IsA("ColorCorrectionEffect") or obj:IsA("BlurEffect") then
-        pcall(function() obj:Destroy() end)
+local function killLightingChild(child)
+    if child:IsA("Sky") or child:IsA("Atmosphere") or child:IsA("BloomEffect") or child:IsA("SunRaysEffect") or child:IsA("ColorCorrectionEffect") or child:IsA("BlurEffect") then
+        task.defer(function() pcall(function() child:Destroy() end) end)
     end
 end
 
--- Kunci di detik pertama
+-- Eksekusi awal
 lockLighting()
-for _, obj in pairs(Lighting:GetChildren()) do destroyLightingChildren(obj) end
+for _, obj in ipairs(Lighting:GetChildren()) do killLightingChild(obj) end
 
--- Kunci INSTAN setiap kali ada yang coba ubah cahaya (Totem/Cuaca)
+-- Listener Aktif Tanpa Loop
 Lighting.Changed:Connect(lockLighting)
-Lighting.ChildAdded:Connect(function(child)
-    task.spawn(function() destroyLightingChildren(child) end)
-end)
-
+Lighting.ChildAdded:Connect(killLightingChild)
 
 -- ==========================================
--- LOGIKA PEMBANTAIAN & PELINDUNGAN PIJAKAN
+-- LOGIKA PEMBANTAIAN & PELINDUNG 70+ JAM
 -- ==========================================
--- Sama dengan daftar Ookami, TAPI tanpa menghancurkan pondasi pijakan
+-- Menggunakan Dictionary agar lookup jauh lebih cepat daripada if-elseif
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
@@ -149,99 +142,82 @@ local TO_DESTROY = {
     Accessory = true, CharacterMesh = true,
     Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
     PostEffect = true, SelectionBox = true, Decal = true, Texture = true,
-    SurfaceAppearance = true
+    SurfaceAppearance = true, SpecialMesh = true
 }
 
+-- Pengecekan tanpa closure (Dibuat se-ringan mungkin untuk GC)
 local function processInstance(inst)
     if inst:IsDescendantOf(CoreGui) then return end
     
-    local isProtected = false
     local name = inst.Name
+    local parent = inst.Parent
+    local cName = inst.ClassName
+    local parentName = parent and parent.Name or ""
     
-    -- 1. Pertahankan logika Totem & Pelampung punyamu (Aman dari spam error)
-    if string.find(name, "Totem") or string.find(name, "Bobber") then isProtected = true end
-    if inst.Parent and (string.find(inst.Parent.Name, "Totem") or string.find(inst.Parent.Name, "Bobber")) then isProtected = true end
-    
-    -- 2. Pertahankan kepala bulat
-    if inst:IsA("SpecialMesh") and inst.Parent and inst.Parent.Name == "Head" then
-        isProtected = true
+    -- Filter Proteksi (Tidak pakai string.lower agar tidak membuang memori)
+    if string.find(name, "Totem") or string.find(name, "Bobber") or 
+       string.find(parentName, "Totem") or string.find(parentName, "Bobber") then
+        return
     end
     
-    -- 3. Joran (Rod) Ngotak tapi warna aslinya aman
+    if cName == "SpecialMesh" and parentName == "Head" then return end
+    
     local isRodPart = false
-    if string.find(name, "Rod") or (inst.Parent and string.find(inst.Parent.Name, "Rod")) then
+    if string.find(name, "Rod") or string.find(parentName, "Rod") then
         isRodPart = true
-        if inst:IsA("BasePart") then
-            isProtected = true 
-        end
+        if inst:IsA("BasePart") then return end
     end
 
-    if not isProtected then
-        local cName = inst.ClassName
-        
-        if TO_DESTROY[cName] or cName == "SpecialMesh" then
-            pcall(function() inst:Destroy() end)
-            
-        -- LOGIKA ANTI-TENGGELAM: BasePart (termasuk MeshPart & Union) BUKAN dihancurkan, tapi dikotakkan!
-        elseif inst:IsA("BasePart") and not inst:IsA("Terrain") then
-            pcall(function()
-                if not isRodPart then
-                    if inst.Color ~= WARNA_GELAP then inst.Color = WARNA_GELAP end
-                    if inst.Material ~= Enum.Material.SmoothPlastic then inst.Material = Enum.Material.SmoothPlastic end
-                    if inst.Reflectance ~= 0 then inst.Reflectance = 0 end
-                    if inst.CastShadow ~= false then inst.CastShadow = false end
-                    -- Cabut tekstur 3D bawaan MeshPart agar ringan seperti Ookami
-                    if cName == "MeshPart" and inst.TextureID ~= "" then inst.TextureID = "" end
-                end
-            end)
+    -- Eksekusi Utama
+    if TO_DESTROY[cName] then
+        -- task.defer sangat ringan, menghindari error lock hierarchy dari Engine Roblox
+        task.defer(function() pcall(function() inst:Destroy() end) end)
+    
+    elseif inst:IsA("BasePart") and not inst:IsA("Terrain") then
+        if not isRodPart then
+            inst.Color = WARNA_GELAP
+            inst.Material = Enum.Material.SmoothPlastic
+            inst.Reflectance = 0
+            inst.CastShadow = false
+            if cName == "MeshPart" then inst.TextureID = "" end
         end
     end
 end
 
-
 -- ==========================================
--- EKSEKUSI OOKAMI-STYLE (INSTAN LISTENER)
+-- INISIALISASI & LISTENER INSTAN (Murni Agresif)
 -- ==========================================
--- Setting Terrain Air
 pcall(function()
-    if Workspace:FindFirstChildOfClass("Terrain") then
-        local t = Workspace.Terrain
+    local t = Workspace:FindFirstChildOfClass("Terrain")
+    if t then
         t.WaterColor = WARNA_GELAP
         t.WaterWaveSize = 0; t.WaterWaveSpeed = 0; t.WaterReflectance = 0; t.WaterTransparency = 0
     end
 end)
 
--- Fungsi Pemicu Instan yang dibungkus Task Spawn (Gaya Ookami)
-local function musnahkan(v)
-    task.spawn(function()
-        processInstance(v)
-    end)
+-- Melakukan Pass Pertama Tanpa Jeda
+for _, object in ipairs(Workspace:GetDescendants()) do
+    processInstance(object)
 end
 
--- Listener instan setiap milidetik (0 detik bocor partikel)
-Workspace.DescendantAdded:Connect(musnahkan)
-
--- Eksekusi awal satu kali ke seluruh map
-task.spawn(function()
-    for _, object in pairs(Workspace:GetDescendants()) do
-        musnahkan(object)
-    end
-end)
-
+-- LISTENER BRUTAL: Dihubungkan langsung ke fungsi tanpa perantara closure () 
+-- Ini adalah rahasia utama mencegah memory leak pada DescendantAdded
+Workspace.DescendantAdded:Connect(processInstance)
 
 -- ==========================================
--- FPS CAP & DAILY LOGIN (LOGIC ASLI MILIKMU)
+-- DAILY LOGIN & FPS CAP (Loop Asli Milikmu)
 -- ==========================================
 if setfpscap then
     setfpscap(30)
-    task.spawn(function()
+    task.defer(function()
         while task.wait(10) do
             setfpscap(30)
         end
     end)
 end
 
-task.spawn(function()
+-- Dibiarkan menggunakan loop murni sesuai permintaan
+task.defer(function()
     while task.wait(3) do
         local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
         if dailyUI and dailyUI.Enabled == true then
