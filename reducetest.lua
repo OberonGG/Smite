@@ -8,7 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local ABU_GELAP = Color3.fromRGB(0, 0, 0)
+local ABU_TARGET = Color3.fromRGB(30, 30, 30)
 local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
 
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
@@ -51,30 +51,24 @@ LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
--- SISTEM DRAG (Anti-Nyangkut)
+-- SISTEM DRAG
 local function makeDraggable(obj, frameToDrag)
     local dragging, dragInput, dragStart, startPos
-    
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = frameToDrag.Position
-            
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
-    
     obj.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-    
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
@@ -90,26 +84,18 @@ local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
     if not LynxGui then
         for _, child in ipairs(CoreGui:GetChildren()) do
-            if string.find(string.lower(child.Name), "lynx") then
-                LynxGui = child
-                break
-            end
+            if string.find(string.lower(child.Name), "lynx") then LynxGui = child break end
         end
     end
     if LynxGui then
         local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
         if not targetFrame then
             for _, obj in ipairs(CoreGui:GetChildren()) do
-                if obj:IsA("Frame") then
-                     targetFrame = obj
-                    break
-                end
+                if obj:IsA("Frame") then targetFrame = obj break end
             end
         end
         if targetFrame then
-            pcall(function()
-                 targetFrame.Visible = not targetFrame.Visible
-            end)
+            pcall(function() targetFrame.Visible = not targetFrame.Visible end)
         end
     end
 end
@@ -121,17 +107,13 @@ task.spawn(function()
     for _, child in ipairs(CoreGui:GetChildren()) do
         if string.find(string.lower(child.Name), "lynx") then
             local targetFrame = child:FindFirstChild("MainFrame") or child:FindFirstChildOfClass("Frame")
-            if targetFrame then
-               pcall(function() targetFrame.Visible = false end)
-            end
+            if targetFrame then pcall(function() targetFrame.Visible = false end) end
             break
         end
     end
     while task.wait(1) do
         local ping = 0
-        pcall(function()
-            ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-        end)
+        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
         local elapsed = os.time() - startTime
         local h = math.floor(elapsed / 3600)
         local m = math.floor((elapsed % 3600) / 60)
@@ -140,47 +122,18 @@ task.spawn(function()
     end
 end)
 
-local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 10
-
-local DECORATIVE = {
+-- DAFTAR OBJEK YANG AKAN DIHANCURKAN (Meniru log target)
+-- Memasukkan SpecialMesh & CharacterMesh agar joran jadi kotak & pemain jadi bulat
+local DELETED_CLASSES = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true,
     Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
     Decal = true, Texture = true, SurfaceAppearance = true,
     Highlight = true, SelectionBox = true, RopeConstraint = true,
-    BillboardGui = true, SurfaceGui = true
+    BillboardGui = true, SurfaceGui = true,
+    Accessory = true, Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true,
+    SpecialMesh = true, CharacterMesh = true, WeldConstraint = true, Vector3Value = true
 }
-
-local CORE_LIMBS = {
-    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true,
-    ["HumanoidRootPart"] = true, ["UpperTorso"] = true, ["LowerTorso"] = true, 
-    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
-    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
-    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
-    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
-}
-
-local function cleanChar(char)
-    if not char then return end
-    for _, inst in ipairs(char:GetDescendants()) do
-        if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
-            pcall(function() inst:Destroy() end)
-        elseif inst:IsA("BasePart") then
-            if not CORE_LIMBS[inst.Name] then
-                inst.Transparency = 1
-                inst.LocalTransparencyModifier = 1
-            else
-                inst.Color = Color3.fromRGB(150, 150, 150)
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.Transparency = 0
-            end
-        elseif DECORATIVE[inst.ClassName] then
-            pcall(function() inst:Destroy() end)
-        end
-    end
-end
 
 local TARGET_CLASSES = {
     Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
@@ -211,28 +164,32 @@ local function neutralizeTarget(obj)
         if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
         if obj.StarCount ~= 0 then obj.StarCount = 0 end
         if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
-        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
-        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
-        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
-        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
-        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
+        -- ... (clear skyboxes)
+        obj.SkyboxDn = "rbxassetid://0"; obj.SkyboxFt = "rbxassetid://0"; 
+        obj.SkyboxLf = "rbxassetid://0"; obj.SkyboxRt = "rbxassetid://0"; obj.SkyboxUp = "rbxassetid://0"
         if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
         if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
     end
 end
 
+-- LOGIKA INTI: Mengubah/Menghapus berdasarkan Class
 local function handleDescendant(inst)
-    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
+    if inst:IsDescendantOf(CoreGui) then return end
 
-    if inst:IsA("BasePart") then
-        pcall(function()
-            inst.Transparency = 1
-            inst.Color = Color3.fromRGB(0, 0, 0)
-            inst.CastShadow = false
-            inst.Material = Enum.Material.SmoothPlastic
-        end)
-    elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
+    if DELETED_CLASSES[inst.ClassName] or inst:IsA("PostEffect") then
         pcall(function() inst:Destroy() end)
+        
+    elseif inst:IsA("BasePart") then
+        pcall(function()
+            inst.Color = ABU_TARGET
+            inst.Material = Enum.Material.SmoothPlastic
+            inst.CastShadow = false
+            inst.Transparency = 0
+            if inst:IsA("MeshPart") then
+                inst.TextureID = ""
+            end
+        end)
+        
     elseif TARGET_CLASSES[inst.ClassName] then
         pcall(neutralizeTarget, inst)
         if not WATCHED_REGISTRY[inst] then
@@ -241,30 +198,55 @@ local function handleDescendant(inst)
                 pcall(neutralizeTarget, inst)
             end)
         end
-    elseif inst:IsA("Humanoid") then
-        local model = inst.Parent
-        if model and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
-            task.defer(function() pcall(function() model:Destroy() end) end)
-        end
     end
 end
 
+-- SETUP PENGATURAN AIR (TERRAIN)
+local function applyTerrainColor()
+    pcall(function()
+        if workspace:FindFirstChildOfClass("Terrain") then
+            local t = workspace.Terrain
+            t.WaterColor = ABU_TARGET
+            t.WaterWaveSize = 0
+            t.WaterWaveSpeed = 0
+            t.WaterReflectance = 0
+            t.WaterTransparency = 0
+            -- Paksa warna material dasar ke abu-abu
+            for _, mat in ipairs(Enum.Material:GetEnumItems()) do
+                pcall(function() t:SetMaterialColor(mat, ABU_TARGET) end)
+            end
+        end
+    end)
+end
+
+-- EVENT DRIVEN: Memproses objek yang baru muncul secara real-time
 Lighting.DescendantAdded:Connect(handleDescendant)
 workspace.DescendantAdded:Connect(handleDescendant)
 
-for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
+-- INISIALISASI AWAL SECARA AMAN (Menggantikan runReduce loop)
+task.spawn(function()
+    applyTerrainColor()
+    local descendants = workspace:GetDescendants()
+    for i, inst in ipairs(descendants) do
+        handleDescendant(inst)
+        -- Beri jeda ke CPU setiap memproses 100 objek agar tidak crash saat pertama kali disuntikkan
+        if i % 100 == 0 then RunService.Heartbeat:Wait() end
+    end
+    for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
+end)
 
+-- PENGATURAN LIGHTING BERDASARKAN LOG SPY LOGGER
 local FORCED_LIGHTING = {
     GlobalShadows = false,
-    Brightness = 0,
-    Ambient = ABU_GELAP,
-    OutdoorAmbient = ABU_GELAP,
+    Brightness = 1, -- Dari log target
+    Ambient = ABU_TARGET,
+    OutdoorAmbient = ABU_TARGET,
     ExposureCompensation = 0,
     EnvironmentDiffuseScale = 0,
     EnvironmentSpecularScale = 0,
     TimeOfDay = "00:00:00",
-    FogStart = 999999,
-    FogEnd = 999999,
+    FogStart = 8999999488, -- Dari log target
+    FogEnd = 8999999488,   -- Dari log target
 }
 
 local function applyLightingOverride()
@@ -283,7 +265,6 @@ local function ensureBaseEffects()
         normalSky.StarCount = 0
         normalSky.Parent = Lighting
     end
-
     if not Lighting:FindFirstChild("BaseGrayCC") then
         local grayCC = Instance.new("ColorCorrectionEffect")
         grayCC.Name = "BaseGrayCC"
@@ -296,9 +277,7 @@ end
 
 applyLightingOverride()
 ensureBaseEffects()
-
 Lighting.Changed:Connect(applyLightingOverride)
-
 Lighting.ChildRemoved:Connect(function(child)
     if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
         ensureBaseEffects()
@@ -315,47 +294,12 @@ if setfpscap then
     end)
 end
 
-local function runReduce()
-    pcall(function()
-        workspace.Terrain:Clear()
-    end)
-
-    local objectsProcessed = 0
-    for _, inst in ipairs(workspace:GetDescendants()) do
-        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
-            handleDescendant(inst)
-
-            objectsProcessed = objectsProcessed + 1
-            if objectsProcessed % BATCH_SIZE == 0 then
-                RunService.Heartbeat:Wait()
-            end
-        end
-    end
-end
-
-LocalPlayer.CharacterAdded:Connect(cleanChar)
-if LocalPlayer.Character then
-    cleanChar(LocalPlayer.Character)
-end
-
-task.spawn(runReduce)
-
-if AUTO_REPEAT then
-    task.spawn(function()
-        while true do
-            task.wait(REPEAT_INTERVAL)
-            runReduce()
-        end
-    end)
-end
-
+-- AUTO CLOSE DAILY LOGIN
 task.spawn(function()
     while task.wait(1) do
         local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
         if dailyUI and dailyUI.Enabled == true then
-            pcall(function()
-                GuiControl:Close()
-            end)
+            pcall(function() GuiControl:Close() end)
             task.wait(3)
         end
     end
