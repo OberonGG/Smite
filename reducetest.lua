@@ -9,11 +9,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [WARNA TEMA: Abu-abu Terang (50, 50, 50) sesuai permintaan]
+-- [WARNA TEMA: Abu-abu Gelap]
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
--- UI PING & DRAG (Dipertahankan)
+-- UI PING & DRAG (Dipertahankan Utuh)
 -- ==========================================
 local GuiControl = pcall(function() return require(ReplicatedStorage.Modules.GuiControl) end)
 local ui = Instance.new("ScreenGui")
@@ -104,19 +104,21 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LOGIKA 1 DETIK: AMAN DARI ERROR & TEKSTUR TETAP ADA
+-- LOGIKA PEMBANTAIAN HYBRID (Ookami + Punyamu)
 -- ==========================================
 
--- DAFTAR PEMBANTAIAN: UI, Tali, dan Tekstur DIHAPUS dari sini agar game tidak error
+-- Foto Copy selektivitas Ookami (Tanpa menghancurkan MeshPart pijakan)
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
-    PointLight = true, SpotLight = true, SurfaceLight = true,
-    -- Memastikan avatar tetap bulat / botak
-    Accessory = true, SpecialMesh = true, CharacterMesh = true,
-    Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true
+    PointLight = true, SpotLight = true, SurfaceLight = true, Light = true,
+    Accessory = true, CharacterMesh = true,
+    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
+    PostEffect = true, SelectionBox = true, Decal = true, Texture = true,
+    SurfaceAppearance = true
 }
 
+-- Penguncian Cuaca/Lighting Punyamu (Anti Totem Cuaca Terang)
 local function lockLighting()
     pcall(function()
         Lighting.GlobalShadows = false
@@ -132,9 +134,58 @@ local function lockLighting()
     end)
 end
 
-local function executeSweep()
-    lockLighting() 
+local function processInstance(inst)
+    if inst:IsDescendantOf(CoreGui) then return end
     
+    local isProtected = false
+    local name = inst.Name
+    
+    -- 1. Pertahankan logika Totem & Pelampung punyamu
+    if string.find(name, "Totem") or string.find(name, "Bobber") then isProtected = true end
+    if inst.Parent and (string.find(inst.Parent.Name, "Totem") or string.find(inst.Parent.Name, "Bobber")) then isProtected = true end
+    
+    -- 2. Pertahankan kepala bulat
+    if inst:IsA("SpecialMesh") and inst.Parent and inst.Parent.Name == "Head" then
+        isProtected = true
+    end
+    
+    -- 3. Joran (Rod) Ngotak tapi tidak ikut tercat
+    local isRodPart = false
+    if string.find(name, "Rod") or (inst.Parent and string.find(inst.Parent.Name, "Rod")) then
+        isRodPart = true
+        if inst:IsA("BasePart") then
+            isProtected = true 
+        end
+    end
+
+    if not isProtected then
+        local cName = inst.ClassName
+        
+        -- Hancurkan sesuai daftar Ookami + SpecialMesh (selain kepala)
+        if TO_DESTROY[cName] or cName == "SpecialMesh" then
+            pcall(function() inst:Destroy() end)
+            
+        -- Logika BasePart, UnionOperation, & MeshPart (Agar tidak tenggelam)
+        elseif inst:IsA("BasePart") then
+            pcall(function()
+                if not isRodPart then
+                    if inst.Color ~= WARNA_GELAP then inst.Color = WARNA_GELAP end
+                    inst.Material = Enum.Material.SmoothPlastic
+                    inst.Reflectance = 0
+                    inst.CastShadow = false
+                    -- Cabut tekstur 3D bawaan MeshPart
+                    if cName == "MeshPart" then inst.TextureID = "" end
+                end
+            end)
+        end
+    end
+end
+
+-- ==========================================
+-- SAPUAN GLOBAL (Studs Dibuang)
+-- ==========================================
+local function executeSweep()
+    lockLighting()
     pcall(function()
         if workspace:FindFirstChildOfClass("Terrain") then
             local t = workspace.Terrain
@@ -145,49 +196,22 @@ local function executeSweep()
 
     local descendants = workspace:GetDescendants()
     local processed = 0
-
     for i = 1, #descendants do
-        local inst = descendants[i]
-        
-        if not inst:IsDescendantOf(CoreGui) then
-            -- FILTER: Jangan sentuh apa pun yang bernama Totem atau Bobber (Pelampung)
-            local isProtected = false
-            local name = inst.Name
-            
-            if string.find(name, "Totem") or string.find(name, "Bobber") then isProtected = true end
-            if inst.Parent and (string.find(inst.Parent.Name, "Totem") or string.find(inst.Parent.Name, "Bobber")) then isProtected = true end
-            
-            if not isProtected then
-                local cName = inst.ClassName
-                if TO_DESTROY[cName] then
-                    pcall(function() inst:Destroy() end)
-                elseif inst:IsA("BasePart") then
-                    pcall(function()
-                        inst.Color = WARNA_GELAP
-                        inst.CastShadow = false
-                        -- SmoothPlastic dihapus dari sini agar kotak-kotak (Studs) tidak hilang
-                    end)
-                end
-            end
-        end
-
+        processInstance(descendants[i])
         processed = processed + 1
         if processed % 500 == 0 then RunService.Heartbeat:Wait() end
     end
 end
 
--- ==========================================
--- LOOPING UTAMA (Sapuan 1 Detik)
--- ==========================================
 task.spawn(function()
     while true do
         executeSweep()
-        task.wait(1) 
+        task.wait(2) -- Dibuat 2 detik agar lebih seimbang dan hemat RAM
     end
 end)
 
 -- ==========================================
--- FPS CAP & DAILY LOGIN
+-- FPS CAP & DAILY LOGIN (Dikembalikan ke Loop Biasa)
 -- ==========================================
 if setfpscap then
     setfpscap(30)
