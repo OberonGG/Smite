@@ -9,11 +9,12 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [WARNA TEMA: Abu-abu Terang (50, 50, 50) sesuai permintaan]
+-- [PENGATURAN REDUCE]
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
+local RADIUS_STUDS = 600 -- Jarak sapuan area sekitarmu (600 studs cukup untuk 1 pulau)
 
 -- ==========================================
--- UI PING & DRAG (Dipertahankan)
+-- UI PING & DRAG 
 -- ==========================================
 local GuiControl = pcall(function() return require(ReplicatedStorage.Modules.GuiControl) end)
 local ui = Instance.new("ScreenGui")
@@ -104,15 +105,12 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LOGIKA 1 DETIK: AMAN DARI ERROR & TEKSTUR TETAP ADA
+-- LOGIKA PEMBANTAIAN & PELINDUNGAN
 -- ==========================================
-
--- DAFTAR PEMBANTAIAN: UI, Tali, dan Tekstur DIHAPUS dari sini agar game tidak error
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
     PointLight = true, SpotLight = true, SurfaceLight = true,
-    -- Memastikan avatar tetap bulat / botak
     Accessory = true, SpecialMesh = true, CharacterMesh = true,
     Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true
 }
@@ -132,9 +130,48 @@ local function lockLighting()
     end)
 end
 
-local function executeSweep()
-    lockLighting() 
+-- Fungsi inti untuk memproses 1 objek
+local function processInstance(inst)
+    if inst:IsDescendantOf(CoreGui) then return end
     
+    local isProtected = false
+    local name = inst.Name
+    
+    -- 1. Lindungi Totem, Pelampung, dan Sistem Joran agar game tidak error
+    if string.find(name, "Totem") or string.find(name, "Bobber") then isProtected = true end
+    if inst.Parent and (string.find(inst.Parent.Name, "Totem") or string.find(inst.Parent.Name, "Bobber")) then isProtected = true end
+    
+    -- 2. Lindungi Kepala agar avatar tetap BULAT (tidak berubah jadi lego kotak)
+    if inst:IsA("SpecialMesh") and inst.Parent and inst.Parent.Name == "Head" then
+        isProtected = true
+    end
+    
+    -- Joran (Rod) TIDAK dilindungi Mesh-nya agar bentuknya "Ngotak", tapi BasePart-nya jangan dicat 50,50,50
+    local isRodPart = false
+    if string.find(name, "Rod") or (inst.Parent and string.find(inst.Parent.Name, "Rod")) then
+        isRodPart = true
+    end
+
+    if not isProtected then
+        local cName = inst.ClassName
+        if TO_DESTROY[cName] then
+            pcall(function() inst:Destroy() end)
+        elseif inst:IsA("BasePart") then
+            pcall(function()
+                if not isRodPart and inst.Color ~= WARNA_GELAP then
+                    inst.Color = WARNA_GELAP
+                    inst.CastShadow = false
+                end
+            end)
+        end
+    end
+end
+
+-- ==========================================
+-- SAPUAN 1 DETIK (HANYA AREA RADIUS STUDS)
+-- ==========================================
+local function sweepLocalRadius()
+    lockLighting()
     pcall(function()
         if workspace:FindFirstChildOfClass("Terrain") then
             local t = workspace.Terrain
@@ -143,51 +180,64 @@ local function executeSweep()
         end
     end)
 
-    local descendants = workspace:GetDescendants()
-    local processed = 0
-
-    for i = 1, #descendants do
-        local inst = descendants[i]
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    
+    if root then
+        -- Mengambil HANYA objek yang berada di radius 600 studs dari pemain (Sangat ringan untuk CPU)
+        local partsInRadius = workspace:GetPartBoundsInRadius(root.Position, RADIUS_STUDS)
         
-        if not inst:IsDescendantOf(CoreGui) then
-            -- FILTER: Jangan sentuh apa pun yang bernama Totem atau Bobber (Pelampung)
-            local isProtected = false
-            local name = inst.Name
+        for _, part in ipairs(partsInRadius) do
+            processInstance(part)
             
-            if string.find(name, "Totem") or string.find(name, "Bobber") then isProtected = true end
-            if inst.Parent and (string.find(inst.Parent.Name, "Totem") or string.find(inst.Parent.Name, "Bobber")) then isProtected = true end
+            -- Proses juga anak-anak dari part tersebut (seperti Mesh, Particle, atau Textures di sekitarmu)
+            for _, child in ipairs(part:GetChildren()) do
+                processInstance(child)
+            end
             
-            if not isProtected then
-                local cName = inst.ClassName
-                if TO_DESTROY[cName] then
-                    pcall(function() inst:Destroy() end)
-                elseif inst:IsA("BasePart") then
-                    pcall(function()
-                        inst.Color = WARNA_GELAP
-                        inst.CastShadow = false
-                        -- SmoothPlastic dihapus dari sini agar kotak-kotak (Studs) tidak hilang
-                    end)
+            -- Jika part itu adalah bagian dari Aksesoris atau Joran, proses juga induknya
+            if part.Parent and (part.Parent:IsA("Accessory") or part.Parent:IsA("Tool")) then
+                processInstance(part.Parent)
+                for _, sibling in ipairs(part.Parent:GetChildren()) do
+                    processInstance(sibling)
                 end
             end
         end
+    end
+end
 
+-- ==========================================
+-- SAPUAN 1 JAM (SAPU JAGAT SELURUH MAP)
+-- ==========================================
+local function sweepGlobal()
+    local descendants = workspace:GetDescendants()
+    local processed = 0
+    for i = 1, #descendants do
+        processInstance(descendants[i])
         processed = processed + 1
         if processed % 500 == 0 then RunService.Heartbeat:Wait() end
     end
 end
 
 -- ==========================================
--- LOOPING UTAMA (Sapuan 1 Detik)
+-- EKSEKUSI LOOPING
 -- ==========================================
 task.spawn(function()
     while true do
-        executeSweep()
-        task.wait(1) 
+        sweepLocalRadius()
+        task.wait(1) -- Membersihkan radius terdekat tiap 1 detik
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(3600) -- Menunggu 1 Jam
+        sweepGlobal()   -- Membersihkan seluruh map setelah 1 jam
     end
 end)
 
 -- ==========================================
--- FPS CAP & DAILY LOGIN
+-- FPS CAP & DAILY LOGIN (LISTENER)
 -- ==========================================
 if setfpscap then
     setfpscap(30)
@@ -199,10 +249,15 @@ if setfpscap then
 end
 
 task.spawn(function()
-    while task.wait(3) do
-        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
-        if dailyUI and dailyUI.Enabled == true then
+    local dailyUI = PlayerGui:WaitForChild("!!! Daily Login", 10)
+    if dailyUI then
+        if dailyUI.Enabled == true then
             pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
         end
+        dailyUI:GetPropertyChangedSignal("Enabled"):Connect(function()
+            if dailyUI.Enabled == true then
+                pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
+            end
+        end)
     end
 end)
