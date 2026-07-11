@@ -141,8 +141,8 @@ task.spawn(function()
 end)
 
 local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 3600
-local BATCH_SIZE = 5
+local REPEAT_INTERVAL = 14400
+local BATCH_SIZE = 10
 
 local DECORATIVE = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
