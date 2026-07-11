@@ -112,24 +112,18 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- LOGIKA HYBRID: HANCURKAN vs SEMBUNYIKAN
--- ==========================================
 
 -- Kategori 1: PEMBANTAIAN (Objek sampah yang terus spawn dan bikin RAM bocor)
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
-    PointLight = true, SpotLight = true, SurfaceLight = true, RopeConstraint = true
-}
-
--- Kategori 2: PELUMPUHAN (Sembunyikan agar engine tidak error mencari objek yang hilang)
-local TO_HIDE = {
+    PointLight = true, SpotLight = true, SurfaceLight = true, RopeConstraint = true, -- Koma ditambahkan di sini
     Accessory = true, SpecialMesh = true, CharacterMesh = true,
     Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true,
     Decal = true, Texture = true, SurfaceAppearance = true,
     Highlight = true, SelectionBox = true, BillboardGui = true, SurfaceGui = true
 }
+   
 
 local TARGET_CLASSES = {
     Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
@@ -148,12 +142,30 @@ local function neutralizeLighting(obj)
     end
 end
 
--- ==========================================
--- FUNGSI SAPUAN (BATCHING AGAR TIDAK SPIKE)
--- ==========================================
-local function executeSweep()
+
+local function lockLighting()
     pcall(function()
-        -- 1. Warna Air (Tetap aman tanpa menghapus)
+        Lighting.GlobalShadows = false
+        Lighting.Brightness = 1
+        Lighting.Ambient = WARNA_GELAP
+        Lighting.OutdoorAmbient = WARNA_GELAP
+        Lighting.TimeOfDay = "00:00:00"
+        Lighting.FogStart = 9999999
+        Lighting.FogEnd = 9999999
+        
+        -- Pastikan Sky tidak memancarkan cahaya cuaca
+        for _, obj in pairs(Lighting:GetChildren()) do
+            if obj:IsA("Sky") then
+                obj.CelestialBodiesShown = false
+            end
+        end
+    end)
+end
+
+local function executeSweep()
+    lockLighting() -- Memaksa gelap tiap 5 detik
+    
+    pcall(function()
         if workspace:FindFirstChildOfClass("Terrain") then
             local t = workspace.Terrain
             t.WaterColor = WARNA_GELAP
@@ -170,49 +182,26 @@ local function executeSweep()
     for i = 1, #descendants do
         local inst = descendants[i]
         
-        -- Bypass UI dan Karakter Lokal (jika diperlukan)
         if not inst:IsDescendantOf(CoreGui) then
             local cName = inst.ClassName
 
+            -- 1. Hancurkan segala aksesoris/baju agar karakter bulat/botak
             if TO_DESTROY[cName] then
-                pcall(function() inst:Destroy() end)
-                
-            elseif TO_HIDE[cName] then
-                pcall(function()
-                    if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") then
-                        -- Untuk accessory/baju, kita tidak destroy, tapi disable efek visualnya jika memungkinkan, 
-                        -- namun cara teraman adalah membiarkannya tapi membuat Mesh di dalamnya transparan
-                    elseif inst:IsA("SpecialMesh") or inst:IsA("CharacterMesh") then
-                        inst.Scale = Vector3.new(0,0,0) -- Jadikan tak terlihat tanpa menghancurkannya
-                    else
-                        inst.Transparency = 1
-                        if inst:IsA("Decal") or inst:IsA("Texture") then inst.Transparency = 1 end
-                    end
+                pcall(function() inst:Destroy() 
                 end)
-                
+
             elseif inst:IsA("BasePart") then
                 pcall(function()
                     inst.Color = WARNA_GELAP
                     inst.Material = Enum.Material.SmoothPlastic
                     inst.CastShadow = false
-                    -- Jangan set Transparency = 1 di BasePart bangunan agar tidak pusing fisika
-                    if inst:IsA("MeshPart") then
-                        inst.TextureID = ""
-                    end
+                    if inst:IsA("MeshPart") then inst.TextureID = "" end
                 end)
             end
         end
 
-        -- [KUNCI ANTI-CPU SPIKE]: Beri napas CPU tiap 500 objek
         processed = processed + 1
-        if processed % 500 == 0 then
-            RunService.Heartbeat:Wait()
-        end
-    end
-
-    -- Sapuan Lighting
-    for _, obj in ipairs(Lighting:GetDescendants()) do
-        if TARGET_CLASSES[obj.ClassName] then pcall(neutralizeLighting, obj) end
+        if processed % 500 == 0 then RunService.Heartbeat:Wait() end
     end
 end
 
