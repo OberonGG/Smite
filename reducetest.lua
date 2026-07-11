@@ -9,13 +9,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [WARNA TEMA: Hitam Keabu-abuan]
-local WARNA_GELAP = Color3.fromRGB(30, 30, 30)
+-- [WARNA TEMA: Abu-abu Terang (50, 50, 50) sesuai permintaan]
+local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
--- UI PING & DRAG (Tetap Dipertahankan)
+-- UI PING & DRAG (Dipertahankan)
 -- ==========================================
-local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
+local GuiControl = pcall(function() return require(ReplicatedStorage.Modules.GuiControl) end)
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -29,9 +29,7 @@ frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
 frame.Active = true
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
 
 local textLabel = Instance.new("TextLabel", frame)
 textLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -58,12 +56,8 @@ local function makeDraggable(obj, frameToDrag)
     local dragging, dragInput, dragStart, startPos
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frameToDrag.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
+            dragging = true; dragStart = input.Position; startPos = frameToDrag.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
     obj.InputChanged:Connect(function(input)
@@ -76,7 +70,6 @@ local function makeDraggable(obj, frameToDrag)
         end
     end)
 end
-
 makeDraggable(frame, frame)
 makeDraggable(LynxButton, LynxButton)
 
@@ -105,43 +98,24 @@ task.spawn(function()
         local ping = 0
         pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
         local elapsed = os.time() - startTime
-        local h = math.floor(elapsed / 3600)
-        local m = math.floor((elapsed % 3600) / 60)
-        local s = elapsed % 60
+        local h = math.floor(elapsed / 3600); local m = math.floor((elapsed % 3600) / 60); local s = elapsed % 60
         textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
     end
 end)
 
+-- ==========================================
+-- LOGIKA 1 DETIK: AMAN DARI ERROR & TEKSTUR TETAP ADA
+-- ==========================================
 
--- Kategori 1: PEMBANTAIAN (Objek sampah yang terus spawn dan bikin RAM bocor)
+-- DAFTAR PEMBANTAIAN: UI, Tali, dan Tekstur DIHAPUS dari sini agar game tidak error
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
-    PointLight = true, SpotLight = true, SurfaceLight = true, RopeConstraint = true, -- Koma ditambahkan di sini
+    PointLight = true, SpotLight = true, SurfaceLight = true,
+    -- Memastikan avatar tetap bulat / botak
     Accessory = true, SpecialMesh = true, CharacterMesh = true,
-    Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true,
-    Decal = true, Texture = true, SurfaceAppearance = true,
-    Highlight = true, SelectionBox = true, BillboardGui = true, SurfaceGui = true
+    Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true
 }
-   
-
-local TARGET_CLASSES = {
-    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
-    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
-}
-
-local function neutralizeLighting(obj)
-    if obj.Name == "BaseGrayCC" or obj.Name == "BaseNormalSky" then return end
-    if obj:IsA("PostEffect") or obj:IsA("Clouds") then
-        if obj.Enabled ~= false then obj.Enabled = false end
-    elseif obj:IsA("Atmosphere") then
-        if obj.Density ~= 0 then obj.Density = 0 end
-    elseif obj:IsA("Sky") then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        obj.SkyboxBk = ""; obj.SkyboxDn = ""; obj.SkyboxFt = ""; obj.SkyboxLf = ""; obj.SkyboxRt = ""; obj.SkyboxUp = ""
-    end
-end
-
 
 local function lockLighting()
     pcall(function()
@@ -152,27 +126,20 @@ local function lockLighting()
         Lighting.TimeOfDay = "00:00:00"
         Lighting.FogStart = 9999999
         Lighting.FogEnd = 9999999
-        
-        -- Pastikan Sky tidak memancarkan cahaya cuaca
         for _, obj in pairs(Lighting:GetChildren()) do
-            if obj:IsA("Sky") then
-                obj.CelestialBodiesShown = false
-            end
+            if obj:IsA("Sky") then obj.CelestialBodiesShown = false end
         end
     end)
 end
 
 local function executeSweep()
-    lockLighting() -- Memaksa gelap tiap 5 detik
+    lockLighting() 
     
     pcall(function()
         if workspace:FindFirstChildOfClass("Terrain") then
             local t = workspace.Terrain
             t.WaterColor = WARNA_GELAP
-            t.WaterWaveSize = 0
-            t.WaterWaveSpeed = 0
-            t.WaterReflectance = 0
-            t.WaterTransparency = 0
+            t.WaterWaveSize = 0; t.WaterWaveSpeed = 0; t.WaterReflectance = 0; t.WaterTransparency = 0
         end
     end)
 
@@ -183,19 +150,24 @@ local function executeSweep()
         local inst = descendants[i]
         
         if not inst:IsDescendantOf(CoreGui) then
-            local cName = inst.ClassName
-
-            -- 1. Hancurkan segala aksesoris/baju agar karakter bulat/botak
-            if TO_DESTROY[cName] then
-                pcall(function() inst:Destroy() end)
-
-            elseif inst:IsA("BasePart") then
-                pcall(function()
-                    inst.Color = WARNA_GELAP
-                    inst.Material = Enum.Material.SmoothPlastic
-                    inst.CastShadow = false
-                    if inst:IsA("MeshPart") then inst.TextureID = "" end
-                end)
+            -- FILTER: Jangan sentuh apa pun yang bernama Totem atau Bobber (Pelampung)
+            local isProtected = false
+            local name = inst.Name
+            
+            if string.find(name, "Totem") or string.find(name, "Bobber") then isProtected = true end
+            if inst.Parent and (string.find(inst.Parent.Name, "Totem") or string.find(inst.Parent.Name, "Bobber")) then isProtected = true end
+            
+            if not isProtected then
+                local cName = inst.ClassName
+                if TO_DESTROY[cName] then
+                    pcall(function() inst:Destroy() end)
+                elseif inst:IsA("BasePart") then
+                    pcall(function()
+                        inst.Color = WARNA_GELAP
+                        inst.CastShadow = false
+                        -- SmoothPlastic dihapus dari sini agar kotak-kotak (Studs) tidak hilang
+                    end)
+                end
             end
         end
 
@@ -205,29 +177,12 @@ local function executeSweep()
 end
 
 -- ==========================================
--- LIGHTING OVERRIDE (Set & Forget)
--- ==========================================
-Lighting.GlobalShadows = false
-Lighting.Brightness = 1
-Lighting.Ambient = WARNA_GELAP
-Lighting.OutdoorAmbient = WARNA_GELAP
-Lighting.TimeOfDay = "00:00:00"
-Lighting.FogStart = 9999999
-Lighting.FogEnd = 9999999
-
-if not Lighting:FindFirstChild("BaseNormalSky") then
-    local sky = Instance.new("Sky", Lighting)
-    sky.Name = "BaseNormalSky"
-    sky.CelestialBodiesShown = false
-end
-
--- ==========================================
--- LOOPING UTAMA (Sapuan 5 Detik)
+-- LOOPING UTAMA (Sapuan 1 Detik)
 -- ==========================================
 task.spawn(function()
     while true do
         executeSweep()
-        task.wait(5) -- Beristirahat penuh selama 5 detik
+        task.wait(1) 
     end
 end)
 
@@ -237,8 +192,7 @@ end)
 if setfpscap then
     setfpscap(30)
     task.spawn(function()
-        while true do
-            task.wait(10)
+        while task.wait(10) do
             setfpscap(30)
         end
     end)
@@ -248,7 +202,7 @@ task.spawn(function()
     while task.wait(3) do
         local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
         if dailyUI and dailyUI.Enabled == true then
-            pcall(function() GuiControl:Close() end)
+            pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
         end
     end
 end)
