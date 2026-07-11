@@ -179,7 +179,7 @@ local function Musnahkan(v)
                 v.Material = Enum.Material.SmoothPlastic
                 v.Reflectance = 0
                 v.CastShadow = false
-                v.Color = Color3.new(0.39, 0.39, 0.39)
+                v.Color = Color3.fromRGB(50, 50, 50)
 
             elseif v:IsA("BillboardGui") or v:IsA("SurfaceGui") then
 
