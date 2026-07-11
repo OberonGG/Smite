@@ -187,8 +187,7 @@ local function executeSweep()
 
             -- 1. Hancurkan segala aksesoris/baju agar karakter bulat/botak
             if TO_DESTROY[cName] then
-                pcall(function() inst:Destroy() 
-                end)
+                pcall(function() inst:Destroy() end)
 
             elseif inst:IsA("BasePart") then
                 pcall(function()
