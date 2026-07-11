@@ -9,11 +9,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [WARNA TEMA: Abu-abu Terang (50, 50, 50)]
+-- [WARNA TEMA: Abu-abu Terang (50, 50, 50) sesuai permintaan]
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
--- UI PING & DRAG 
+-- UI PING & DRAG (Dipertahankan)
 -- ==========================================
 local GuiControl = pcall(function() return require(ReplicatedStorage.Modules.GuiControl) end)
 local ui = Instance.new("ScreenGui")
@@ -107,10 +107,12 @@ end)
 -- LOGIKA 1 DETIK: AMAN DARI ERROR & TEKSTUR TETAP ADA
 -- ==========================================
 
+-- DAFTAR PEMBANTAIAN: UI, Tali, dan Tekstur DIHAPUS dari sini agar game tidak error
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
     PointLight = true, SpotLight = true, SurfaceLight = true,
+    -- Memastikan avatar tetap bulat / botak
     Accessory = true, SpecialMesh = true, CharacterMesh = true,
     Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true
 }
@@ -148,6 +150,7 @@ local function executeSweep()
         local inst = descendants[i]
         
         if not inst:IsDescendantOf(CoreGui) then
+            -- FILTER: Jangan sentuh apa pun yang bernama Totem atau Bobber (Pelampung)
             local isProtected = false
             local name = inst.Name
             
@@ -162,6 +165,7 @@ local function executeSweep()
                     pcall(function()
                         inst.Color = WARNA_GELAP
                         inst.CastShadow = false
+                        -- SmoothPlastic dihapus dari sini agar kotak-kotak (Studs) tidak hilang
                     end)
                 end
             end
@@ -172,6 +176,9 @@ local function executeSweep()
     end
 end
 
+-- ==========================================
+-- LOOPING UTAMA (Sapuan 1 Detik)
+-- ==========================================
 task.spawn(function()
     while true do
         executeSweep()
@@ -180,7 +187,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- FPS CAP & DAILY LOGIN (MENGGUNAKAN LISTENER SESUAI IDEMU)
+-- FPS CAP & DAILY LOGIN
 -- ==========================================
 if setfpscap then
     setfpscap(30)
@@ -192,19 +199,10 @@ if setfpscap then
 end
 
 task.spawn(function()
-    -- Menggunakan Listener sungguhan, BUKAN loop tiap 3 detik lagi!
-    local dailyUI = PlayerGui:WaitForChild("!!! Daily Login", 10)
-    if dailyUI then
-        -- Jika saat script di-inject UI-nya sedang terbuka, langsung tutup
-        if dailyUI.Enabled == true then
+    while task.wait(3) do
+        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+        if dailyUI and dailyUI.Enabled == true then
             pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
         end
-        
-        -- Listener: Hanya akan terpicu jika status Enabled berubah, hemat 100% CPU
-        dailyUI:GetPropertyChangedSignal("Enabled"):Connect(function()
-            if dailyUI.Enabled == true then
-                pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
-            end
-        end)
     end
 end)
