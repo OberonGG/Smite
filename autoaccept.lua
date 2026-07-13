@@ -1,57 +1,42 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-
--- Mengambil modul TradeData sesuai struktur asli game
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
 
-print("[RECEIVER] Script Auto-Accept (Remote Only Mode) Aktif!")
+print("[RECEIVER] Auto-Accept (Virtual Click) Aktif!")
 
--- ==========================================
--- 1. AUTO ACCEPT OFFER (Murni Panggil Remote)
--- ==========================================
-TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(playerYangMengirim)
-    print("[RECEIVER] Menerima ajakan trade dari: " .. tostring(playerYangMengirim))
+TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function()
+    print("[RECEIVER] Offer masuk! Menunggu Prompt UI muncul...")
     
-    -- Jeda singkat agar tidak terlalu instan di mata server
-    task.wait(0.2)
+    -- Jeda 0.5 detik sangat WAJIB agar PromptController selesai membuat tombol "Yes" di layar
+    task.wait(0.5)
     
-    print("[RECEIVER] Menembak Remote AcceptTradeOffer...")
+    local tombolYesDitemukan = false
     
-    -- Memanggil remote secara langsung
-    local sukses, errorMsg = pcall(function()
-        TradeData.Remotes.AcceptTradeOffer:InvokeServer(playerYangMengirim)
-    end)
-    
-    if sukses then
-        print("[RECEIVER] Berhasil mengirim persetujuan ke server!")
-    else
-        warn("[RECEIVER] Error saat memanggil remote: " .. tostring(errorMsg))
-    end
-end)
-
--- ==========================================
--- 2. AUTO READY & CONFIRM (Di dalam UI Trade)
--- ==========================================
-LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
-    local sedangTrade = LocalPlayer:GetAttribute("IsTrading")
-    
-    if sedangTrade then
-        print("[RECEIVER] Masuk ke sesi trade (IsTrading = true). Menunggu barang...")
-        
-        task.spawn(function()
-            -- Looping selama status trade masih aktif
-            while LocalPlayer:GetAttribute("IsTrading") == true do
-                -- Gunakan pcall agar tidak error jika remote gagal ditembak
-                pcall(function()
-                    TradeData.Remotes.SetReady:InvokeServer(true)
-                    TradeData.Remotes.ConfirmTrade:InvokeServer()
-                end)
-                
-                -- Jeda 1 detik per putaran loop
-                task.wait(1)
+    -- Mencari tombol "Yes" di seluruh layar pemain
+    for _, gui in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+        if gui:IsA("TextButton") and gui.Text == "Yes" then
+            tombolYesDitemukan = true
+            print("[RECEIVER] Tombol 'Yes' ditemukan. Mengeklik otomatis...")
+            
+            -- Menipu game agar merasa tombol ini diklik oleh manusia
+            if getconnections then
+                for _, conn in pairs(getconnections(gui.MouseButton1Click)) do
+                    pcall(function() conn:Fire() end)
+                    pcall(function() conn.Function() end)
+                end
+            elseif firesignal then
+                pcall(function() firesignal(gui.MouseButton1Click) end)
+            else
+                warn("[RECEIVER] Eksekutor tidak mendukung getconnections/firesignal!")
             end
-            print("[RECEIVER] Sesi trade selesai. Loop Auto-Confirm berhenti.")
-        end)
+            break
+        end
+    end
+    
+    if not tombolYesDitemukan then
+        warn("[RECEIVER] Gagal menemukan tombol 'Yes'.")
     end
 end)
+
+-- (Jangan lupa gabungkan dengan fungsi Auto-Ready/Confirm IsTrading di sini seperti sebelumnya)
