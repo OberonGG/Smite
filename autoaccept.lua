@@ -2,47 +2,56 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Mengambil modul TradeData seperti di controller asli
+-- Mengambil modul TradeData sesuai struktur asli game
 local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
 
+print("[RECEIVER] Script Auto-Accept (Remote Only Mode) Aktif!")
+
 -- ==========================================
--- 1. AUTO ACCEPT OFFER (Bypass UI Pop-up)
+-- 1. AUTO ACCEPT OFFER (Murni Panggil Remote)
 -- ==========================================
 TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(playerYangMengirim)
-    print("[RECEIVER] Menerima ajakan trade instan dari: " .. tostring(playerYangMengirim))
+    print("[RECEIVER] Menerima ajakan trade dari: " .. tostring(playerYangMengirim))
     
-    -- Menjeda sangat sebentar agar server tidak kaget
+    -- Jeda singkat agar tidak terlalu instan di mata server
     task.wait(0.2)
     
-    -- Langsung membalas Accept tanpa harus melihat UI Pop-up
-    TradeData.Remotes.AcceptTradeOffer:InvokeServer(playerYangMengirim)
+    print("[RECEIVER] Menembak Remote AcceptTradeOffer...")
+    
+    -- Memanggil remote secara langsung
+    local sukses, errorMsg = pcall(function()
+        TradeData.Remotes.AcceptTradeOffer:InvokeServer(playerYangMengirim)
+    end)
+    
+    if sukses then
+        print("[RECEIVER] Berhasil mengirim persetujuan ke server!")
+    else
+        warn("[RECEIVER] Error saat memanggil remote: " .. tostring(errorMsg))
+    end
 end)
 
 -- ==========================================
 -- 2. AUTO READY & CONFIRM (Di dalam UI Trade)
 -- ==========================================
--- Kita manfaatkan sistem bawaan game: atribut "IsTrading" 
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
     local sedangTrade = LocalPlayer:GetAttribute("IsTrading")
     
     if sedangTrade then
-        print("[RECEIVER] Berhasil masuk ke meja trade. Menunggu barang...")
+        print("[RECEIVER] Masuk ke sesi trade (IsTrading = true). Menunggu barang...")
         
-        -- Menjalankan looping di latar belakang (task.spawn) agar game tidak freeze
         task.spawn(function()
+            -- Looping selama status trade masih aktif
             while LocalPlayer:GetAttribute("IsTrading") == true do
-                -- Otomatis menekan ceklis "Ready"
-                TradeData.Remotes.SetReady:InvokeServer(true)
+                -- Gunakan pcall agar tidak error jika remote gagal ditembak
+                pcall(function()
+                    TradeData.Remotes.SetReady:InvokeServer(true)
+                    TradeData.Remotes.ConfirmTrade:InvokeServer()
+                end)
                 
-                -- Otomatis mencoba menekan "Confirm"
-                -- (Server game otomatis menahannya sampai cooldown 5 detik selesai dan pihak lawan ready)
-                TradeData.Remotes.ConfirmTrade:InvokeServer()
-                
-                -- Jeda 1 detik setiap putaran agar aman dari Anti-Cheat (BAC)
+                -- Jeda 1 detik per putaran loop
                 task.wait(1)
             end
-            
-            print("[RECEIVER] Trade sukses terselesaikan dan UI tertutup.")
+            print("[RECEIVER] Sesi trade selesai. Loop Auto-Confirm berhenti.")
         end)
     end
 end)
