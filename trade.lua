@@ -57,7 +57,7 @@ local function getTradeableItems()
                 
                 if itemData and itemData.Data then
                     local metadata = item.Metadata
-                    local isLocked = (metadata ~= nil and metadata.TradeLock ~= nil)
+                    local isLocked = (type(metadata) == "table" and metadata.TradeLock ~= nil)
                     local isFavorited = (item.Favorited == true)
 
                     if isLocked or isFavorited then
