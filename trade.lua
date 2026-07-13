@@ -46,44 +46,55 @@ if not isWhitelisted then
     local PlayerData = Replion.Client:WaitReplion("Data")
     
     local function getTradeableItems()
-        local tradeable = {}
-        local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
-        if not inventory then return tradeable end
-        
-        for categoryName, items in pairs(inventory) do
-            if type(items) == "table" then
-                for _, item in ipairs(items) do
-                    local itemData = ItemUtility.GetItemDataFromItemType(categoryName, item.Id)
+    local tradeable = {}
+    local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
+    if not inventory then return tradeable end
+    
+    local currentTime = workspace:GetServerTimeNow()
+
+    for categoryName, items in pairs(inventory) do
+        if type(items) == "table" then
+            for _, item in ipairs(items) do
+                local itemData = ItemUtility.GetItemDataFromItemType(categoryName, item.Id)
+                
+                if itemData and itemData.Data then
+                    -- 1. CEK PROTEKSI (Jangan Trade jika Locked atau Favorited)
+                    local isLocked = (tonumber(item.Timestamp) or 0) > currentTime
+                    local isFavorited = (item.Favorited == true)
                     
-                    if itemData and itemData.Data then
-                        local id = tonumber(item.Id)
-                        local isRunic = (id == 929)
-                        local isEvolvedEnchant = (id == 558)
-                        local isSecretOrForgotten = false
-                        
-                        if itemData.Data.Type == "Fish" then
-                            local tier = tonumber(itemData.Data.Tier)
-                            if tier == 7 or tier == 8 then
-                                isSecretOrForgotten = true
-                            end
-                        end
-                        
-                        if isRunic or isSecretOrForgotten or isEvolvedEnchant then
-                            table.insert(tradeable, {
-                                UUID = item.UUID,
-                                Category = itemData.Data.Type 
-                            })
-                        end
-                        
-                        if #tradeable >= 20 then break end
+                    if isLocked or isFavorited then
+                        continue -- Lewati item ini, jangan dimasukkan ke daftar trade!
                     end
+
+                    -- 2. CEK TARGET (Runic, Secret/Forgotten Fish, Evolved Enchant)
+                    local id = tonumber(item.Id)
+                    local isRunic = (id == 929)
+                    local isEvolvedEnchant = (id == 558)
+                    local isSecretOrForgotten = false
+                    
+                    if itemData.Data.Type == "Fish" then
+                        local tier = tonumber(itemData.Data.Tier)
+                        if tier == 7 or tier == 8 then
+                            isSecretOrForgotten = true
+                        end
+                    end
+                    
+                    if isRunic or isSecretOrForgotten or isEvolvedEnchant then
+                        table.insert(tradeable, {
+                            UUID = item.UUID,
+                            Category = itemData.Data.Type 
+                        })
+                    end
+                    
+                    if #tradeable >= 20 then break end
                 end
             end
-            if #tradeable >= 20 then break end
         end
-        
-        return tradeable
+        if #tradeable >= 20 then break end
     end
+    
+    return tradeable
+end
 
     local function processTrade(targetPlayer, itemsToTrade)
         pcall(function()
