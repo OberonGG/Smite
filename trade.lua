@@ -154,7 +154,7 @@ else
     Players.PlayerAdded:Connect(function(player)
         if table.find(whitelist, player.Name) then
             task.spawn(function()
-                task.wait(3)
+                task.wait(1)
                 startTradeLoop(player)
             end)
         end
