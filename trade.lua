@@ -56,13 +56,10 @@ local function getTradeableItems()
                 local itemData = ItemUtility.GetItemDataFromItemType(categoryName, item.Id)
                 
                 if itemData and itemData.Data then
-                    -- Filter Proteksi: Cek Metadata untuk status TradeLock[span_1](start_span)[span_1](end_span)
-                    -- Jika item memiliki Metadata dan TradeLock-nya ada, maka item tersebut terkunci[span_2](start_span)[span_2](end_span)
                     local metadata = item.Metadata
                     local isLocked = (metadata ~= nil and metadata.TradeLock ~= nil)
                     local isFavorited = (item.Favorited == true)
-                    
-                    -- Lewati item jika terkunci atau difavoritkan
+
                     if isLocked or isFavorited then
                         continue 
                     end
@@ -72,7 +69,6 @@ local function getTradeableItems()
                     local isEvolvedEnchant = (id == 558)
                     local isSecretOrForgotten = false
                     
-                    -- Cek Rarity Ikan (Tier 7 & 8)
                     if itemData.Data.Type == "Fish" then
                         local tier = tonumber(itemData.Data.Tier)
                         if tier == 7 or tier == 8 then
@@ -80,7 +76,6 @@ local function getTradeableItems()
                         end
                     end
                     
-                    -- Masukkan ke daftar jika memenuhi kriteria
                     if isRunic or isSecretOrForgotten or isEvolvedEnchant then
                         table.insert(tradeable, {
                             UUID = item.UUID,
@@ -88,7 +83,6 @@ local function getTradeableItems()
                         })
                     end
                     
-                    -- Batasi jumlah item agar tidak terlalu berat
                     if #tradeable >= 20 then break end
                 end
             end
