@@ -1,8 +1,3 @@
--- ==================================================
--- FULL SCRIPT AUTO TRADE FISH IT (DUAL-ROLE)
--- BYPASS UI + INSTANT LOOP INVENTORY + ITEM UTILITY FIX
--- ==================================================
-
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
@@ -16,9 +11,6 @@ local Replion = require(ReplicatedStorage.Packages.Replion)
 local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 
 if isWhitelisted then
-    -- ==========================================
-    -- ROLE: PENERIMA (WHITELIST / PENGEPUL)
-    -- ==========================================
     
     if getconnections then
         local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
@@ -49,9 +41,6 @@ if isWhitelisted then
     end)
 
 else
-    -- ==========================================
-    -- ROLE: PENGIRIM (TUYUL / CLONE)
-    -- ==========================================
     
     local PlayerData = Replion.Client:WaitReplion("Data")
     
@@ -66,17 +55,20 @@ else
                     local itemData = ItemUtility.GetItemDataFromItemType(categoryName, item.Id)
                     
                     if itemData and itemData.Data then
-                        local isRunic = (tonumber(item.Id) == 929)
+                        local id = tonumber(item.Id)
+
+                        local isRunic = (id == 929)
+                        local isEvolvedEnchant = (id == 558)
                         local isSecretOrForgotten = false
-                        
+
                         if itemData.Data.Type == "Fish" then
                             local tier = tonumber(itemData.Data.Tier)
                             if tier == 7 or tier == 8 then
                                 isSecretOrForgotten = true
                             end
                         end
-                        
-                        if isRunic or isSecretOrForgotten then
+
+                        if isRunic or isSecretOrForgotten or isEvolvedEnchant then
                             table.insert(tradeable, {
                                 UUID = item.UUID,
                                 Category = itemData.Data.Type 
@@ -112,6 +104,8 @@ else
         end
         
         if not tradeStarted then return false end
+
+        task.wait(1.5)
         
         for _, itemData in ipairs(itemsToTrade) do
             task.wait(math.random(3, 6) / 10)
@@ -135,12 +129,11 @@ else
 
     local function startTradeLoop(targetPlayer)
         while true do
-            task.wait(0.2) 
-            
             local itemsToTrade = getTradeableItems()
-            
+
             if #itemsToTrade == 0 then
-                break 
+                task.wait(3) 
+                continue 
             end
             
             local success = processTrade(targetPlayer, itemsToTrade)
