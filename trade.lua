@@ -1,6 +1,6 @@
 -- ==================================================
 -- FULL SCRIPT AUTO TRADE FISH IT (DUAL-ROLE)
--- BYPASS UI + AUTO LOOP INVENTORY + AUTO CONFIRM
+-- BYPASS UI + INSTANT LOOP INVENTORY + ITEM UTILITY FIX
 -- ==================================================
 
 local Players = game:GetService("Players")
@@ -13,6 +13,7 @@ local isWhitelisted = table.find(whitelist, LocalPlayer.Name) ~= nil
 
 local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
 local Replion = require(ReplicatedStorage.Packages.Replion)
+local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 
 if isWhitelisted then
     -- ==========================================
@@ -41,7 +42,7 @@ if isWhitelisted then
                         TradeData.Remotes.SetReady:InvokeServer(true)
                         TradeData.Remotes.ConfirmTrade:InvokeServer()
                     end)
-                    task.wait(1)
+                    task.wait(0.5)
                 end
             end)
         end
@@ -59,23 +60,31 @@ else
         local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
         if not inventory then return tradeable end
         
-        for categoryName, categoryData in pairs(inventory) do
-            if type(categoryData) == "table" then
-                for uuid, item in pairs(categoryData) do
-                    local id = tonumber(item.Id) or tonumber(item.ID)
-                    local tier = tonumber(item.Tier)
+        for categoryName, items in pairs(inventory) do
+            if type(items) == "table" then
+                for _, item in ipairs(items) do
+                    local itemData = ItemUtility.GetItemDataFromItemType(categoryName, item.Id)
                     
-                    local isRunic = (id == 929)
-                    local isSecretOrForgotten = (tier == 7 or tier == 8)
-                    
-                    if isRunic or isSecretOrForgotten then
-                        table.insert(tradeable, {
-                            UUID = item.UUID or uuid,
-                            Category = categoryName
-                        })
+                    if itemData and itemData.Data then
+                        local isRunic = (tonumber(item.Id) == 929)
+                        local isSecretOrForgotten = false
+                        
+                        if itemData.Data.Type == "Fish" then
+                            local tier = tonumber(itemData.Data.Tier)
+                            if tier == 7 or tier == 8 then
+                                isSecretOrForgotten = true
+                            end
+                        end
+                        
+                        if isRunic or isSecretOrForgotten then
+                            table.insert(tradeable, {
+                                UUID = item.UUID,
+                                Category = itemData.Data.Type 
+                            })
+                        end
+                        
+                        if #tradeable >= 20 then break end
                     end
-                    
-                    if #tradeable >= 20 then break end
                 end
             end
             if #tradeable >= 20 then break end
@@ -97,17 +106,17 @@ else
         end)
         
         local waitTime = 0
-        while not tradeStarted and waitTime < 10 do
-            task.wait(1)
+        while not tradeStarted and waitTime < 50 do
+            task.wait(0.1)
             waitTime = waitTime + 1
         end
         
         if not tradeStarted then return false end
         
         for _, itemData in ipairs(itemsToTrade) do
-            task.wait(math.random(5, 8) / 10)
+            task.wait(math.random(3, 6) / 10)
             pcall(function()
-                TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID, 1)
+                TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
             end)
         end
         
@@ -117,7 +126,7 @@ else
                     TradeData.Remotes.SetReady:InvokeServer(true)
                     TradeData.Remotes.ConfirmTrade:InvokeServer()
                 end)
-                task.wait(1)
+                task.wait(0.5)
             end
         end)
         
@@ -125,7 +134,9 @@ else
     end
 
     local function startTradeLoop(targetPlayer)
-        while task.wait(3) do
+        while true do
+            task.wait(0.2) 
+            
             local itemsToTrade = getTradeableItems()
             
             if #itemsToTrade == 0 then
@@ -136,9 +147,10 @@ else
             
             if success then
                 while LocalPlayer:GetAttribute("IsTrading") == true do
-                    task.wait(1)
+                    LocalPlayer:GetAttributeChangedSignal("IsTrading"):Wait()
                 end
-                task.wait(4)
+            else
+                task.wait(2)
             end
         end
     end
@@ -154,7 +166,7 @@ else
     Players.PlayerAdded:Connect(function(player)
         if table.find(whitelist, player.Name) then
             task.spawn(function()
-                task.wait(1)
+                task.wait(0.5) 
                 startTradeLoop(player)
             end)
         end
