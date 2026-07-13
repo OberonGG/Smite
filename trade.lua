@@ -45,12 +45,13 @@ end)
 if not isWhitelisted then
     local PlayerData = Replion.Client:WaitReplion("Data")
     
-    local function getTradeableItems()
+local function getTradeableItems()
     local tradeable = {}
     local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
     if not inventory then return tradeable end
     
-    local currentTime = workspace:GetServerTimeNow()
+    -- Gunakan os.time() untuk membandingkan dengan timestamp item
+    local currentTime = os.time()
 
     for categoryName, items in pairs(inventory) do
         if type(items) == "table" then
@@ -58,15 +59,20 @@ if not isWhitelisted then
                 local itemData = ItemUtility.GetItemDataFromItemType(categoryName, item.Id)
                 
                 if itemData and itemData.Data then
-                    -- 1. CEK PROTEKSI (Jangan Trade jika Locked atau Favorited)
-                    local isLocked = (tonumber(item.Timestamp) or 0) > currentTime
+                    -- Debugging: Cetak status untuk memastikan filter bekerja
+                    local itemLockTime = tonumber(item.Timestamp) or 0
+                    local isLocked = itemLockTime > currentTime
                     local isFavorited = (item.Favorited == true)
                     
                     if isLocked or isFavorited then
-                        continue -- Lewati item ini, jangan dimasukkan ke daftar trade!
+                        -- Jika kita masih spam, artinya kondisi ini tidak terpenuhi
+                        -- Kita print untuk melihat apakah angkanya masuk akal
+                        if isLocked then
+                            -- print("Item " .. item.Id .. " terdeteksi terkunci. LockTime: " .. itemLockTime .. " | CurrentTime: " .. currentTime)
+                        end
+                        continue 
                     end
 
-                    -- 2. CEK TARGET (Runic, Secret/Forgotten Fish, Evolved Enchant)
                     local id = tonumber(item.Id)
                     local isRunic = (id == 929)
                     local isEvolvedEnchant = (id == 558)
