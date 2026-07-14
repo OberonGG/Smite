@@ -35,6 +35,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
         task.spawn(function()
             local timeStuck = 0
             while LocalPlayer:GetAttribute("IsTrading") == true do
+                if LocalPlayer:GetAttribute("IsTrading") == false then break end
                 if timeStuck >= 60 then
                     isProcessingAutoTrade = true
                     pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
@@ -240,6 +241,7 @@ if not isWhitelisted then
                 local stuckTimer = 0
                 while LocalPlayer:GetAttribute("IsTrading") == true and stuckTimer < 60 do
                     task.wait(1)
+                    if LocalPlayer:GetAttribute("IsTrading") == false then break end
                     stuckTimer = stuckTimer + 1
                 end
                 if LocalPlayer:GetAttribute("IsTrading") == true then
