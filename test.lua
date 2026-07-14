@@ -86,7 +86,16 @@ local TO_DESTROY = {
     Explosion = true, Discharge = true, Dust = true, PointLight = true, SpotLight = true,
     SurfaceLight = true, Decal = true, Texture = true, SurfaceAppearance = true, Highlight = true,
     SelectionBox = true, RopeConstraint = true, Atmosphere = true, ColorCorrectionEffect = true,
-    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true, PostEffect = true
+    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true, PostEffect = true, Sky = true
+}
+
+local CORE_LIMBS = {
+    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true,
+    ["HumanoidRootPart"] = true, ["UpperTorso"] = true, ["LowerTorso"] = true, 
+    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
+    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
+    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
+    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
 }
 
 local function annihilate(inst)
@@ -97,7 +106,7 @@ local function handleWorkspaceDescendant(inst)
     if inst:IsDescendantOf(CoreGui) then return end
     
     if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
-        if not inst:FindFirstAncestorWhichIsA("Tool") then return end
+        if inst:IsA("BasePart") and CORE_LIMBS[inst.Name] then return end
     end
     
     local cName = inst.ClassName
@@ -112,38 +121,28 @@ local function handleWorkspaceDescendant(inst)
     end
 end
 
-local function forceLighting()
-    Lighting.GlobalShadows = false
-    Lighting.Brightness = 0
-    Lighting.Ambient = C_50
-    Lighting.OutdoorAmbient = C_50
-    Lighting.FogStart = 9999999
-    Lighting.FogEnd = 9999999
+local function lockLighting()
+    if Lighting.ClockTime ~= 0 then Lighting.ClockTime = 0 end
+    if Lighting.TimeOfDay ~= "00:00:00" then Lighting.TimeOfDay = "00:00:00" end
+    if Lighting.Brightness ~= 0 then Lighting.Brightness = 0 end
+    if Lighting.GlobalShadows ~= false then Lighting.GlobalShadows = false end
+    if Lighting.Ambient ~= C_50 then Lighting.Ambient = C_50 end
+    if Lighting.OutdoorAmbient ~= C_50 then Lighting.OutdoorAmbient = C_50 end
 end
 
-local function cleanSkyboxes(obj)
-    if obj:IsA("Sky") then
-        obj.SkyboxBk = "rbxassetid://0"
-        obj.SkyboxDn = "rbxassetid://0"
-        obj.SkyboxFt = "rbxassetid://0"
-        obj.SkyboxLf = "rbxassetid://0"
-        obj.SkyboxRt = "rbxassetid://0"
-        obj.SkyboxUp = "rbxassetid://0"
-        obj.SunTextureId = "rbxassetid://0"
-        obj.MoonTextureId = "rbxassetid://0"
-        obj.CelestialBodiesShown = false
-        obj.StarCount = 0
-    elseif TO_DESTROY[obj.ClassName] then
-        annihilate(obj)
-    end
+local lightProps = {"ClockTime", "TimeOfDay", "Brightness", "GlobalShadows", "Ambient", "OutdoorAmbient"}
+for _, prop in ipairs(lightProps) do
+    Lighting:GetPropertyChangedSignal(prop):Connect(lockLighting)
 end
 
-Lighting:GetPropertyChangedSignal("Ambient"):Connect(forceLighting)
-Lighting:GetPropertyChangedSignal("Brightness"):Connect(forceLighting)
-Lighting.ChildAdded:Connect(cleanSkyboxes)
+Lighting.ChildAdded:Connect(function(child)
+    if TO_DESTROY[child.ClassName] then annihilate(child) end
+end)
 
-forceLighting()
-for _, obj in ipairs(Lighting:GetChildren()) do cleanSkyboxes(obj) end
+lockLighting()
+for _, obj in ipairs(Lighting:GetChildren()) do
+    if TO_DESTROY[obj.ClassName] then annihilate(obj) end
+end
 
 pcall(function()
     local t = workspace:FindFirstChildOfClass("Terrain")
