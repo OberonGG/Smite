@@ -5,13 +5,12 @@ local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local ABU_GELAP = Color3.fromRGB(0, 0, 0)
 local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
-
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
+local BATCH_SIZE = 10
 
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -39,19 +38,14 @@ textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
 
 local LynxButton = Instance.new("ImageButton", ui)
-LynxButton.Name = "LynxCloseButton"
-LynxButton.Size = UDim2.new(0, 40, 0, 40)
+LynxButton.Name = "ToggleBtn"
+LynxButton.Size = UDim2.new(0, 45, 0, 45)
 LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
 LynxButton.BackgroundTransparency = 1
-LynxButton.BorderSizePixel = 0
-LynxButton.AutoButtonColor = true
-LynxButton.Active = true
 LynxButton.Image = "rbxassetid://118176705805619"
-LynxButton.ImageTransparency = 0
-LynxButton.ScaleType = Enum.ScaleType.Fit
+LynxButton.Active = true
 LynxButton.ZIndex = 2147483647
 
--- SISTEM DRAG (Anti-Nyangkut)
 local function makeDraggable(obj, frameToDrag)
     local dragging, dragInput, dragStart, startPos
     
@@ -86,47 +80,17 @@ end
 makeDraggable(frame, frame)
 makeDraggable(LynxButton, LynxButton)
 
-local function closeLynx()
-    local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
-    if not LynxGui then
-        for _, child in ipairs(CoreGui:GetChildren()) do
-            if string.find(string.lower(child.Name), "lynx") then
-                LynxGui = child
-                break
-            end
+LynxButton.MouseButton1Click:Connect(function()
+    pcall(function()
+        local targetLynx = CoreGui:FindFirstChild("LynxGui")
+        if targetLynx then
+            targetLynx.Enabled = not targetLynx.Enabled
         end
-    end
-    if LynxGui then
-        local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
-        if not targetFrame then
-            for _, obj in ipairs(CoreGui:GetChildren()) do
-                if obj:IsA("Frame") then
-                     targetFrame = obj
-                    break
-                end
-            end
-        end
-        if targetFrame then
-            pcall(function()
-                 targetFrame.Visible = not targetFrame.Visible
-            end)
-        end
-    end
-end
-
-LynxButton.MouseButton1Click:Connect(closeLynx)
+    end)
+end)
 
 local startTime = os.time()
 task.spawn(function()
-    for _, child in ipairs(CoreGui:GetChildren()) do
-        if string.find(string.lower(child.Name), "lynx") then
-            local targetFrame = child:FindFirstChild("MainFrame") or child:FindFirstChildOfClass("Frame")
-            if targetFrame then
-               pcall(function() targetFrame.Visible = false end)
-            end
-            break
-        end
-    end
     while task.wait(1) do
         local ping = 0
         pcall(function()
@@ -139,10 +103,6 @@ task.spawn(function()
         textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
     end
 end)
-
-local AUTO_REPEAT = true
-local REPEAT_INTERVAL = 99999999999999999
-local BATCH_SIZE = 10
 
 local DECORATIVE = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -315,38 +275,27 @@ if setfpscap then
     end)
 end
 
-local function runReduce()
+task.spawn(function()
     pcall(function()
         workspace.Terrain:Clear()
     end)
-
+    
     local objectsProcessed = 0
     for _, inst in ipairs(workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
             handleDescendant(inst)
-
+            
             objectsProcessed = objectsProcessed + 1
             if objectsProcessed % BATCH_SIZE == 0 then
                 RunService.Heartbeat:Wait()
             end
         end
     end
-end
+end)
 
 LocalPlayer.CharacterAdded:Connect(cleanChar)
 if LocalPlayer.Character then
     cleanChar(LocalPlayer.Character)
-end
-
-task.spawn(runReduce)
-
-if AUTO_REPEAT then
-    task.spawn(function()
-        while true do
-            task.wait(REPEAT_INTERVAL)
-            runReduce()
-        end
-    end)
 end
 
 task.spawn(function()
