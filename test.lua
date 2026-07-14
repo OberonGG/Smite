@@ -7,13 +7,9 @@ local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
-local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
+local C_50 = Color3.fromRGB(50, 50, 50)
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
--- ==========================================
--- 1. UI PING, TIMER & LYNX TOGGLE
--- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -85,35 +81,30 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- 2. LOGIKA PEMBANTAIAN & WARNA (No CPU Spikes)
--- ==========================================
 local TO_DESTROY = {
-    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true, Beam = true, Trail = true, 
-    Explosion = true, Discharge = true, Dust = true, PointLight = true, SpotLight = true, 
-    SurfaceLight = true, Decal = true, Texture = true, SurfaceAppearance = true, Highlight = true, 
-    SelectionBox = true, RopeConstraint = true, Atmosphere = true, ColorCorrectionEffect = true, 
+    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true, Beam = true, Trail = true,
+    Explosion = true, Discharge = true, Dust = true, PointLight = true, SpotLight = true,
+    SurfaceLight = true, Decal = true, Texture = true, SurfaceAppearance = true, Highlight = true,
+    SelectionBox = true, RopeConstraint = true, Atmosphere = true, ColorCorrectionEffect = true,
     SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true, PostEffect = true
 }
 
--- Pengeksekusi langsung ke inti mesin
 local function annihilate(inst)
     pcall(inst.Destroy, inst)
 end
 
--- Menangani daratan dan VFX
 local function handleWorkspaceDescendant(inst)
-    if inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(LocalPlayer.Character) then return end
+    if inst:IsDescendantOf(CoreGui) then return end
+    
+    if LocalPlayer.Character and inst:IsDescendantOf(LocalPlayer.Character) then
+        if not inst:FindFirstAncestorWhichIsA("Tool") then return end
+    end
     
     local cName = inst.ClassName
-    
-    -- Membunuh VFX Ability seketika
     if TO_DESTROY[cName] then
         annihilate(inst)
-        
-    -- Mengubah warna daratan dan bangunan menjadi 50,50,50
     elseif inst:IsA("BasePart") and not inst:IsA("Terrain") then
-        inst.Color = WARNA_GELAP
+        inst.Color = C_50
         inst.Material = Enum.Material.SmoothPlastic
         inst.Reflectance = 0
         inst.CastShadow = false
@@ -121,44 +112,43 @@ local function handleWorkspaceDescendant(inst)
     end
 end
 
--- ==========================================
--- 3. KONTROL ALAM & PENCAHAYAAN
--- ==========================================
 local function forceLighting()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
-    Lighting.Ambient = WARNA_GELAP
-    Lighting.OutdoorAmbient = WARNA_GELAP
-    Lighting.TimeOfDay = "00:00:00"
+    Lighting.Ambient = C_50
+    Lighting.OutdoorAmbient = C_50
     Lighting.FogStart = 9999999
     Lighting.FogEnd = 9999999
 end
 
-local function cleanSkyboxes()
-    for _, obj in ipairs(Lighting:GetChildren()) do
-        if obj:IsA("Sky") then
-            -- Mencegah langit menjadi biru cerah bawaan
-            obj.SkyboxBk, obj.SkyboxDn, obj.SkyboxFt, obj.SkyboxLf, obj.SkyboxRt, obj.SkyboxUp = "", "", "", "", "", ""
-            obj.SunTextureId, obj.MoonTextureId = "", ""
-            obj.CelestialBodiesShown = false
-            obj.StarCount = 0
-        elseif TO_DESTROY[obj.ClassName] then
-            annihilate(obj)
-        end
+local function cleanSkyboxes(obj)
+    if obj:IsA("Sky") then
+        obj.SkyboxBk = "rbxassetid://0"
+        obj.SkyboxDn = "rbxassetid://0"
+        obj.SkyboxFt = "rbxassetid://0"
+        obj.SkyboxLf = "rbxassetid://0"
+        obj.SkyboxRt = "rbxassetid://0"
+        obj.SkyboxUp = "rbxassetid://0"
+        obj.SunTextureId = "rbxassetid://0"
+        obj.MoonTextureId = "rbxassetid://0"
+        obj.CelestialBodiesShown = false
+        obj.StarCount = 0
+    elseif TO_DESTROY[obj.ClassName] then
+        annihilate(obj)
     end
 end
 
 Lighting:GetPropertyChangedSignal("Ambient"):Connect(forceLighting)
+Lighting:GetPropertyChangedSignal("Brightness"):Connect(forceLighting)
 Lighting.ChildAdded:Connect(cleanSkyboxes)
 
 forceLighting()
-cleanSkyboxes()
+for _, obj in ipairs(Lighting:GetChildren()) do cleanSkyboxes(obj) end
 
--- Memanipulasi Air Laut (Bukan menghapusnya)
 pcall(function()
     local t = workspace:FindFirstChildOfClass("Terrain")
     if t then
-        t.WaterColor = WARNA_GELAP
+        t.WaterColor = C_50
         t.WaterWaveSize = 0
         t.WaterWaveSpeed = 0
         t.WaterReflectance = 0
@@ -166,9 +156,6 @@ pcall(function()
     end
 end)
 
--- ==========================================
--- 4. EKSEKUSI UTAMA
--- ==========================================
 local descendants = workspace:GetDescendants()
 for i = 1, #descendants do
     handleWorkspaceDescendant(descendants[i])
