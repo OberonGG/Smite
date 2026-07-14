@@ -115,6 +115,9 @@ if not isWhitelisted then
     end
 
     local function processTrade(targetPlayer, itemsToTrade)
+        
+        task.wait(2)
+
         pcall(function()
             TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
         end)
