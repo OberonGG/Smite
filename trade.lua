@@ -21,6 +21,7 @@ end
 
 TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
     task.wait(0.2)
+    if isProcessingAutoTrade then return end
     pcall(function()
         TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
     end)
@@ -32,25 +33,32 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
             local timeStuck = 0
             while LocalPlayer:GetAttribute("IsTrading") == true do
                 if timeStuck >= 60 then
+                    isProcessingAutoTrade = true
+                    
                     pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
-                    task.wait(1.5)
-                    if LocalPlayer:GetAttribute("IsTrading") == true then
-                        pcall(function()
-                            local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
-                            if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then LocalPlayer.PlayerGui["! Trading"].Enabled = false end
-                            GuiControl:Unlock()
-                            GuiControl:Close()
-                        end)
-                        LocalPlayer:SetAttribute("IsTrading", false)
-                    end
+                    task.wait(0.5)
+                    pcall(function()
+                        local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
+                        if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then 
+                            LocalPlayer.PlayerGui["! Trading"].Enabled = false 
+                        end
+                        GuiControl:Unlock()
+                        GuiControl:Close()
+                    end)
+                    
+                    LocalPlayer:SetAttribute("IsTrading", false)
+                    task.wait(1)
+                    isProcessingAutoTrade = false
                     break
                 end
+                
                 if not isProcessingAutoTrade then
                     pcall(function()
                         TradeData.Remotes.SetReady:InvokeServer(true)
                         TradeData.Remotes.ConfirmTrade:InvokeServer()
                     end)
                 end
+                
                 task.wait(0.5)
                 timeStuck = timeStuck + 0.5
             end
@@ -156,25 +164,35 @@ if not isWhitelisted then
     end
 
     local function getAvailableTarget()
+        if #whitelist == 0 then return nil end
+
+
         if #whitelist == 1 then
             local targetName = whitelist[1]
             local targetPlayer = Players:FindFirstChild(targetName)
-            
-            if targetPlayer then
-                if targetPlayer:GetAttribute("IsTrading") == true then
-                    return nil
-                else
-                    return targetPlayer
-                end
+            if targetPlayer and targetPlayer ~= LocalPlayer and targetPlayer:GetAttribute("IsTrading") ~= true then
+                return targetPlayer
             end
-        elseif #whitelist > 1 then
-            for _, targetName in ipairs(whitelist) do
+
+        else
+            local shuffled = {}
+            for _, name in ipairs(whitelist) do
+                table.insert(shuffled, name)
+            end
+            
+            for i = #shuffled, 2, -1 do
+                local j = math.random(i)
+                shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+            end
+
+            for _, targetName in ipairs(shuffled) do
                 local targetPlayer = Players:FindFirstChild(targetName)
-                if targetPlayer and targetPlayer:GetAttribute("IsTrading") ~= true then
+                if targetPlayer and targetPlayer ~= LocalPlayer and targetPlayer:GetAttribute("IsTrading") ~= true then
                     return targetPlayer
                 end
             end
         end
+        
         return nil
     end
 
@@ -205,7 +223,7 @@ if not isWhitelisted then
                 
                 if LocalPlayer:GetAttribute("IsTrading") == true then
                     pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
-                    task.wait(1.5)
+                    task.wait(0.5)
                     if LocalPlayer:GetAttribute("IsTrading") == true then
                         pcall(function()
                             local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
