@@ -1,432 +1,216 @@
-local CoreGui = game:GetService("CoreGui")
-
-local function run()
-
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "AutoCloseStatus"
-screenGui.ResetOnSpawn = false
-screenGui.DisplayOrder = 999
-screenGui.Parent = CoreGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 60)
-frame.Position = UDim2.new(0.5, -120, 0.2, -30)
-frame.BackgroundColor3 = Color3.fromRGB(13, 13, 13)
-frame.BackgroundTransparency = 0.05
-frame.BorderSizePixel = 0
-frame.Parent = screenGui
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 6)
-corner.Parent = frame
-
-local outerStroke = Instance.new("UIStroke")
-outerStroke.Color = Color3.fromRGB(26, 26, 26)
-outerStroke.Thickness = 1
-outerStroke.Parent = frame
-
-local accentBar = Instance.new("Frame")
-accentBar.Size = UDim2.new(0, 3, 1, 0)
-accentBar.Position = UDim2.new(0, 0, 0, 0)
-accentBar.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-accentBar.BorderSizePixel = 0
-accentBar.Parent = frame
-
-local accentBarCorner = Instance.new("UICorner")
-accentBarCorner.CornerRadius = UDim.new(0, 6)
-accentBarCorner.Parent = accentBar
-
-local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, -22, 0, 14)
-titleLabel.Position = UDim2.new(0, 14, 0, 10)
-titleLabel.BackgroundTransparency = 1
-titleLabel.Font = Enum.Font.RobotoMono
-titleLabel.Text = "AUTO CLOSE SYSTEM"
-titleLabel.TextColor3 = Color3.fromRGB(142, 142, 143)
-titleLabel.TextSize = 9
-titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-titleLabel.Parent = frame
-
-local dot = Instance.new("Frame")
-dot.Size = UDim2.new(0, 6, 0, 6)
-dot.Position = UDim2.new(0, 14, 0, 35)
-dot.BackgroundTransparency = 1
-dot.BorderSizePixel = 0
-dot.Parent = frame
-
-local dotCorner = Instance.new("UICorner")
-dotCorner.CornerRadius = UDim.new(1, 0)
-dotCorner.Parent = dot
-
-local dotStroke = Instance.new("UIStroke")
-dotStroke.Color = Color3.fromRGB(200, 200, 200)
-dotStroke.Thickness = 1.5
-dotStroke.Parent = dot
-
-local statusLabel = Instance.new("TextLabel")
-statusLabel.Size = UDim2.new(1, -38, 0, 18)
-statusLabel.Position = UDim2.new(0, 26, 0, 32)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Font = Enum.Font.Code
-statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-statusLabel.TextSize = 12
-statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-statusLabel.Text = "INITIALIZING..."
-statusLabel.Parent = frame
-
-local function setStatus(text, color, dotColor)
-    statusLabel.Text = text
-    if text == "DONE" then
-        statusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
-        dotStroke.Color = Color3.fromRGB(50, 255, 100)
-        accentBar.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
-    else
-        statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-        dotStroke.Color = Color3.fromRGB(200, 200, 200)
-        accentBar.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end
-
-local function isMengHubVisible()
-    local mengHub = CoreGui:FindFirstChild("MengHubGui")
-    if not mengHub then return false end
-    local dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
-    if dropShadow then return dropShadow.Visible end
-    return false
-end
-
-local function fireToggle()
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        if v.Name == "ToggleUIButton" then
-            local btn = v:FindFirstChild("TextButton", true)
-            if btn then
-                pcall(function() firesignal(btn.MouseButton1Click) end)
-                pcall(function() firesignal(btn.Activated) end)
-                pcall(function() btn.MouseButton1Click:Fire() end)
-            end
-        end
-    end
-end
-
-local function minimizeReduce()
-    setStatus("MINIMIZE REDUCE...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
--- random biar multi instance ga klik bareng
-task.wait(math.random(10,40)/10)
-
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Stats = game:GetService("Stats")
+local Lighting = game:GetService("Lighting")
+local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local gui =
-Players.LocalPlayer:WaitForChild("PlayerGui",10)
+local ABU_GELAP = Color3.fromRGB(0, 0, 0)
+local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
-if not gui then
-print("[AUTO CLOSE] PlayerGui not found")
-return
+-- ==========================================
+-- 1. UI PING, TIMER & LYNX TOGGLE
+-- ==========================================
+local ui = Instance.new("ScreenGui")
+ui.Name = "PingTimerUI"
+ui.ResetOnSpawn = false
+ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ui.Parent = (gethui and gethui()) or CoreGui
+
+local frame = Instance.new("Frame", ui)
+frame.Size = UDim2.new(0, 220, 0, 40)
+frame.Position = UDim2.new(0.015, 0, 0.165, 0)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundTransparency = 0.15
+frame.BorderSizePixel = 0
+frame.Active = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(1, 0)
+
+local textLabel = Instance.new("TextLabel", frame)
+textLabel.Size = UDim2.new(1, 0, 1, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.Font = Enum.Font.GothamBold
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextSize = 16
+textLabel.Text = "Ping: 0 ms | 0:00:00"
+
+local LynxButton = Instance.new("ImageButton", ui)
+LynxButton.Name = "ToggleBtn"
+LynxButton.Size = UDim2.new(0, 45, 0, 45)
+LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
+LynxButton.BackgroundTransparency = 1
+LynxButton.Image = "rbxassetid://118176705805619"
+LynxButton.Active = true
+LynxButton.ZIndex = 2147483647
+
+local function makeDraggable(obj, frameToDrag)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frameToDrag.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frameToDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 
-local monsfams =
-gui:FindFirstChild("MONSFAMS")
+makeDraggable(frame, frame)
+makeDraggable(LynxButton, LynxButton)
 
-if not monsfams then
-print("[AUTO CLOSE] MONSFAMS not found")
-return
-end
-
-local root =
-monsfams:FindFirstChild("Frame")
-
-if not root then
-print("[AUTO CLOSE] Root frame not found")
-return
-end
-
-local btn
-
-for _,v in ipairs(root:GetDescendants()) do
-
-if v:IsA("TextButton") then
-
-local parent=v.Parent
-
-if parent
-and parent:IsA("Frame")
-and parent.Size.Y.Offset <= 35 then
-
-btn=v
-break
-
-end
-
-btn=btn or v
-
-end
-
-end
-
-if not btn then
-print("[AUTO CLOSE] Reduce button not found")
-return
-end
-
-print(
-"[AUTO CLOSE] Selected:",
-btn:GetFullName()
-)
-
-local function isMinimized()
-
-if not root.Parent then
-return true
-end
-
-return (
-root.Size.Y.Offset <= 35
-or not root.Visible
-)
-
-end
-
-local minimized=false
-
-for attempt=1,10 do
-
-print("[AUTO CLOSE]")
-print("[AUTO CLOSE] REDUCE Attempt:",attempt)
-print("[AUTO CLOSE] Current Size:",root.Size.Y.Offset)
-
-if isMinimized() then
-print("[AUTO CLOSE] Already minimized")
-minimized=true
-break
-end
-
-pcall(function()
-btn:Activate()
+LynxButton.MouseButton1Click:Connect(function()
+    pcall(function()
+        local targetLynx = CoreGui:FindFirstChild("LynxGui")
+        if targetLynx then targetLynx.Enabled = not targetLynx.Enabled end
+    end)
 end)
 
-pcall(function()
-firesignal(btn.MouseButton1Click)
-end)
-
-pcall(function()
-firesignal(btn.Activated)
-end)
-
-pcall(function()
-btn.MouseButton1Click:Fire()
-end)
-
-local start=tick()
-
-repeat
-
-task.wait(.25)
-
-print(
-"[AUTO CLOSE] Waiting:",
-root.Size.Y.Offset
-)
-
-until
-isMinimized()
-or tick()-start>5
-
-if isMinimized() then
-
-print(
-"[AUTO CLOSE] REDUCE SUCCESS"
-)
-setStatus(
-"REDUCE SUCCESS",
-Color3.fromRGB(50,255,100),
-Color3.fromRGB(50,255,100)
-)
-
-minimized=true
-break
-
-end
-
-task.wait(
-math.random(3,10)/10
-)
-
-end
-
-if not minimized then
-
-print(
-"[AUTO CLOSE] REDUCE FAILED after 10 attempts"
-)
-
-print(
-"[AUTO CLOSE] Final Size:",
-root.Size.Y.Offset
-)
-
-end
-
-end
-
-local function waitForMengHub()
-    setStatus("WAITING DENG HUB...", Color3.fromRGB(255, 220, 50), Color3.fromRGB(255, 220, 50))
-    while not CoreGui:FindFirstChild("MengHubGui") do
-        task.wait(1)
+local startTime = os.time()
+task.spawn(function()
+    while task.wait(1) do
+        local ping = 0
+        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        local elapsed = os.time() - startTime
+        local h = math.floor(elapsed / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = elapsed % 60
+        textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
     end
-end
+end)
 
-local function waitForDropShadow()
-    setStatus("LOADING...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
-    local mengHub = CoreGui:FindFirstChild("MengHubGui")
-    local dropShadow
-    while not dropShadow do
-        dropShadow = mengHub:FindFirstChild("DropShadowHolder", true)
-        task.wait(1)
-    end
-    while not dropShadow.Visible do
-        task.wait(1)
-    end
-end
-
-waitForMengHub()
-waitForDropShadow()
-
-setStatus("CLOSING DELTA...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
-
-local whitelist = {
-    "RobloxGui", "CoreScriptLocalization", "RobloxPromptGui", "TopBarApp",
-    "ScreenshotsCarousel", "CaptureManager", "CaptureOverlay", "MomentsCreationFlow",
-    "RobloxNetworkPauseNotification", "_FullscreenTestGui", "_DeviceTestGui",
-    "SocialContextToast", "InExperienceInterventionApp", "PurchasePromptApp",
-    "InExperienceDetailsPromptApp", "CallDialogScreen", "PlayerMenuScreen",
-    "ContactList", "StyleSheet", "CursorContainer", "OnRootedListener",
-    "FoundationCursorContainer", "AppChat", "ExperienceChat", "HeadsetDisconnectedDialog",
-    "ShortcutBar", "PlayerList", "MengHubGui", "ToggleUIButton", "NotifyGui",
-    "DevConsoleMaster", "RealPingDisplay", "AutoCloseStatus",
+-- ==========================================
+-- 2. REGISTRI PEMBANTAIAN & LOGIKA KARAKTER
+-- ==========================================
+-- Dictionary Lookup: O(1) Jauh lebih cepat dari array atau if-else berantai
+local TO_DESTROY = {
+    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true, Beam = true, Trail = true, 
+    Explosion = true, Discharge = true, Dust = true, PointLight = true, SpotLight = true, 
+    SurfaceLight = true, Decal = true, Texture = true, SurfaceAppearance = true, Highlight = true, 
+    SelectionBox = true, RopeConstraint = true, BillboardGui = true, SurfaceGui = true, 
+    Atmosphere = true, ColorCorrectionEffect = true, Sky = true, SunRaysEffect = true, 
+    BloomEffect = true, BlurEffect = true, Clouds = true, SpecialMesh = true,
+    Accessory = true, Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true, CharacterMesh = true
 }
 
-local deltaAttempts = 0
-local deltaCleared = false
+local CORE_LIMBS = {
+    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true,
+    ["HumanoidRootPart"] = true, ["UpperTorso"] = true, ["LowerTorso"] = true, 
+    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
+    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
+    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
+    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
+}
 
-while deltaAttempts < 10 and not deltaCleared do
-    deltaAttempts += 1
+-- Menghancurkan tanpa membuat fungsi anonim di memori (Mencegah Memory Leak)
+local function annihilate(inst)
+    pcall(inst.Destroy, inst)
+end
 
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        local allowed = false
-        for _, w in ipairs(whitelist) do
-            if v.Name == w then allowed = true break end
+local function cleanCharacterDescendant(inst)
+    local cName = inst.ClassName
+    if TO_DESTROY[cName] then
+        annihilate(inst)
+    elseif inst:IsA("BasePart") then
+        if CORE_LIMBS[inst.Name] then
+            inst.Color = Color3.fromRGB(150, 150, 150)
+            inst.Material = Enum.Material.SmoothPlastic
+            inst.Transparency = 0
+        else
+            -- Semua part tambahan (termasuk Joran, Reel, Bobber) langsung jadi tembus pandang
+            inst.Transparency = 1
+            inst.CastShadow = false
+            inst.CanCollide = false
+            if cName == "MeshPart" then inst.TextureID = "" end
         end
-        if not allowed then
-            pcall(function() v:Destroy() end)
-        end
-    end
-
-    task.wait(0.3)
-
-    local leftover = 0
-    local leftoverNames = {}
-    for _, v in ipairs(CoreGui:GetChildren()) do
-        local allowed = false
-        for _, w in ipairs(whitelist) do
-            if v.Name == w then allowed = true break end
-        end
-        if not allowed then
-            leftover += 1
-            table.insert(leftoverNames, v.Name)
-        end
-    end
-
-    print("[AUTO CLOSE]")
-    print("[AUTO CLOSE] DELTA Attempt:", deltaAttempts)
-    print("[AUTO CLOSE] DELTA Leftover items:", leftover)
-    if leftover > 0 then
-        print("[AUTO CLOSE] DELTA Leftover names:", table.concat(leftoverNames, ", "))
-    end
-
-    if leftover == 0 then
-        print("[AUTO CLOSE] DELTA SUCCESS")
-        deltaCleared = true
     end
 end
 
-if not deltaCleared then
-    print("[AUTO CLOSE] DELTA FINAL STATE: items may remain after", deltaAttempts, "attempts")
+local function setupCharacter(char)
+    if not char then return end
+    for _, inst in ipairs(char:GetDescendants()) do cleanCharacterDescendant(inst) end
+    -- Listener krusial agar Joran yang baru di-equip langsung dieksekusi
+    char.DescendantAdded:Connect(cleanCharacterDescendant)
 end
 
-setStatus("CLOSING DENG HUB...", Color3.fromRGB(255, 165, 0), Color3.fromRGB(255, 165, 0))
-
-local mengHub = CoreGui:FindFirstChild("MengHubGui")
-local dropShadow = mengHub and mengHub:FindFirstChild("DropShadowHolder", true)
-
-if dropShadow then
-
-    local attempts = 0
-
-    while attempts < 10 do
-
-        attempts += 1
-
-        print("[AUTO CLOSE]")
-        print("[AUTO CLOSE] Attempt:", attempts)
-        print("[AUTO CLOSE] DropShadow.Visible:", dropShadow.Visible)
-
-        if not dropShadow.Visible then
-            print("[AUTO CLOSE] SUCCESS")
-            break
-        end
-
-        fireToggle()
-
-        task.wait(1.5)
-
-        if dropShadow.Visible then
-
-            print("[AUTO CLOSE] Toggle failed")
-
-            if attempts >= 5 then
-
-                print("[AUTO CLOSE] Force Visible = false")
-
-                pcall(function()
-                    dropShadow.Visible = false
-                end)
-
-                task.wait(0.5)
-
-if not dropShadow or not dropShadow.Parent then
-    print("[AUTO CLOSE] DropShadow Destroyed")
-    print("[AUTO CLOSE] FORCE SUCCESS")
-    break
-else
-    print("[AUTO CLOSE] After Force:", dropShadow.Visible)
-
-    if not dropShadow.Visible then
-        print("[AUTO CLOSE] FORCE SUCCESS")
-        break
+local function handleWorkspaceDescendant(inst)
+    if inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(LocalPlayer.Character) then return end
+    local cName = inst.ClassName
+    if TO_DESTROY[cName] then
+        annihilate(inst)
+    elseif inst:IsA("BasePart") then
+        inst.Transparency = 1
+        inst.Color = ABU_GELAP
+        inst.Material = Enum.Material.SmoothPlastic
+        inst.CastShadow = false
     end
 end
-            end
-        end
-    end
 
-if dropShadow and dropShadow.Parent and dropShadow.Visible then
+-- ==========================================
+-- 3. HARD-LOCK LIGHTING (Bebas CPU Spike)
+-- ==========================================
+local function forceLighting()
+    Lighting.GlobalShadows = false
+    Lighting.Brightness = 0
+    Lighting.Ambient = ABU_GELAP
+    Lighting.OutdoorAmbient = ABU_GELAP
+    Lighting.FogStart = 999999
+    Lighting.FogEnd = 999999
+end
 
-    print("[AUTO CLOSE] FINAL FORCE")
+-- Hanya merespons jika 'Ambient' berubah, bukan bereaksi pada pergerakan jam 'ClockTime'
+Lighting:GetPropertyChangedSignal("Ambient"):Connect(forceLighting)
+Lighting.ChildAdded:Connect(annihilate)
 
-    pcall(function()
-        dropShadow.Visible = false
+forceLighting()
+for _, obj in ipairs(Lighting:GetChildren()) do annihilate(obj) end
+
+-- ==========================================
+-- 4. EKSEKUSI PEMBANTAIAN INSTAN (Tanpa Batch)
+-- ==========================================
+workspace.Terrain:Clear()
+
+-- Melakukan sapuan satu frame penuh (Game akan freeze 1-2 detik, tapi koneksi aman)
+local descendants = workspace:GetDescendants()
+for i = 1, #descendants do
+    handleWorkspaceDescendant(descendants[i])
+end
+
+-- ==========================================
+-- 5. LISTENER REAL-TIME & UTILITAS
+-- ==========================================
+workspace.DescendantAdded:Connect(handleWorkspaceDescendant)
+LocalPlayer.CharacterAdded:Connect(setupCharacter)
+
+if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
+
+if setfpscap then
+    setfpscap(30)
+    task.spawn(function()
+        while task.wait(10) do setfpscap(30) end
     end)
-
 end
 
-end
-
-minimizeReduce()
-task.wait(math.random(8,15)/10)
-
-setStatus("DONE", Color3.fromRGB(50, 255, 100), Color3.fromRGB(50, 255, 100))
-task.wait(2)
-screenGui:Destroy()
-
-end
-
-run()
+task.spawn(function()
+    while task.wait(3) do
+        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+        if dailyUI and dailyUI.Enabled == true then
+            pcall(function() GuiControl:Close() end)
+        end
+    end
+end)
