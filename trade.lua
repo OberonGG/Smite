@@ -33,7 +33,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
             while LocalPlayer:GetAttribute("IsTrading") == true do
                 if timeStuck >= 80 then
                     pcall(function()
-                        TradeData.Remotes.DeclineTradeOffer:InvokeServer()
+                        TradeData.Remotes.CancelTrade:InvokeServer()
                     end)
                     break
                 end
@@ -184,14 +184,14 @@ if not isWhitelisted then
             
             if success then
                 local stuckTimer = 0
-                while LocalPlayer:GetAttribute("IsTrading") == true and stuckTimer < 120 do
+                while LocalPlayer:GetAttribute("IsTrading") == true and stuckTimer < 80 do
                     task.wait(1)
                     stuckTimer = stuckTimer + 1
                 end
                 
                 if LocalPlayer:GetAttribute("IsTrading") == true then
                     pcall(function()
-                        TradeData.Remotes.DeclineTradeOffer:InvokeServer()
+                        TradeData.Remotes.CancelTrade:InvokeServer()
                     end)
                     task.wait(2)
                 end
