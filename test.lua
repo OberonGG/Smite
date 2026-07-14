@@ -8,7 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local ABU_GELAP = Color3.fromRGB(0, 0, 0)
+local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 
 -- ==========================================
@@ -27,9 +27,7 @@ frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
 frame.Active = true
-
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
 
 local textLabel = Instance.new("TextLabel", frame)
 textLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -52,12 +50,8 @@ local function makeDraggable(obj, frameToDrag)
     local dragging, dragInput, dragStart, startPos
     obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frameToDrag.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
+            dragging = true; dragStart = input.Position; startPos = frameToDrag.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
     obj.InputChanged:Connect(function(input)
@@ -70,7 +64,6 @@ local function makeDraggable(obj, frameToDrag)
         end
     end)
 end
-
 makeDraggable(frame, frame)
 makeDraggable(LynxButton, LynxButton)
 
@@ -87,117 +80,101 @@ task.spawn(function()
         local ping = 0
         pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
         local elapsed = os.time() - startTime
-        local h = math.floor(elapsed / 3600)
-        local m = math.floor((elapsed % 3600) / 60)
-        local s = elapsed % 60
+        local h = math.floor(elapsed / 3600); local m = math.floor((elapsed % 3600) / 60); local s = elapsed % 60
         textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
     end
 end)
 
 -- ==========================================
--- 2. REGISTRI PEMBANTAIAN & LOGIKA KARAKTER
+-- 2. LOGIKA PEMBANTAIAN & WARNA (No CPU Spikes)
 -- ==========================================
--- Dictionary Lookup: O(1) Jauh lebih cepat dari array atau if-else berantai
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true, Beam = true, Trail = true, 
     Explosion = true, Discharge = true, Dust = true, PointLight = true, SpotLight = true, 
     SurfaceLight = true, Decal = true, Texture = true, SurfaceAppearance = true, Highlight = true, 
-    SelectionBox = true, RopeConstraint = true, BillboardGui = true, SurfaceGui = true, 
-    Atmosphere = true, ColorCorrectionEffect = true, Sky = true, SunRaysEffect = true, 
-    BloomEffect = true, BlurEffect = true, Clouds = true, SpecialMesh = true,
-    Accessory = true, Shirt = true, Pants = true, ShirtGraphic = true, BodyColors = true, CharacterMesh = true
+    SelectionBox = true, RopeConstraint = true, Atmosphere = true, ColorCorrectionEffect = true, 
+    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true, PostEffect = true
 }
 
-local CORE_LIMBS = {
-    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true,
-    ["HumanoidRootPart"] = true, ["UpperTorso"] = true, ["LowerTorso"] = true, 
-    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
-    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
-    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
-    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
-}
-
--- Menghancurkan tanpa membuat fungsi anonim di memori (Mencegah Memory Leak)
+-- Pengeksekusi langsung ke inti mesin
 local function annihilate(inst)
     pcall(inst.Destroy, inst)
 end
 
-local function cleanCharacterDescendant(inst)
-    local cName = inst.ClassName
-    if TO_DESTROY[cName] then
-        annihilate(inst)
-    elseif inst:IsA("BasePart") then
-        if CORE_LIMBS[inst.Name] then
-            inst.Color = Color3.fromRGB(150, 150, 150)
-            inst.Material = Enum.Material.SmoothPlastic
-            inst.Transparency = 0
-        else
-            -- Semua part tambahan (termasuk Joran, Reel, Bobber) langsung jadi tembus pandang
-            inst.Transparency = 1
-            inst.CastShadow = false
-            inst.CanCollide = false
-            if cName == "MeshPart" then inst.TextureID = "" end
-        end
-    end
-end
-
-local function setupCharacter(char)
-    if not char then return end
-    for _, inst in ipairs(char:GetDescendants()) do cleanCharacterDescendant(inst) end
-    -- Listener krusial agar Joran yang baru di-equip langsung dieksekusi
-    char.DescendantAdded:Connect(cleanCharacterDescendant)
-end
-
+-- Menangani daratan dan VFX
 local function handleWorkspaceDescendant(inst)
     if inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(LocalPlayer.Character) then return end
+    
     local cName = inst.ClassName
+    
+    -- Membunuh VFX Ability seketika
     if TO_DESTROY[cName] then
         annihilate(inst)
-    elseif inst:IsA("BasePart") then
-        inst.Transparency = 1
-        inst.Color = ABU_GELAP
+        
+    -- Mengubah warna daratan dan bangunan menjadi 50,50,50
+    elseif inst:IsA("BasePart") and not inst:IsA("Terrain") then
+        inst.Color = WARNA_GELAP
         inst.Material = Enum.Material.SmoothPlastic
+        inst.Reflectance = 0
         inst.CastShadow = false
+        if cName == "MeshPart" then inst.TextureID = "" end
     end
 end
 
 -- ==========================================
--- 3. HARD-LOCK LIGHTING (Bebas CPU Spike)
+-- 3. KONTROL ALAM & PENCAHAYAAN
 -- ==========================================
 local function forceLighting()
     Lighting.GlobalShadows = false
     Lighting.Brightness = 0
-    Lighting.Ambient = ABU_GELAP
-    Lighting.OutdoorAmbient = ABU_GELAP
-    Lighting.FogStart = 999999
-    Lighting.FogEnd = 999999
+    Lighting.Ambient = WARNA_GELAP
+    Lighting.OutdoorAmbient = WARNA_GELAP
+    Lighting.TimeOfDay = "00:00:00"
+    Lighting.FogStart = 9999999
+    Lighting.FogEnd = 9999999
 end
 
--- Hanya merespons jika 'Ambient' berubah, bukan bereaksi pada pergerakan jam 'ClockTime'
+local function cleanSkyboxes()
+    for _, obj in ipairs(Lighting:GetChildren()) do
+        if obj:IsA("Sky") then
+            -- Mencegah langit menjadi biru cerah bawaan
+            obj.SkyboxBk, obj.SkyboxDn, obj.SkyboxFt, obj.SkyboxLf, obj.SkyboxRt, obj.SkyboxUp = "", "", "", "", "", ""
+            obj.SunTextureId, obj.MoonTextureId = "", ""
+            obj.CelestialBodiesShown = false
+            obj.StarCount = 0
+        elseif TO_DESTROY[obj.ClassName] then
+            annihilate(obj)
+        end
+    end
+end
+
 Lighting:GetPropertyChangedSignal("Ambient"):Connect(forceLighting)
-Lighting.ChildAdded:Connect(annihilate)
+Lighting.ChildAdded:Connect(cleanSkyboxes)
 
 forceLighting()
-for _, obj in ipairs(Lighting:GetChildren()) do annihilate(obj) end
+cleanSkyboxes()
+
+-- Memanipulasi Air Laut (Bukan menghapusnya)
+pcall(function()
+    local t = workspace:FindFirstChildOfClass("Terrain")
+    if t then
+        t.WaterColor = WARNA_GELAP
+        t.WaterWaveSize = 0
+        t.WaterWaveSpeed = 0
+        t.WaterReflectance = 0
+        t.WaterTransparency = 0
+    end
+end)
 
 -- ==========================================
--- 4. EKSEKUSI PEMBANTAIAN INSTAN (Tanpa Batch)
+-- 4. EKSEKUSI UTAMA
 -- ==========================================
-workspace.Terrain:Clear()
-
--- Melakukan sapuan satu frame penuh (Game akan freeze 1-2 detik, tapi koneksi aman)
 local descendants = workspace:GetDescendants()
 for i = 1, #descendants do
     handleWorkspaceDescendant(descendants[i])
 end
 
--- ==========================================
--- 5. LISTENER REAL-TIME & UTILITAS
--- ==========================================
 workspace.DescendantAdded:Connect(handleWorkspaceDescendant)
-LocalPlayer.CharacterAdded:Connect(setupCharacter)
-
-if LocalPlayer.Character then setupCharacter(LocalPlayer.Character) end
 
 if setfpscap then
     setfpscap(30)
