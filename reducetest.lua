@@ -357,22 +357,25 @@ end
 
 task.spawn(function()
     local deltaClosed = false
+    local targetGui = HiddenGui -- PERBAIKAN: definisikan 'gui' sebagai targetGui
     while not deltaClosed and task.wait(3) do
-                local hasConsole = false
-                for _, obj in ipairs(gui:GetDescendants()) do
-                    if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
-                        hasConsole = true
-                        break
-                    end
-                end
-                
-                if hasConsole then
-                    for _, obj in ipairs(gui:GetChildren()) do
-                        if obj.Name ~= "Console" then
-                            pcall(function() obj:Destroy() end)
-                        end
-                    end
-                    deltaClosed = true
+        local hasConsole = false
+        if targetGui then
+            for _, obj in ipairs(targetGui:GetDescendants()) do
+                if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
+                    hasConsole = true
+                    break
                 end
             end
-        end)
+            
+            if hasConsole then
+                for _, obj in ipairs(targetGui:GetChildren()) do
+                    if obj.Name ~= "Console" then
+                        pcall(function() obj:Destroy() end)
+                    end
+                end
+                deltaClosed = true
+            end
+        end
+    end
+end)
