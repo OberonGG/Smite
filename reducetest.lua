@@ -255,9 +255,22 @@ local function neutralizeTarget(obj)
 end
 
 local function handleDescendant(inst)
-    -- Skip karakter player agar tidak konflik dengan cleanChar
     if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(HiddenGui) then 
         return 
+    end
+
+    if inst:IsDescendantOf(ReplicatedStorage) then 
+        return 
+    end
+    
+    local name = inst.Name
+    local parent = inst.Parent
+    local parentName = parent and parent.Name or ""
+    
+    
+    if string.find(name, "Totem") or string.find(name, "Bobber") or string.find(name, "Luck") or
+       string.find(parentName, "Totem") or string.find(parentName, "Bobber") or string.find(parentName, "Luck") then
+        return
     end
     
     local cName = inst.ClassName
@@ -275,6 +288,7 @@ local function handleDescendant(inst)
         pcall(neutralizeTarget, inst)
     end
 end
+
 
 Lighting.DescendantAdded:Connect(handleDescendant)
 Workspace.DescendantAdded:Connect(handleDescendant)
