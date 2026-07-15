@@ -156,8 +156,9 @@ local function processInstance(inst)
     local parent = inst.Parent
     local parentName = parent and parent.Name or ""
     
-    -- [MODIFIED] HANYA Totem yang di-whitelist (Bobber, Rod, Head SpecialMesh dihapus)
-    if string.find(name, "Totem") or string.find(parentName, "Totem") then
+    -- [OPT] Cache string.find results
+    local isTotem = string.find(name, "Totem") or string.find(parentName, "Totem")
+    if isTotem then
         return
     end
     
@@ -184,10 +185,12 @@ pcall(function()
     end
 end)
 
--- Proses instance yang sudah ada
-for _, object in ipairs(Workspace:GetDescendants()) do
-    processInstance(object)
-end
+-- Proses instance yang sudah ada (deferred untuk tidak blocking)
+task.defer(function()
+    for _, object in ipairs(Workspace:GetDescendants()) do
+        processInstance(object)
+    end
+end)
 
 -- Batching DescendantAdded
 local pendingInstances = {}
@@ -221,7 +224,7 @@ end)
 task.spawn(function()
     local npcFolder = Workspace:FindFirstChild("NPC")
     if not npcFolder then
-        pcall(function() npcFolder = Workspace:WaitForChild("NPC", 15) end)
+        pcall(function() npcFolder = Workspace:WaitForChild("NPC", 10) end)
     end
     
     if npcFolder then
@@ -237,12 +240,12 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 7. AUTO CLOSE DAILY LOGIN
+-- 7. AUTO CLOSE DAILY LOGIN (EVENT-DRIVEN)
 -- ==========================================
+-- [OPT] Mengganti while loop dengan event-driven approach
 task.spawn(function()
-    while task.wait(3) do
-        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
-        if dailyUI and dailyUI.Enabled then
+    local function tryCloseDaily(gui)
+        if gui and gui.Enabled then
             pcall(function() 
                 local modules = ReplicatedStorage:FindFirstChild("Modules")
                 if modules then
@@ -254,6 +257,21 @@ task.spawn(function()
             end)
         end
     end
+    
+    -- Check jika UI sudah ada saat script start
+    local existingDaily = PlayerGui:FindFirstChild("!!! Daily Login")
+    if existingDaily then
+        task.wait(0.1)
+        tryCloseDaily(existingDaily)
+    end
+    
+    -- Listen untuk UI yang baru muncul
+    PlayerGui.ChildAdded:Connect(function(child)
+        if child.Name == "!!! Daily Login" then
+            task.wait(0.1) -- Wait untuk UI load properly
+            tryCloseDaily(child)
+        end
+    end)
 end)
 
 -- ==========================================
