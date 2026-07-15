@@ -20,7 +20,7 @@ ui.Parent = (gethui and gethui()) or CoreGui
 
 local frame = Instance.new("Frame", ui)
 frame.Size = UDim2.new(0, 220, 0, 40)
-frame.Position = UDim2.new(0.015, 0, 0.165, 0)
+frame.Position = UDim2.new(0.015, 0, 0.165, 0) -- Posisi FIX
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
@@ -38,7 +38,7 @@ textLabel.Text = "Ping: 0 ms | 0:00:00"
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
 LynxButton.Size = UDim2.new(0, 40, 0, 40)
-LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
+LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0) -- Posisi FIX
 LynxButton.BackgroundTransparency = 1
 LynxButton.BorderSizePixel = 0
 LynxButton.AutoButtonColor = true
@@ -49,7 +49,7 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 -- ==========================================
--- 2. LOGIC CLOSE LYNX
+-- 2. LOGIC CLOSE LYNX (TIDAK DIUBAH)
 -- ==========================================
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
@@ -71,7 +71,7 @@ end
 LynxButton.MouseButton1Click:Connect(closeLynx)
 
 -- ==========================================
--- 3. REAL PING & TIMER
+-- 3. REAL PING & TIMER (TIDAK DIUBAH)
 -- ==========================================
 local startTime = os.time()
 task.spawn(function()
@@ -87,7 +87,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. LOCK LIGHTING (WARNA GELAP 50,50,50)
+-- 4. LOCK LIGHTING (TETAP 50,50,50 SESUAI PERMINTAAN)
 -- ==========================================
 local function lockLighting()
     if Lighting.Ambient ~= WARNA_GELAP then Lighting.Ambient = WARNA_GELAP end
@@ -127,66 +127,73 @@ end)
 Lighting.ChildAdded:Connect(killLightingChild)
 
 -- ==========================================
--- 5. REDUCE MAP + SPHERICAL (FIXED)
+-- 5. LOGIC "MUSNAHKAN" (MENGIKUTI SCRIPT TEMANMU, TAPI DI-OPTIMASI)
 -- ==========================================
+-- [OPT] Menggunakan Dictionary O(1) agar tidak membebani CPU seperti rantai IsA() pada script temanmu
 local TO_DESTROY = {
-    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
-    Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
-    PointLight = true, SpotLight = true, SurfaceLight = true, Light = true,
-    Accessory = true, CharacterMesh = true,
-    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
-    PostEffect = true, SelectionBox = true, Decal = true, Texture = true,
-    SurfaceAppearance = true, SpecialMesh = true
+    SpecialMesh = true, ParticleEmitter = true, Trail = true, Beam = true,
+    Sparkles = true, Fire = true, Smoke = true, Explosion = true,
+    PostEffect = true, Light = true, SelectionBox = true, Decal = true,
+    Texture = true, Clothing = true, ShirtGraphic = true
 }
 
 local IS_BASEPART = {
-    Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
-    TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
+    Part = true, MeshPart = true, UnionOperation = true, WedgePart = true,
+    CornerWedgePart = true, TrussPart = true, Seat = true, VehicleSeat = true,
     SpawnLocation = true, Platform = true
 }
 
--- [FIX] Fungsi makeRound yang benar untuk Roblox Modern
-local function makeRound(inst)
-    local cName = inst.ClassName
-    if cName == "Part" then
-        pcall(function() inst.Shape = Enum.PartType.Ball end)
-    elseif cName == "MeshPart" then
-        pcall(function()
-            -- WAJIB: Kosongkan MeshId terlebih dahulu, jika tidak MeshType Ball akan diabaikan engine!
-            inst.MeshId = "" 
-            inst.MeshType = Enum.MeshType.Ball
-            inst.TextureID = ""
-        end)
-    elseif cName == "WedgePart" or cName == "CornerWedgePart" then
-        pcall(function() inst.Shape = Enum.PartType.Ball end)
-    end
-    
-    inst.Color = WARNA_GELAP
-    inst.Material = Enum.Material.SmoothPlastic
-    inst.Reflectance = 0
-    inst.CastShadow = false
-end
-
 local function processInstance(inst)
     local cName = inst.ClassName
-    if not TO_DESTROY[cName] and not IS_BASEPART[cName] then return end
-    if inst:IsDescendantOf(CoreGui) then return end
     
+    -- Fast Exit: Abaikan 90% instance yang tidak relevan (Script, Value, Model, dll)
+    if not TO_DESTROY[cName] and not IS_BASEPART[cName] and cName ~= "BillboardGui" and cName ~= "SurfaceGui" then 
+        return 
+    end
+
     local name = inst.Name
     local parent = inst.Parent
     local parentName = parent and parent.Name or ""
-    
-    -- Whitelist Totem & Bobber
-    if string.find(name, "Totem") or string.find(name, "Bobber") or
-       string.find(parentName, "Totem") or string.find(parentName, "Bobber") then
+
+    -- [PENTING] Whitelist agar game "Fish It" tidak rusak total
+    if string.find(name, "Totem") or string.find(name, "Bobber") or string.find(name, "Rod") or
+       (parentName and (string.find(parentName, "Totem") or string.find(parentName, "Bobber") or string.find(parentName, "Rod"))) then
+        -- Jika BasePart, tetap diberi treatment SmoothPlastic agar sesuai request "pake smooth plastic"
+        if IS_BASEPART[cName] then
+            inst.Color = WARNA_GELAP
+            inst.Material = Enum.Material.SmoothPlastic
+            inst.Reflectance = 0
+            inst.CastShadow = false
+            if cName == "MeshPart" then inst.TextureID = "" end
+        end
         return
     end
+
+    -- Proteksi SpecialMesh pada Head (agar wajah karakter tidak error)
     if cName == "SpecialMesh" and parentName == "Head" then return end
-    
-    if IS_BASEPART[cName] then
-        makeRound(inst) -- Semua BasePart (termasuk Rod) dibuat bulat
-    else
+
+    -- Logic Penghancuran GUI yang bukan milik Player (sesuai script temanmu)
+    if cName == "BillboardGui" or cName == "SurfaceGui" then
+        local isPlayerOwned = inst:FindFirstAncestorOfClass("Player") ~= nil
+        if not isPlayerOwned then
+            task.defer(safeDestroy, inst)
+        end
+        return
+    end
+
+    -- Logic Penghancuran Massal (SpecialMesh, Efek, dll)
+    if TO_DESTROY[cName] then
         task.defer(safeDestroy, inst)
+        return
+    end
+
+    -- Logic BasePart: Smooth Plastic, Reflectance 0, CastShadow false, Warna Gelap
+    if IS_BASEPART[cName] then
+        inst.Color = WARNA_GELAP
+        inst.Material = Enum.Material.SmoothPlastic
+        inst.Reflectance = 0
+        inst.CastShadow = false
+        if cName == "MeshPart" then inst.TextureID = "" end
     end
 end
 
@@ -202,19 +209,24 @@ pcall(function()
     end
 end)
 
+-- Proses instance yang sudah ada saat script dijalankan
 for _, object in ipairs(Workspace:GetDescendants()) do
     processInstance(object)
 end
 
+-- Batching DescendantAdded untuk mencegah CPU Spike
 local pendingInstances = {}
 local batchActive = false
+
 local function processBatch()
     batchActive = false
     local batch = pendingInstances
     pendingInstances = {}
     for i = 1, #batch do
         local inst = batch[i]
-        if inst.Parent ~= nil then processInstance(inst) end
+        if inst.Parent ~= nil then
+            processInstance(inst)
+        end
     end
 end
 
@@ -227,49 +239,7 @@ Workspace.DescendantAdded:Connect(function(inst)
 end)
 
 -- ==========================================
--- 6. KARAKTER BULAT (FIXED)
--- ==========================================
-local function processCharacterPart(inst)
-    if not inst:IsA("BasePart") then
-        if inst.ClassName == "SpecialMesh" then task.defer(safeDestroy, inst) end
-        return
-    end
-    if inst.Name == "HumanoidRootPart" then
-        inst.Transparency = 1
-        return
-    end
-    makeRound(inst)
-end
-
-local function onCharacterAdded(character)
-    for _, child in ipairs(character:GetDescendants()) do
-        processCharacterPart(child)
-    end
-    character.DescendantAdded:Connect(processCharacterPart)
-end
-
-LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
-
--- [FIX] Tambahkan logika untuk Rod/Tool di dalam BACKPACK (Tas)
-local function processBackpackTool(tool)
-    for _, child in ipairs(tool:GetDescendants()) do
-        if IS_BASEPART[child.ClassName] then makeRound(child)
-        elseif TO_DESTROY[child.ClassName] then task.defer(safeDestroy, child) end
-    end
-    tool.DescendantAdded:Connect(function(inst)
-        if IS_BASEPART[inst.ClassName] then makeRound(inst)
-        elseif TO_DESTROY[inst.ClassName] then task.defer(safeDestroy, inst) end
-    end)
-end
-
-for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
-    processBackpackTool(tool)
-end
-LocalPlayer.Backpack.ChildAdded:Connect(processBackpackTool)
-
--- ==========================================
--- 7. AUTO CLOSE DAILY LOGIN
+-- 6. AUTO CLOSE DAILY LOGIN (DIPERAMAN)
 -- ==========================================
 task.spawn(function()
     while task.wait(3) do
@@ -279,7 +249,9 @@ task.spawn(function()
                 local modules = ReplicatedStorage:FindFirstChild("Modules")
                 if modules then
                     local guiControl = modules:FindFirstChild("GuiControl")
-                    if guiControl then require(guiControl):Close() end
+                    if guiControl then 
+                        require(guiControl):Close() 
+                    end
                 end
             end)
         end
@@ -287,6 +259,8 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 8. FPS CAP
+-- 7. FPS CAP (DIPERTAHANKAN)
 -- ==========================================
-if setfpscap then setfpscap(30) end
+if setfpscap then 
+    setfpscap(30) 
+end
