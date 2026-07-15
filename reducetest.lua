@@ -4,13 +4,17 @@ local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local HiddenGui = (gethui and gethui()) or CoreGui
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- WARNA GELAP (50, 50, 50)
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
+local Workspace = game:GetService("Workspace")
+pcall(function()
+    Workspace.StreamingEnabled = false
+    Workspace.StreamingMinRadius = 0
+    Workspace.StreamingMaxRadius = 0
+end)
+
 
 -- ==========================================
 -- 1. GARBAGE COLLECTION (72-HOUR STABILITY)
