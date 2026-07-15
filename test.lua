@@ -7,14 +7,12 @@ local Workspace = game:GetService("Workspace")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
 -- 1. UI SETUP (POSISI FIX, TANPA DRAGGABLE)
 -- ==========================================
--- [OPT] Menghapus makeDraggable mencegah kebocoran memori dari input.Changed:Connect 
--- yang menumpuk setiap kali diklik. UI sekarang benar-benar statis dan hemat CPU.
+-- [PENTING] Fungsi makeDraggable DIHAPUS TOTAL untuk mencegah memory leak dari input.Changed
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -52,45 +50,32 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 -- ==========================================
--- 2. LOGIC CLOSE LYNX (TIDAK DIUBAH)
+-- 2. LOGIC CLOSE LYNX & PING TIMER (TIDAK DIUBAH)
 -- ==========================================
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
     if not LynxGui then
         for _, child in ipairs(CoreGui:GetChildren()) do
-            if string.find(string.lower(child.Name), "lynx") then 
-                LynxGui = child 
-                break 
-            end
+            if string.find(string.lower(child.Name), "lynx") then LynxGui = child break end
         end
     end
     if LynxGui then
         local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
         if not targetFrame then
             for _, obj in ipairs(CoreGui:GetChildren()) do
-                if obj:IsA("Frame") then 
-                    targetFrame = obj 
-                    break 
-                end
+                if obj:IsA("Frame") then targetFrame = obj break end
             end
         end
-        if targetFrame then 
-            pcall(function() targetFrame.Visible = not targetFrame.Visible end) 
-        end
+        if targetFrame then pcall(function() targetFrame.Visible = not targetFrame.Visible end) end
     end
 end
 LynxButton.MouseButton1Click:Connect(closeLynx)
 
--- ==========================================
--- 3. REAL PING & TIMER (TIDAK DIUBAH)
--- ==========================================
 local startTime = os.time()
 task.spawn(function()
     while task.wait(1) do
         local ping = 0
-        pcall(function() 
-            ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) 
-        end)
+        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
         local elapsed = os.time() - startTime
         local h = math.floor(elapsed / 3600)
         local m = math.floor((elapsed % 3600) / 60)
@@ -100,7 +85,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. LOCK LIGHTING (WARNA GELAP 50,50,50)
+-- 3. LOCK LIGHTING (WARNA GELAP 50,50,50)
 -- ==========================================
 local function lockLighting()
     if Lighting.Ambient ~= WARNA_GELAP then Lighting.Ambient = WARNA_GELAP end
@@ -128,9 +113,7 @@ local function killLightingChild(child)
 end
 
 lockLighting()
-for _, obj in ipairs(Lighting:GetChildren()) do 
-    killLightingChild(obj) 
-end
+for _, obj in ipairs(Lighting:GetChildren()) do killLightingChild(obj) end
 
 local LOCK_PROPS = {
     Ambient = true, OutdoorAmbient = true, TimeOfDay = true,
@@ -142,7 +125,7 @@ end)
 Lighting.ChildAdded:Connect(killLightingChild)
 
 -- ==========================================
--- 5. REDUCE MAP OPTIMIZED (HEMAT CPU & MEMORI)
+-- 4. REDUCE MAP & SPHERICAL OPTIMIZED (EVENT-DRIVEN)
 -- ==========================================
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -160,42 +143,42 @@ local IS_BASEPART = {
     SpawnLocation = true, Platform = true
 }
 
+-- [OPT] Fungsi pemrosesan instance dengan REDUNDANCY CHECK
+-- Hanya mengubah properti jika nilainya BELUM sesuai. Ini mencegah CPU spike.
 local function processInstance(inst)
     local cName = inst.ClassName
     
-    -- [OPT] Fast Exit: Mengabaikan 90% instance yang tidak relevan tanpa pemrosesan berat
+    -- Fast Exit: Abaikan 90% instance yang tidak relevan
     if not TO_DESTROY[cName] and not IS_BASEPART[cName] then return end
 
-    -- [OPT] Dihapus: inst:IsDescendantOf(CoreGui) 
-    -- Alasan: Workspace.DescendantAdded TIDAK AKAN PERNAH memicu instance dari CoreGui. 
-    -- Menghapus ini menghemat ribuan pemanggilan fungsi C++ per menit.
-
     local name = inst.Name
-    
-    -- [OPT] Menggabungkan string.find untuk Totem, Bobber, dan Rod agar lebih efisien
-    if name:find("Totem") or name:find("Bobber") or name:find("Rod") then
-        return
-    end
-
     local parent = inst.Parent
-    if parent then
-        local parentName = parent.Name
-        if parentName:find("Totem") or parentName:find("Bobber") or parentName:find("Rod") then
-            return
-        end
-        
-        -- Proteksi SpecialMesh pada Head
-        if cName == "SpecialMesh" and parentName == "Head" then return end
+    local parentName = parent and parent.Name or ""
+
+    -- Whitelist Totem, Bobber, dan Rod (Rod sekarang diproses jadi bulat, bukan di-skip total)
+    if name:find("Totem") or name:find("Bobber") or name:find("Rod") or
+       (parentName and (parentName:find("Totem") or parentName:find("Bobber") or parentName:find("Rod"))) then
+        -- Lanjut ke proses pembulatan di bawah, jangan return
     end
 
     if IS_BASEPART[cName] then
-        inst.Color = WARNA_GELAP
-        inst.Material = Enum.Material.SmoothPlastic
-        inst.Reflectance = 0
-        inst.CastShadow = false
-        if cName == "MeshPart" then inst.TextureID = "" end
+        -- [OPT] REDUNDANCY CHECK: Hanya ubah jika belum bulat
+        if cName == "Part" and inst.Shape ~= Enum.PartType.Ball then
+            pcall(function() inst.Shape = Enum.PartType.Ball end)
+        elseif cName == "MeshPart" and inst.MeshType ~= Enum.MeshType.Ball then
+            pcall(function()
+                inst.MeshType = Enum.MeshType.Ball
+                inst.TextureID = ""
+            end)
+        end
+
+        -- [OPT] REDUNDANCY CHECK untuk properti visual
+        if inst.Color ~= WARNA_GELAP then inst.Color = WARNA_GELAP end
+        if inst.Material ~= Enum.Material.SmoothPlastic then inst.Material = Enum.Material.SmoothPlastic end
+        if inst.Reflectance ~= 0 then inst.Reflectance = 0 end
+        if inst.CastShadow ~= false then inst.CastShadow = false end
     else
-        -- TO_DESTROY path: dijamin aman karena sudah lolos Fast Exit
+        -- TO_DESTROY path
         task.defer(safeDestroy, inst)
     end
 end
@@ -204,15 +187,15 @@ end
 pcall(function()
     local t = Workspace:FindFirstChildOfClass("Terrain")
     if t then
-        t.WaterColor = WARNA_GELAP
-        t.WaterWaveSize = 0
-        t.WaterWaveSpeed = 0
-        t.WaterReflectance = 0
-        t.WaterTransparency = 0
+        if t.WaterColor ~= WARNA_GELAP then t.WaterColor = WARNA_GELAP end
+        if t.WaterWaveSize ~= 0 then t.WaterWaveSize = 0 end
+        if t.WaterWaveSpeed ~= 0 then t.WaterWaveSpeed = 0 end
+        if t.WaterReflectance ~= 0 then t.WaterReflectance = 0 end
+        if t.WaterTransparency ~= 0 then t.WaterTransparency = 0 end
     end
 end)
 
--- Proses instance yang sudah ada saat script dijalankan
+-- Proses instance yang sudah ada saat script dijalankan (Dilakukan sekali saja)
 for _, object in ipairs(Workspace:GetDescendants()) do
     processInstance(object)
 end
@@ -224,8 +207,7 @@ local batchActive = false
 local function processBatch()
     batchActive = false
     local batch = pendingInstances
-    pendingInstances = {}  -- Reset table untuk batch berikutnya
-    
+    pendingInstances = {}
     for i = 1, #batch do
         local inst = batch[i]
         if inst.Parent ~= nil then
@@ -242,11 +224,64 @@ Workspace.DescendantAdded:Connect(function(inst)
     end
 end)
 
+-- ==========================================
+-- 5. KARAKTER BULAT (EVENT-DRIVEN, BUKAN LOOPING)
+-- ==========================================
+-- [OPT] Mengganti while task.wait(2) dengan CharacterAdded & DescendantAdded
+-- Ini menjamin pemrosesan HANYA terjadi SEKALI per part, mengeliminasi GC spike dan CPU waste.
+local function processCharacterPart(inst)
+    if not inst:IsA("BasePart") then
+        if inst.ClassName == "SpecialMesh" then
+            task.defer(safeDestroy, inst)
+        end
+        return
+    end
+
+    if inst.Name == "HumanoidRootPart" then
+        inst.Transparency = 1
+        return
+    end
+
+    -- Redundancy check: Hanya ubah jika belum bulat
+    if inst.ClassName == "Part" and inst.Shape ~= Enum.PartType.Ball then
+        pcall(function() inst.Shape = Enum.PartType.Ball end)
+    elseif inst.ClassName == "MeshPart" and inst.MeshType ~= Enum.MeshType.Ball then
+        pcall(function()
+            inst.MeshType = Enum.MeshType.Ball
+            inst.TextureID = ""
+        end)
+    end
+
+    -- Redundancy check untuk properti lain
+    if inst.Color ~= WARNA_GELAP then inst.Color = WARNA_GELAP end
+    if inst.Material ~= Enum.Material.SmoothPlastic then inst.Material = Enum.Material.SmoothPlastic end
+    if inst.Reflectance ~= 0 then inst.Reflectance = 0 end
+    if inst.CastShadow ~= false then inst.CastShadow = false end
+end
+
+-- Pasang event listener untuk karakter saat ini dan di masa depan
+local function onCharacterAdded(character)
+    -- Proses part yang sudah ada saat spawn
+    for _, child in ipairs(character:GetDescendants()) do
+        processCharacterPart(child)
+    end
+    -- Pasang listener untuk part baru (misal: tool/equip)
+    character.DescendantAdded:Connect(processCharacterPart)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+if LocalPlayer.Character then
+    onCharacterAdded(LocalPlayer.Character)
+end
+
+-- ==========================================
+-- 6. AUTO CLOSE DAILY LOGIN (DIPERAMAN)
+-- ==========================================
 task.spawn(function()
     while task.wait(3) do
         local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
         if dailyUI and dailyUI.Enabled then
-            pcall(function()
+            pcall(function() 
                 local modules = ReplicatedStorage:FindFirstChild("Modules")
                 if modules then
                     local guiControl = modules:FindFirstChild("GuiControl")
@@ -259,6 +294,9 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- 7. FPS CAP (DIPERTAHANKAN)
+-- ==========================================
 if setfpscap then 
     setfpscap(30) 
 end
