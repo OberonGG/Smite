@@ -58,19 +58,23 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 -- ==========================================
--- LOGIC TOGGLE LYNX (ENABLED PROPERTY)
+-- LOGIC TOGGLE LYNX (FIXED - TOGGLE ENABLED)
 -- ==========================================
 local function findLynxGui()
     -- Try exact names first
     local target = CoreGui:FindFirstChild("LynxGui")
-    if target then return target end
+    if target and target:IsA("ScreenGui") then 
+        return target 
+    end
     
     target = CoreGui:FindFirstChild("LynxHub")
-    if target then return target end
+    if target and target:IsA("ScreenGui") then 
+        return target 
+    end
     
     -- Pattern search for "lynx" in name
     for _, child in ipairs(CoreGui:GetChildren()) do
-        if string.find(string.lower(child.Name), "lynx") then
+        if child:IsA("ScreenGui") and string.find(string.lower(child.Name), "lynx") then
             return child
         end
     end
@@ -82,7 +86,7 @@ LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
         local lynxGui = findLynxGui()
         if lynxGui then
-            -- Toggle Enabled property (bukan Visible)
+            -- TOGGLE ENABLED (bukan Visible!)
             lynxGui.Enabled = not lynxGui.Enabled
         end
     end)
@@ -107,7 +111,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LIGHTING OPTIMIZATION
+-- LIGHTING OPTIMIZATION (WARNA 50,50,50)
 -- ==========================================
 local FORCED_LIGHTING = {
     GlobalShadows = false,
@@ -238,8 +242,6 @@ end
 
 local function handleDescendant(inst)
     if not inst or not inst.Parent then return end
-    
-    -- Skip CoreGui dan descendants
     if inst:IsDescendantOf(CoreGui) then return end
     
     local className = inst.ClassName
