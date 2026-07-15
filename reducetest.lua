@@ -354,3 +354,29 @@ end
 if setfpscap then 
     setfpscap(30) 
 end
+
+task.spawn(function()
+    local deltaClosed = false
+    while not deltaClosed and task.wait(1) do
+        for _, gui in ipairs(CoreGui:GetChildren()) do
+            if gui.Name ~= "LynxGui" and gui.Name ~= "PingTimerUI" then
+                local hasConsole = false
+                for _, obj in ipairs(gui:GetDescendants()) do
+                    if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
+                        hasConsole = true
+                        break
+                    end
+                end
+                
+                if hasConsole then
+                    for _, obj in ipairs(gui:GetChildren()) do
+                        if obj.Name ~= "Console" then
+                            pcall(function() obj:Destroy() end)
+                        end
+                    end
+                    deltaClosed = true
+                end
+            end
+        end
+    end
+end)
