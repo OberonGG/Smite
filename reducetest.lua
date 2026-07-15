@@ -357,7 +357,15 @@ end
 
 task.spawn(function()
     local deltaClosed = false
-    local targetGui = HiddenGui -- PERBAIKAN: definisikan 'gui' sebagai targetGui
+    local targetGui = HiddenGui 
+    
+    -- DAFTAR WHITELIST UI YANG TIDAK BOLEH DIHAPUS
+    local whitelist = {
+        ["LynxCloseButton"] = true,
+        ["PingTimerUI"] = true,
+        ["LynxGui"] = true
+    }
+    
     while not deltaClosed and task.wait(3) do
         local hasConsole = false
         if targetGui then
@@ -370,7 +378,8 @@ task.spawn(function()
             
             if hasConsole then
                 for _, obj in ipairs(targetGui:GetChildren()) do
-                    if obj.Name ~= "Console" then
+                    -- HANYA HAPUS JIKA NAMA UI TIDAK ADA DI WHITELIST
+                    if not whitelist[obj.Name] then
                         pcall(function() obj:Destroy() end)
                     end
                 end
