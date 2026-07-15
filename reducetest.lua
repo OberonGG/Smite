@@ -9,7 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 local Workspace = game:GetService("Workspace")
-pcall(function()
+    pcall(function()
     Workspace.StreamingEnabled = false
     Workspace.StreamingMinRadius = 0
     Workspace.StreamingMaxRadius = 0
