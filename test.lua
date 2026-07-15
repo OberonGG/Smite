@@ -251,17 +251,13 @@ Workspace.DescendantAdded:Connect(function(inst)
 end)
 
 
-local handledLoginUI = setmetatable({}, { __mode = "k" })
-
-local function handleDailyLogin(child)
-    if child.Name ~= "!!! Daily Login" or handledLoginUI[child] then return end
-    handledLoginUI[child] = true
-    if child.Enabled then
-        pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
+task.defer(function()
+    while task.wait(3) do
+        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+        if dailyUI and dailyUI.Enabled == true then
+            pcall(function() require(ReplicatedStorage.Modules.GuiControl):Close() end)
+        end
     end
-end
-
-for _, child in ipairs(PlayerGui:GetChildren()) do handleDailyLogin(child) end
-PlayerGui.ChildAdded:Connect(handleDailyLogin)
+end)
 
 if setfpscap then setfpscap(30) end
