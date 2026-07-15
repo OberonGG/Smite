@@ -9,21 +9,14 @@ local HiddenGui = (gethui and gethui()) or CoreGui
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- WARNA GELAP (50, 50, 50)
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
--- ==========================================
--- 1. GARBAGE COLLECTION (72-HOUR STABILITY)
--- ==========================================
 task.spawn(function()
     while task.wait(3600) do
         collectgarbage("collect")
     end
 end)
 
--- ==========================================
--- 2. UI SETUP (POSISI FIX - TANPA DRAGGABLE)
--- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -60,9 +53,6 @@ LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
--- ==========================================
--- 3. LOGIC CLOSE LYNX (TOGGLE ENABLED)
--- ==========================================
 LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
         local targetLynx = HiddenGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxGui")
@@ -72,9 +62,6 @@ LynxButton.MouseButton1Click:Connect(function()
     end)
 end)
 
--- ==========================================
--- 4. REAL PING & TIMER
--- ==========================================
 local startTime = os.time()
 task.spawn(function()
     while task.wait(1) do
@@ -88,41 +75,15 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- 5. DICTIONARIES (O(1) LOOKUP)
--- ==========================================
-local DECORATIVE = {
-    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
-    Beam = true, Trail = true, Explosion = true, Discharge = true,
-    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
-    Decal = true, Texture = true, SurfaceAppearance = true,
-    Highlight = true, SelectionBox = true, RopeConstraint = true,
-    BillboardGui = true, SurfaceGui = true, Light = true,
-    Accessory = true, CharacterMesh = true,
-    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
-    PostEffect = true, SpecialMesh = true
-}
-
-local IS_BASEPART = {
-    Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
-    TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
-    SpawnLocation = true, Platform = true
-}
-
-local TARGET_CLASSES = {
-    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
-    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
-}
-
 local function safeDestroy(inst)
-    if inst and inst.Parent then
-        pcall(inst.Destroy, inst)
-    end
+    pcall(inst.Destroy, inst)
 end
 
--- ==========================================
--- 6. LIGHTING OPTIMIZATION (ANTI BRIGHT)
--- ==========================================
+local KILL_LIGHTING = {
+    Sky = true, Atmosphere = true, BloomEffect = true,
+    SunRaysEffect = true, ColorCorrectionEffect = true, BlurEffect = true, Clouds = true
+}
+
 local FORCED_LIGHTING = {
     GlobalShadows = false,
     Brightness = 0,
@@ -144,128 +105,115 @@ local function applyLightingOverride()
     end
 end
 
-local function ensureBaseEffects()
-    if not Lighting:FindFirstChild("BaseNormalSky") then
-        local normalSky = Instance.new("Sky")
-        normalSky.Name = "BaseNormalSky"
-        normalSky.CelestialBodiesShown = false
-        normalSky.StarCount = 0
-        normalSky.Parent = Lighting
-    end
-    if not Lighting:FindFirstChild("BaseGrayCC") then
-        local grayCC = Instance.new("ColorCorrectionEffect")
-        grayCC.Name = "BaseGrayCC"
-        grayCC.Brightness = 0.07843
-        grayCC.Contrast = 0
-        grayCC.Saturation = -1
-        grayCC.Parent = Lighting
-    end
-end
-
 applyLightingOverride()
-ensureBaseEffects()
 
-Lighting.Changed:Connect(applyLightingOverride)
-Lighting.ChildRemoved:Connect(function(child)
-    if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
-        ensureBaseEffects()
-    end
+local LOCK_PROPS = {
+    Ambient = true, OutdoorAmbient = true, TimeOfDay = true,
+    Brightness = true, GlobalShadows = true, FogStart = true, FogEnd = true,
+    ExposureCompensation = true, EnvironmentDiffuseScale = true, EnvironmentSpecularScale = true
+}
+
+Lighting.Changed:Connect(function(prop)
+    if LOCK_PROPS[prop] then applyLightingOverride() end
 end)
 
--- ==========================================
--- 7. WORLD OPTIMIZATION (NO MEMORY LEAK)
--- ==========================================
-local function neutralizeTarget(obj)
-    if obj.Name == "BaseGrayCC" then
-        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
-        if obj.Contrast ~= 0 then obj.Contrast = 0 end
-        if obj.Saturation ~= -1 then obj.Saturation = -1 end
-        if obj.Enabled ~= true then obj.Enabled = true end
-        return
-    end
-    if obj.Name == "BaseNormalSky" then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        return
-    end
-    if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or
-       obj:IsA("BlurEffect") or obj:IsA("Clouds") then
-        if obj.Enabled ~= false then obj.Enabled = false end
-    elseif obj:IsA("Atmosphere") then
-        if obj.Density ~= 0 then obj.Density = 0 end
-        if obj.Glare ~= 0 then obj.Glare = 0 end
-        if obj.Haze ~= 0 then obj.Haze = 0 end
-    elseif obj:IsA("Sky") then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
-        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
-        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
-        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
-        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
-        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
-        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
-        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+local function killLightingChild(child)
+    if KILL_LIGHTING[child.ClassName] then
+        task.defer(safeDestroy, child)
     end
 end
 
-local function handleDescendant(inst)
-    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(HiddenGui) then 
-        return 
+for _, obj in ipairs(Lighting:GetChildren()) do killLightingChild(obj) end
+Lighting.ChildAdded:Connect(killLightingChild)
+
+local DECORATIVE = {
+    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
+    Beam = true, Trail = true, Explosion = true, Discharge = true,
+    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
+    Decal = true, Texture = true, SurfaceAppearance = true,
+    Highlight = true, SelectionBox = true, RopeConstraint = true,
+    BillboardGui = true, SurfaceGui = true, Light = true,
+    Accessory = true, CharacterMesh = true,
+    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
+    PostEffect = true, SpecialMesh = true
+}
+
+local IS_BASEPART = {
+    Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
+    TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
+    SpawnLocation = true, Platform = true
+}
+
+local function processInstance(inst)
+    local cName = inst.ClassName
+    if not TO_DESTROY[cName] and not IS_BASEPART[cName] then return end
+    if inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(HiddenGui) then return end
+    
+    local name = inst.Name
+    local parent = inst.Parent
+    local parentName = parent and parent.Name or ""
+    
+    if string.find(name, "Totem") or string.find(name, "Bobber") or
+       string.find(parentName, "Totem") or string.find(parentName, "Bobber") then
+        return
     end
     
-    local cName = inst.ClassName
+    if cName == "SpecialMesh" and parentName == "Head" then return end
     
     if IS_BASEPART[cName] then
+        if string.find(name, "Rod") or string.find(parentName, "Rod") then return end
         pcall(function()
-            inst.Transparency = 1
             inst.Color = WARNA_GELAP
-            inst.CastShadow = false
             inst.Material = Enum.Material.SmoothPlastic
+            inst.Reflectance = 0
+            inst.CastShadow = false
+            if cName == "MeshPart" then inst.TextureID = "" end
         end)
-    elseif DECORATIVE[cName] or cName == "PostEffect" then
-        safeDestroy(inst)
-    elseif TARGET_CLASSES[cName] then
-        -- [FIX] Hapus koneksi Changed untuk mencegah memory leak
-        pcall(neutralizeTarget, inst)
+    else
+        task.defer(safeDestroy, inst)
     end
 end
 
-Lighting.DescendantAdded:Connect(handleDescendant)
-Workspace.DescendantAdded:Connect(handleDescendant)
+local TO_DESTROY = DECORATIVE
 
-for _, obj in ipairs(Lighting:GetDescendants()) do 
-    handleDescendant(obj) 
-end
-
--- ==========================================
--- 8. TERRAIN & INITIAL BATCH PROCESSING
--- ==========================================
-task.spawn(function()
-    pcall(function()
-        local terrain = Workspace:FindFirstChildOfClass("Terrain")
-        if terrain then
-            terrain:Clear()
-        end
-    end)
-end)
-
-task.spawn(function()
-    local objectsProcessed = 0
-    for _, inst in ipairs(Workspace:GetDescendants()) do
-        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
-            handleDescendant(inst)
-            objectsProcessed = objectsProcessed + 1
-            if objectsProcessed % 50 == 0 then
-                RunService.Heartbeat:Wait()
-            end
-        end
+pcall(function()
+    local t = Workspace:FindFirstChildOfClass("Terrain")
+    if t then
+        t.WaterColor = WARNA_GELAP
+        t.WaterWaveSize = 0
+        t.WaterWaveSpeed = 0
+        t.WaterReflectance = 0
+        t.WaterTransparency = 0
     end
 end)
 
--- ==========================================
--- 9. NPC FOLDER DELETION ONLY
--- ==========================================
+for _, object in ipairs(Workspace:GetDescendants()) do
+    processInstance(object)
+end
+
+local pendingInstances = {}
+local batchActive = false
+
+local function processBatch()
+    batchActive = false
+    local batch = pendingInstances
+    pendingInstances = {}
+    for i = 1, #batch do
+        local inst = batch[i]
+        if inst.Parent ~= nil then
+            processInstance(inst)
+        end
+    end
+end
+
+Workspace.DescendantAdded:Connect(function(inst)
+    pendingInstances[#pendingInstances + 1] = inst
+    if not batchActive then
+        batchActive = true
+        task.defer(processBatch)
+    end
+end)
+
 task.spawn(function()
     local npcFolderDeleted = false
     local function deleteNPCFolder()
@@ -277,9 +225,7 @@ task.spawn(function()
             end)
         end
     end
-    
     deleteNPCFolder()
-    
     Workspace.ChildAdded:Connect(function(child)
         if child.Name == "NPC" and not npcFolderDeleted then
             task.defer(function()
@@ -290,13 +236,9 @@ task.spawn(function()
     end)
 end)
 
--- ==========================================
--- 10. AUTO CLOSE DAILY LOGIN
--- ==========================================
 task.spawn(function()
     local lastClose = 0
     local CLOSE_COOLDOWN = 5
-    
     local function tryCloseDaily(gui)
         if gui and gui.Enabled then
             local now = tick()
@@ -314,13 +256,11 @@ task.spawn(function()
             end
         end
     end
-    
     local existingDaily = PlayerGui:FindFirstChild("!!! Daily Login")
     if existingDaily then
         task.wait(0.1)
         tryCloseDaily(existingDaily)
     end
-    
     PlayerGui.ChildAdded:Connect(function(child)
         if child.Name == "!!! Daily Login" then
             task.wait(0.1)
@@ -329,16 +269,10 @@ task.spawn(function()
     end)
 end)
 
--- ==========================================
--- 11. FPS CAP
--- ==========================================
 if setfpscap then
     setfpscap(30)
 end
 
--- ==========================================
--- 12. AUTO CLOSE DELTA (WHITELIST & ANTI-LEAK)
--- ==========================================
 task.spawn(function()
     local deltaClosed = false
     local whitelist = {
@@ -346,15 +280,12 @@ task.spawn(function()
         ["PingTimerUI"] = true,
         ["LynxCloseButton"] = true
     }
-    
     while not deltaClosed and task.wait(3) do
         local targetGui = HiddenGui or CoreGui
         local foundDeltaUI = false
-        
         for _, gui in ipairs(targetGui:GetChildren()) do
             if gui:IsA("ScreenGui") then
                 if whitelist[gui.Name] then continue end
-                
                 local isWeird = false
                 local name = gui.Name
                 for i = 1, #name do
@@ -364,7 +295,6 @@ task.spawn(function()
                         break
                     end
                 end
-                
                 if isWeird then
                     local hasConsole = false
                     for _, obj in ipairs(gui:GetDescendants()) do
@@ -373,7 +303,6 @@ task.spawn(function()
                             break
                         end
                     end
-                    
                     if hasConsole then
                         for _, obj in ipairs(gui:GetChildren()) do
                             if not (obj.Name == "Console" or obj.Name == "Network") then
@@ -388,7 +317,6 @@ task.spawn(function()
                 end
             end
         end
-        
         if foundDeltaUI then
             deltaClosed = true
         end
