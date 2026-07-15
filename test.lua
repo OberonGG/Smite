@@ -10,9 +10,8 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
--- 1. UI SETUP (POSISI FIX, TANPA DRAGGABLE)
+-- 1. UI SETUP (POSISI FIX - TANPA DRAGGABLE)
 -- ==========================================
--- [PENTING] Fungsi makeDraggable DIHAPUS TOTAL untuk mencegah memory leak dari input.Changed
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -21,7 +20,7 @@ ui.Parent = (gethui and gethui()) or CoreGui
 
 local frame = Instance.new("Frame", ui)
 frame.Size = UDim2.new(0, 220, 0, 40)
-frame.Position = UDim2.new(0.015, 0, 0.165, 0) -- Posisi FIX
+frame.Position = UDim2.new(0.015, 0, 0.165, 0)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
@@ -39,7 +38,7 @@ textLabel.Text = "Ping: 0 ms | 0:00:00"
 local LynxButton = Instance.new("ImageButton", ui)
 LynxButton.Name = "LynxCloseButton"
 LynxButton.Size = UDim2.new(0, 40, 0, 40)
-LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0) -- Posisi FIX
+LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
 LynxButton.BackgroundTransparency = 1
 LynxButton.BorderSizePixel = 0
 LynxButton.AutoButtonColor = true
@@ -50,7 +49,7 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 -- ==========================================
--- 2. LOGIC CLOSE LYNX & PING TIMER (TIDAK DIUBAH)
+-- 2. LOGIC CLOSE LYNX
 -- ==========================================
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
@@ -71,6 +70,9 @@ local function closeLynx()
 end
 LynxButton.MouseButton1Click:Connect(closeLynx)
 
+-- ==========================================
+-- 3. REAL PING & TIMER
+-- ==========================================
 local startTime = os.time()
 task.spawn(function()
     while task.wait(1) do
@@ -85,7 +87,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 3. LOCK LIGHTING (WARNA GELAP 50,50,50)
+-- 4. LOCK LIGHTING (WARNA GELAP 50,50,50)
 -- ==========================================
 local function lockLighting()
     if Lighting.Ambient ~= WARNA_GELAP then Lighting.Ambient = WARNA_GELAP end
@@ -125,7 +127,7 @@ end)
 Lighting.ChildAdded:Connect(killLightingChild)
 
 -- ==========================================
--- 4. REDUCE MAP & SPHERICAL OPTIMIZED (EVENT-DRIVEN)
+-- 5. REDUCE MAP + SPHERICAL (FIXED)
 -- ==========================================
 local TO_DESTROY = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -143,42 +145,47 @@ local IS_BASEPART = {
     SpawnLocation = true, Platform = true
 }
 
--- [OPT] Fungsi pemrosesan instance dengan REDUNDANCY CHECK
--- Hanya mengubah properti jika nilainya BELUM sesuai. Ini mencegah CPU spike.
+-- [FIX] Fungsi makeRound yang benar untuk Roblox Modern
+local function makeRound(inst)
+    local cName = inst.ClassName
+    if cName == "Part" then
+        pcall(function() inst.Shape = Enum.PartType.Ball end)
+    elseif cName == "MeshPart" then
+        pcall(function()
+            -- WAJIB: Kosongkan MeshId terlebih dahulu, jika tidak MeshType Ball akan diabaikan engine!
+            inst.MeshId = "" 
+            inst.MeshType = Enum.MeshType.Ball
+            inst.TextureID = ""
+        end)
+    elseif cName == "WedgePart" or cName == "CornerWedgePart" then
+        pcall(function() inst.Shape = Enum.PartType.Ball end)
+    end
+    
+    inst.Color = WARNA_GELAP
+    inst.Material = Enum.Material.SmoothPlastic
+    inst.Reflectance = 0
+    inst.CastShadow = false
+end
+
 local function processInstance(inst)
     local cName = inst.ClassName
-    
-    -- Fast Exit: Abaikan 90% instance yang tidak relevan
     if not TO_DESTROY[cName] and not IS_BASEPART[cName] then return end
-
+    if inst:IsDescendantOf(CoreGui) then return end
+    
     local name = inst.Name
     local parent = inst.Parent
     local parentName = parent and parent.Name or ""
-
-    -- Whitelist Totem, Bobber, dan Rod (Rod sekarang diproses jadi bulat, bukan di-skip total)
-    if name:find("Totem") or name:find("Bobber") or name:find("Rod") or
-       (parentName and (parentName:find("Totem") or parentName:find("Bobber") or parentName:find("Rod"))) then
-        -- Lanjut ke proses pembulatan di bawah, jangan return
+    
+    -- Whitelist Totem & Bobber
+    if string.find(name, "Totem") or string.find(name, "Bobber") or
+       string.find(parentName, "Totem") or string.find(parentName, "Bobber") then
+        return
     end
-
+    if cName == "SpecialMesh" and parentName == "Head" then return end
+    
     if IS_BASEPART[cName] then
-        -- [OPT] REDUNDANCY CHECK: Hanya ubah jika belum bulat
-        if cName == "Part" and inst.Shape ~= Enum.PartType.Ball then
-            pcall(function() inst.Shape = Enum.PartType.Ball end)
-        elseif cName == "MeshPart" and inst.MeshType ~= Enum.MeshType.Ball then
-            pcall(function()
-                inst.MeshType = Enum.MeshType.Ball
-                inst.TextureID = ""
-            end)
-        end
-
-        -- [OPT] REDUNDANCY CHECK untuk properti visual
-        if inst.Color ~= WARNA_GELAP then inst.Color = WARNA_GELAP end
-        if inst.Material ~= Enum.Material.SmoothPlastic then inst.Material = Enum.Material.SmoothPlastic end
-        if inst.Reflectance ~= 0 then inst.Reflectance = 0 end
-        if inst.CastShadow ~= false then inst.CastShadow = false end
+        makeRound(inst) -- Semua BasePart (termasuk Rod) dibuat bulat
     else
-        -- TO_DESTROY path
         task.defer(safeDestroy, inst)
     end
 end
@@ -187,32 +194,27 @@ end
 pcall(function()
     local t = Workspace:FindFirstChildOfClass("Terrain")
     if t then
-        if t.WaterColor ~= WARNA_GELAP then t.WaterColor = WARNA_GELAP end
-        if t.WaterWaveSize ~= 0 then t.WaterWaveSize = 0 end
-        if t.WaterWaveSpeed ~= 0 then t.WaterWaveSpeed = 0 end
-        if t.WaterReflectance ~= 0 then t.WaterReflectance = 0 end
-        if t.WaterTransparency ~= 0 then t.WaterTransparency = 0 end
+        t.WaterColor = WARNA_GELAP
+        t.WaterWaveSize = 0
+        t.WaterWaveSpeed = 0
+        t.WaterReflectance = 0
+        t.WaterTransparency = 0
     end
 end)
 
--- Proses instance yang sudah ada saat script dijalankan (Dilakukan sekali saja)
 for _, object in ipairs(Workspace:GetDescendants()) do
     processInstance(object)
 end
 
--- [OPT] Batching DescendantAdded untuk mencegah spike CPU saat banyak part muncul sekaligus
 local pendingInstances = {}
 local batchActive = false
-
 local function processBatch()
     batchActive = false
     local batch = pendingInstances
     pendingInstances = {}
     for i = 1, #batch do
         local inst = batch[i]
-        if inst.Parent ~= nil then
-            processInstance(inst)
-        end
+        if inst.Parent ~= nil then processInstance(inst) end
     end
 end
 
@@ -225,57 +227,49 @@ Workspace.DescendantAdded:Connect(function(inst)
 end)
 
 -- ==========================================
--- 5. KARAKTER BULAT (EVENT-DRIVEN, BUKAN LOOPING)
+-- 6. KARAKTER BULAT (FIXED)
 -- ==========================================
--- [OPT] Mengganti while task.wait(2) dengan CharacterAdded & DescendantAdded
--- Ini menjamin pemrosesan HANYA terjadi SEKALI per part, mengeliminasi GC spike dan CPU waste.
 local function processCharacterPart(inst)
     if not inst:IsA("BasePart") then
-        if inst.ClassName == "SpecialMesh" then
-            task.defer(safeDestroy, inst)
-        end
+        if inst.ClassName == "SpecialMesh" then task.defer(safeDestroy, inst) end
         return
     end
-
     if inst.Name == "HumanoidRootPart" then
         inst.Transparency = 1
         return
     end
-
-    -- Redundancy check: Hanya ubah jika belum bulat
-    if inst.ClassName == "Part" and inst.Shape ~= Enum.PartType.Ball then
-        pcall(function() inst.Shape = Enum.PartType.Ball end)
-    elseif inst.ClassName == "MeshPart" and inst.MeshType ~= Enum.MeshType.Ball then
-        pcall(function()
-            inst.MeshType = Enum.MeshType.Ball
-            inst.TextureID = ""
-        end)
-    end
-
-    -- Redundancy check untuk properti lain
-    if inst.Color ~= WARNA_GELAP then inst.Color = WARNA_GELAP end
-    if inst.Material ~= Enum.Material.SmoothPlastic then inst.Material = Enum.Material.SmoothPlastic end
-    if inst.Reflectance ~= 0 then inst.Reflectance = 0 end
-    if inst.CastShadow ~= false then inst.CastShadow = false end
+    makeRound(inst)
 end
 
--- Pasang event listener untuk karakter saat ini dan di masa depan
 local function onCharacterAdded(character)
-    -- Proses part yang sudah ada saat spawn
     for _, child in ipairs(character:GetDescendants()) do
         processCharacterPart(child)
     end
-    -- Pasang listener untuk part baru (misal: tool/equip)
     character.DescendantAdded:Connect(processCharacterPart)
 end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-if LocalPlayer.Character then
-    onCharacterAdded(LocalPlayer.Character)
+if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
+
+-- [FIX] Tambahkan logika untuk Rod/Tool di dalam BACKPACK (Tas)
+local function processBackpackTool(tool)
+    for _, child in ipairs(tool:GetDescendants()) do
+        if IS_BASEPART[child.ClassName] then makeRound(child)
+        elseif TO_DESTROY[child.ClassName] then task.defer(safeDestroy, child) end
+    end
+    tool.DescendantAdded:Connect(function(inst)
+        if IS_BASEPART[inst.ClassName] then makeRound(inst)
+        elseif TO_DESTROY[inst.ClassName] then task.defer(safeDestroy, inst) end
+    end)
 end
 
+for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+    processBackpackTool(tool)
+end
+LocalPlayer.Backpack.ChildAdded:Connect(processBackpackTool)
+
 -- ==========================================
--- 6. AUTO CLOSE DAILY LOGIN (DIPERAMAN)
+-- 7. AUTO CLOSE DAILY LOGIN
 -- ==========================================
 task.spawn(function()
     while task.wait(3) do
@@ -285,9 +279,7 @@ task.spawn(function()
                 local modules = ReplicatedStorage:FindFirstChild("Modules")
                 if modules then
                     local guiControl = modules:FindFirstChild("GuiControl")
-                    if guiControl then 
-                        require(guiControl):Close() 
-                    end
+                    if guiControl then require(guiControl):Close() end
                 end
             end)
         end
@@ -295,8 +287,6 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 7. FPS CAP (DIPERTAHANKAN)
+-- 8. FPS CAP
 -- ==========================================
-if setfpscap then 
-    setfpscap(30) 
-end
+if setfpscap then setfpscap(30) end
