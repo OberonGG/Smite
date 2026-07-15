@@ -1,5 +1,5 @@
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = gethui and gethui() or game:GetService("CoreGui")
@@ -7,15 +7,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
 
+-- ==========================================
+-- GARBAGE COLLECTION (72-HOUR STABILITY)
+-- ==========================================
 task.spawn(function()
     while task.wait(3600) do
         collectgarbage("collect")
     end
 end)
 
+-- ==========================================
+-- UI SETUP (POSISI FIX)
+-- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -52,20 +57,20 @@ LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
+-- ==========================================
+-- LOGIC TOGGLE LYNX (ENABLED PROPERTY)
+-- ==========================================
 local function findLynxGui()
+    -- Try exact names first
     local target = CoreGui:FindFirstChild("LynxGui")
     if target then return target end
     
     target = CoreGui:FindFirstChild("LynxHub")
     if target then return target end
     
-    target = CoreGui:FindFirstChild("Lynx Hub")
-    if target then return target end
-    
-    local lowerName
+    -- Pattern search for "lynx" in name
     for _, child in ipairs(CoreGui:GetChildren()) do
-        lowerName = string.lower(child.Name)
-        if string.find(lowerName, "lynx") then
+        if string.find(string.lower(child.Name), "lynx") then
             return child
         end
     end
@@ -75,25 +80,24 @@ end
 
 LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
-        local targetLynx = findLynxGui()
-        if targetLynx and targetLynx:IsA("ScreenGui") then
-            targetLynx.Enabled = not targetLynx.Enabled
-        elseif targetLynx then
-            local mainFrame = targetLynx:FindFirstChild("MainFrame") 
-                or targetLynx:FindFirstChild("Main") 
-                or targetLynx:FindFirstChildOfClass("Frame")
-            if mainFrame then
-                mainFrame.Visible = not mainFrame.Visible
-            end
+        local lynxGui = findLynxGui()
+        if lynxGui then
+            -- Toggle Enabled property (bukan Visible)
+            lynxGui.Enabled = not lynxGui.Enabled
         end
     end)
 end)
 
+-- ==========================================
+-- REAL PING & TIMER
+-- ==========================================
 local startTime = os.time()
 task.spawn(function()
     while task.wait(1) do
         local ping = 0
-        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        pcall(function() 
+            ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) 
+        end)
         local elapsed = os.time() - startTime
         local h = math.floor(elapsed / 3600)
         local m = math.floor((elapsed % 3600) / 60)
@@ -102,102 +106,9 @@ task.spawn(function()
     end
 end)
 
-local DECORATIVE = {
-    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
-    Beam = true, Trail = true, Explosion = true, Discharge = true,
-    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
-    Decal = true, Texture = true, SurfaceAppearance = true,
-    Highlight = true, SelectionBox = true, RopeConstraint = true,
-    BillboardGui = true, SurfaceGui = true, Light = true,
-    Accessory = true, CharacterMesh = true,
-    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
-    PostEffect = true, SpecialMesh = true
-}
-
-local IS_BASEPART = {
-    Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
-    TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
-    SpawnLocation = true, Platform = true
-}
-
-local CORE_LIMBS = {
-    Head = true, Torso = true, ["Left Arm"] = true, ["Right Arm"] = true,
-    ["Left Leg"] = true, ["Right Leg"] = true, HumanoidRootPart = true,
-    UpperTorso = true, LowerTorso = true,
-    LeftUpperArm = true, LeftLowerArm = true, LeftHand = true,
-    RightUpperArm = true, RightLowerArm = true, RightHand = true,
-    LeftUpperLeg = true, LeftLowerLeg = true, LeftFoot = true,
-    RightUpperLeg = true, RightLowerLeg = true, RightFoot = true
-}
-
-local function safeDestroy(inst)
-    if inst and inst.Parent then
-        pcall(inst.Destroy, inst)
-    end
-end
-
-local function cleanChar(char)
-    if not char then return end
-    for _, inst in ipairs(char:GetDescendants()) do
-        local className = inst.ClassName
-        if className == "Accessory" or className == "Shirt" or className == "Pants" or
-           className == "ShirtGraphic" or className == "BodyColors" or className == "CharacterMesh" then
-            safeDestroy(inst)
-        elseif IS_BASEPART[className] then
-            if not CORE_LIMBS[inst.Name] then
-                inst.Transparency = 1
-                inst.LocalTransparencyModifier = 1
-            else
-                inst.Color = Color3.fromRGB(150, 150, 150)
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.Transparency = 0
-            end
-        elseif DECORATIVE[className] then
-            safeDestroy(inst)
-        end
-    end
-end
-
-local TARGET_CLASSES = {
-    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
-    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
-}
-
-local function neutralizeTarget(obj)
-    if obj.Name == "BaseGrayCC" then
-        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
-        if obj.Contrast ~= 0 then obj.Contrast = 0 end
-        if obj.Saturation ~= -1 then obj.Saturation = -1 end
-        if obj.Enabled ~= true then obj.Enabled = true end
-        return
-    end
-    if obj.Name == "BaseNormalSky" then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        return
-    end
-    local className = obj.ClassName
-    if className == "ColorCorrectionEffect" or className == "SunRaysEffect" or 
-       className == "BloomEffect" or className == "BlurEffect" or className == "Clouds" then
-        if obj.Enabled ~= false then obj.Enabled = false end
-    elseif className == "Atmosphere" then
-        if obj.Density ~= 0 then obj.Density = 0 end
-        if obj.Glare ~= 0 then obj.Glare = 0 end
-        if obj.Haze ~= 0 then obj.Haze = 0 end
-    elseif className == "Sky" then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
-        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
-        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
-        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
-        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
-        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
-        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
-        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
-    end
-end
-
+-- ==========================================
+-- LIGHTING OPTIMIZATION
+-- ==========================================
 local FORCED_LIGHTING = {
     GlobalShadows = false,
     Brightness = 0,
@@ -258,18 +169,81 @@ Lighting.ChildRemoved:Connect(function(child)
     end
 end)
 
+-- ==========================================
+-- WORLD OPTIMIZATION
+-- ==========================================
+local DECORATIVE = {
+    ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
+    Beam = true, Trail = true, Explosion = true, Discharge = true,
+    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
+    Decal = true, Texture = true, SurfaceAppearance = true,
+    Highlight = true, SelectionBox = true, RopeConstraint = true,
+    BillboardGui = true, SurfaceGui = true, Light = true,
+    Accessory = true, CharacterMesh = true,
+    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
+    PostEffect = true, SpecialMesh = true
+}
+
+local IS_BASEPART = {
+    Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
+    TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
+    SpawnLocation = true, Platform = true
+}
+
+local TARGET_CLASSES = {
+    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
+    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
+}
+
+local function safeDestroy(inst)
+    if inst and inst.Parent then
+        pcall(inst.Destroy, inst)
+    end
+end
+
+local function neutralizeTarget(obj)
+    if obj.Name == "BaseGrayCC" then
+        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
+        if obj.Contrast ~= 0 then obj.Contrast = 0 end
+        if obj.Saturation ~= -1 then obj.Saturation = -1 end
+        if obj.Enabled ~= true then obj.Enabled = true end
+        return
+    end
+    if obj.Name == "BaseNormalSky" then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        return
+    end
+    local className = obj.ClassName
+    if className == "ColorCorrectionEffect" or className == "SunRaysEffect" or 
+       className == "BloomEffect" or className == "BlurEffect" or className == "Clouds" then
+        if obj.Enabled ~= false then obj.Enabled = false end
+    elseif className == "Atmosphere" then
+        if obj.Density ~= 0 then obj.Density = 0 end
+        if obj.Glare ~= 0 then obj.Glare = 0 end
+        if obj.Haze ~= 0 then obj.Haze = 0 end
+    elseif className == "Sky" then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
+        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
+        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
+        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
+        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
+        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
+        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
+        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+    end
+end
+
 local function handleDescendant(inst)
     if not inst or not inst.Parent then return end
-    local parent = inst.Parent
-    if parent == LocalPlayer.Character or parent == CoreGui then return end
-    local current = parent
-    local depth = 0
-    while current and depth < 10 do
-        if current == LocalPlayer.Character or current == CoreGui then return end
-        current = current.Parent
-        depth = depth + 1
-    end
+    
+    -- Skip CoreGui dan descendants
+    if inst:IsDescendantOf(CoreGui) then return end
+    
     local className = inst.ClassName
+    
     if IS_BASEPART[className] then
         pcall(function()
             inst.Transparency = 1
@@ -296,23 +270,26 @@ for _, obj in ipairs(Lighting:GetDescendants()) do
     handleDescendant(obj)
 end
 
+-- Batch processing untuk Workspace
 task.spawn(function()
     local descendants = Workspace:GetDescendants()
     local total = #descendants
     local batchSize = 50
     local processed = 0
+    
     for i = 1, total do
         local inst = descendants[i]
-        if inst and inst.Parent then
+        if inst and inst.Parent and not inst:IsDescendantOf(CoreGui) then
             handleDescendant(inst)
         end
         processed = processed + 1
         if processed % batchSize == 0 then
-            RunService.Heartbeat:Wait()
+            task.wait()
         end
     end
 end)
 
+-- Terrain clearing
 task.spawn(function()
     pcall(function()
         local terrain = Workspace:FindFirstChildOfClass("Terrain")
@@ -322,6 +299,7 @@ task.spawn(function()
     end)
 end)
 
+-- NPC folder deletion
 local function deleteNPCFolder()
     local npcFolder = Workspace:FindFirstChild("NPC")
     if npcFolder then
@@ -337,9 +315,13 @@ Workspace.ChildAdded:Connect(function(child)
     end
 end)
 
+-- ==========================================
+-- AUTO CLOSE DAILY LOGIN
+-- ==========================================
 task.spawn(function()
     local lastClose = 0
     local CLOSE_COOLDOWN = 5
+    
     local function tryCloseDaily(gui)
         if gui and gui.Enabled then
             local now = tick()
@@ -357,11 +339,13 @@ task.spawn(function()
             end
         end
     end
+    
     local existingDaily = PlayerGui:FindFirstChild("!!! Daily Login")
     if existingDaily then
         task.wait(0.1)
         tryCloseDaily(existingDaily)
     end
+    
     PlayerGui.ChildAdded:Connect(function(child)
         if child.Name == "!!! Daily Login" then
             task.wait(0.1)
@@ -370,15 +354,16 @@ task.spawn(function()
     end)
 end)
 
-LocalPlayer.CharacterAdded:Connect(cleanChar)
-if LocalPlayer.Character then
-    cleanChar(LocalPlayer.Character)
-end
-
+-- ==========================================
+-- FPS CAP
+-- ==========================================
 if setfpscap then
     setfpscap(30)
 end
 
+-- ==========================================
+-- AUTO CLOSE DELTA (DENGAN WHITELIST LYNX)
+-- ==========================================
 local function isLynxGui(name)
     local lower = string.lower(name)
     return string.find(lower, "lynx") ~= nil
@@ -386,9 +371,11 @@ end
 
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
+        -- WHITELIST: Skip LynxGui
         if isLynxGui(gui.Name) then
             continue
         end
+        
         local isWeird = false
         local name = gui.Name
         for i = 1, #name do
@@ -398,6 +385,7 @@ for _, gui in ipairs(CoreGui:GetChildren()) do
                 break
             end
         end
+        
         if isWeird then
             local hasConsole = false
             for _, obj in ipairs(gui:GetDescendants()) do
@@ -406,15 +394,60 @@ for _, gui in ipairs(CoreGui:GetChildren()) do
                     break
                 end
             end
+            
             if hasConsole then
                 for _, obj in ipairs(gui:GetChildren()) do
                     if not (obj.Name == "Console" or obj.Name == "Network") then
-                        pcall(function() obj:Destroy() end)
+                        safeDestroy(obj)
                     end
                 end
             else
-                pcall(function() gui:Destroy() end)
+                safeDestroy(gui)
             end
         end
     end
 end
+
+-- Listener untuk GUI yang muncul nanti
+CoreGui.ChildAdded:Connect(function(gui)
+    if not gui:IsA("ScreenGui") then return end
+    
+    -- WHITELIST: Skip LynxGui
+    if isLynxGui(gui.Name) then
+        return
+    end
+    
+    task.defer(function()
+        if not gui or not gui.Parent then return end
+        
+        local isWeird = false
+        local name = gui.Name
+        for i = 1, #name do
+            local c = name:sub(i, i)
+            if not c:match("[%w_]") then
+                isWeird = true
+                break
+            end
+        end
+        
+        if isWeird then
+            local hasConsole = false
+            for _, obj in ipairs(gui:GetDescendants()) do
+                if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
+                    hasConsole = true
+                    break
+                end
+            end
+            
+            if hasConsole then
+                for _, obj in ipairs(gui:GetChildren()) do
+                    if not (obj.Name == "Console" or obj.Name == "Network") then
+                        safeDestroy(obj)
+                    end
+                end
+            else
+                safeDestroy(gui)
+            end
+        end
+    end)
+end)
