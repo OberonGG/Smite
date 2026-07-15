@@ -235,39 +235,45 @@ Workspace.DescendantAdded:Connect(function(inst)
 end)
 
 -- ==========================================
--- 7. HAPUS NPC (OPTIMIZED FOR 72-HOUR STABILITY)
+-- 7. DELETE NPC FOLDER PERMANENTLY (NEVER COMEBACK)
 -- ==========================================
 task.spawn(function()
-    local npcFolder = Workspace:FindFirstChild("NPC")
-    if not npcFolder then
-        pcall(function() npcFolder = Workspace:WaitForChild("NPC", 10) end)
+    local npcFolderDeleted = false
+    
+    local function deleteNPCFolder()
+        local npcFolder = Workspace:FindFirstChild("NPC")
+        if npcFolder and not npcFolderDeleted then
+            task.defer(function()
+                safeDestroy(npcFolder)
+                npcFolderDeleted = true
+            end)
+        end
     end
     
-    if npcFolder then
-        -- Hapus semua NPC yang sudah ada di dalam folder
-        for _, npc in ipairs(npcFolder:GetChildren()) do
-            task.defer(safeDestroy, npc)
+    -- Delete existing NPC folder immediately
+    deleteNPCFolder()
+    
+    -- If NPC folder gets re-created, delete it immediately
+    Workspace.ChildAdded:Connect(function(child)
+        if child.Name == "NPC" and not npcFolderDeleted then
+            task.defer(function()
+                safeDestroy(child)
+                npcFolderDeleted = true
+            end)
         end
-        
-        -- [FIX] Queue-based NPC deletion to prevent accumulation
-        local npcQueue = {}
-        local npcProcessing = false
-        
-        npcFolder.ChildAdded:Connect(function(npc)
-            table.insert(npcQueue, npc)
-            if not npcProcessing then
-                npcProcessing = true
-                task.defer(function()
-                    local batch = npcQueue
-                    npcQueue = {}
-                    for _, n in ipairs(batch) do
-                        safeDestroy(n)
-                    end
-                    npcProcessing = false
-                end)
+    end)
+    
+    -- Fail-safe: Check every 30 seconds if NPC folder somehow reappeared
+    task.spawn(function()
+        while task.wait(30) do
+            if Workspace:FindFirstChild("NPC") then
+                local npcFolder = Workspace:FindFirstChild("NPC")
+                if npcFolder then
+                    safeDestroy(npcFolder)
+                end
             end
-        end)
-    end
+        end
+    end)
 end)
 
 -- ==========================================
