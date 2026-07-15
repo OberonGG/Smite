@@ -9,12 +9,11 @@ local HiddenGui = (gethui and gethui()) or CoreGui
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [FIX] Semua warna dikunci ke 50,50,50 (Abu Gelap)
+-- WARNA GELAP (50, 50, 50)
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
-local ABU_GELAP = Color3.fromRGB(50, 50, 50)
 
 -- ==========================================
--- 0. GARBAGE COLLECTION (72-HOUR STABILITY)
+-- 1. GARBAGE COLLECTION (72-HOUR STABILITY)
 -- ==========================================
 task.spawn(function()
     while task.wait(3600) do
@@ -23,7 +22,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 1. UI SETUP (POSISI FIX - TANPA DRAGGABLE)
+-- 2. UI SETUP (POSISI FIX - TANPA DRAGGABLE)
 -- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
@@ -62,7 +61,7 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 -- ==========================================
--- 2. LOGIC CLOSE LYNX (TOGGLE ENABLED)
+-- 3. LOGIC CLOSE LYNX (TOGGLE ENABLED)
 -- ==========================================
 LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
@@ -74,7 +73,7 @@ LynxButton.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 3. REAL PING & TIMER
+-- 4. REAL PING & TIMER
 -- ==========================================
 local startTime = os.time()
 task.spawn(function()
@@ -90,7 +89,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 4. DICTIONARIES (O(1) LOOKUP)
+-- 5. DICTIONARIES (O(1) LOOKUP)
 -- ==========================================
 local DECORATIVE = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
@@ -116,17 +115,19 @@ local TARGET_CLASSES = {
 }
 
 local function safeDestroy(inst)
-    pcall(inst.Destroy, inst)
+    if inst and inst.Parent then
+        pcall(inst.Destroy, inst)
+    end
 end
 
 -- ==========================================
--- 5. LIGHTING OPTIMIZATION (ANTI BRIGHT & ANTI LEAK)
+-- 6. LIGHTING OPTIMIZATION (ANTI BRIGHT)
 -- ==========================================
 local FORCED_LIGHTING = {
     GlobalShadows = false,
     Brightness = 0,
-    Ambient = ABU_GELAP,
-    OutdoorAmbient = ABU_GELAP,
+    Ambient = WARNA_GELAP,
+    OutdoorAmbient = WARNA_GELAP,
     ExposureCompensation = 0,
     EnvironmentDiffuseScale = 0,
     EnvironmentSpecularScale = 0,
@@ -172,7 +173,7 @@ Lighting.ChildRemoved:Connect(function(child)
 end)
 
 -- ==========================================
--- 6. WORLD OPTIMIZATION (ZERO LEAKS)
+-- 7. WORLD OPTIMIZATION (NO MEMORY LEAK)
 -- ==========================================
 local function neutralizeTarget(obj)
     if obj.Name == "BaseGrayCC" then
@@ -208,40 +209,25 @@ local function neutralizeTarget(obj)
     end
 end
 
--- [FIX] WATCHED_REGISTRY dengan inst.Destroying untuk mencegah Memory Leak & Visual Leak
-local WATCHED_REGISTRY = {}
-
 local function handleDescendant(inst)
-    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
+    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(HiddenGui) then 
+        return 
+    end
     
     local cName = inst.ClassName
     
     if IS_BASEPART[cName] then
         pcall(function()
             inst.Transparency = 1
-            inst.Color = ABU_GELAP
+            inst.Color = WARNA_GELAP
             inst.CastShadow = false
             inst.Material = Enum.Material.SmoothPlastic
         end)
     elseif DECORATIVE[cName] or cName == "PostEffect" then
         safeDestroy(inst)
     elseif TARGET_CLASSES[cName] then
+        -- [FIX] Hapus koneksi Changed untuk mencegah memory leak
         pcall(neutralizeTarget, inst)
-        
-        -- [SILVER BULLET] Pasang listener Changed, tapi putus otomatis saat Destroying
-        if not WATCHED_REGISTRY[inst] then
-            local conn
-            conn = inst.Changed:Connect(function()
-                pcall(neutralizeTarget, inst)
-            end)
-            WATCHED_REGISTRY[inst] = conn
-            
-            -- Putus koneksi tepat sebelum objek hancur = 0% Memory Leak
-            inst.Destroying:Connect(function()
-                if conn then conn:Disconnect() end
-                WATCHED_REGISTRY[inst] = nil
-            end)
-        end
     end
 end
 
@@ -253,7 +239,7 @@ for _, obj in ipairs(Lighting:GetDescendants()) do
 end
 
 -- ==========================================
--- 7. TERRAIN & INITIAL BATCH PROCESSING
+-- 8. TERRAIN & INITIAL BATCH PROCESSING
 -- ==========================================
 task.spawn(function()
     pcall(function()
@@ -278,7 +264,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 8. NPC FOLDER DELETION ONLY
+-- 9. NPC FOLDER DELETION ONLY
 -- ==========================================
 task.spawn(function()
     local npcFolderDeleted = false
@@ -305,7 +291,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 9. AUTO CLOSE DAILY LOGIN
+-- 10. AUTO CLOSE DAILY LOGIN
 -- ==========================================
 task.spawn(function()
     local lastClose = 0
@@ -344,14 +330,14 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 10. FPS CAP
+-- 11. FPS CAP
 -- ==========================================
 if setfpscap then
     setfpscap(30)
 end
 
 -- ==========================================
--- 11. AUTO CLOSE DELTA (WHITELIST & ANTI-RE-ENTRANCY)
+-- 12. AUTO CLOSE DELTA (WHITELIST & ANTI-LEAK)
 -- ==========================================
 task.spawn(function()
     local deltaClosed = false
