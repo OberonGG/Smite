@@ -56,15 +56,26 @@ LynxButton.Image = "rbxassetid://118176705805619"
 LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
-LynxButton.MouseButton1Click:Connect(function()
 
-    pcall(function()
-        local lynxGui = CoreGui:FindFirstChild("LynxGui")
-        if lynxGui then
-            lynxGui.Enabled = not lynxGui.Enabled
+local function closeLynx()
+    local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
+    if not LynxGui then
+        for _, child in ipairs(CoreGui:GetChildren()) do
+            if string.find(string.lower(child.Name), "lynx") then LynxGui = child break end
         end
-    end)
-end)
+    end
+    if LynxGui then
+        local targetFrame = LynxGui:FindFirstChild("MainFrame") or LynxGui:FindFirstChildOfClass("Frame")
+        if not targetFrame then
+            for _, obj in ipairs(CoreGui:GetChildren()) do
+                if obj:IsA("Frame") then targetFrame = obj break end
+            end
+        end
+        if targetFrame then pcall(function() targetFrame.Visible = not targetFrame.Visible end) end
+    end
+end
+LynxButton.MouseButton1Click:Connect(closeLynx)
+
 
 -- ==========================================
 -- REAL PING & TIMER
@@ -335,4 +346,37 @@ end)
 -- ==========================================
 if setfpscap then
     setfpscap(30)
+end
+
+
+for _, gui in ipairs(CoreGui:GetChildren()) do
+	if gui:IsA("ScreenGui") then
+		local isWeird = false
+		local name = gui.Name
+		for i = 1, #name do
+			local c = name:sub(i, i)
+			if not c:match("[%w_]") then
+				isWeird = true
+				break
+			end
+		end
+		if isWeird then
+			local hasConsole = false
+			for _, obj in ipairs(gui:GetDescendants()) do
+				if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
+					hasConsole = true
+					break
+				end
+			end
+			if hasConsole then
+				for _, obj in ipairs(gui:GetChildren()) do
+					if not (obj.Name == "Console" or obj.Name == "Network") then
+						obj:Destroy()
+					end
+				end
+			else
+				gui:Destroy()
+			end
+		end
+	end
 end
