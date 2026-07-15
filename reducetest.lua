@@ -375,4 +375,4 @@ task.spawn(function()
                     deltaClosed = true
                 end
             end
-        end
+        end)
