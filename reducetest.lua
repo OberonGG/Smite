@@ -114,6 +114,16 @@ local TARGET_CLASSES = {
     SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
 }
 
+local CORE_LIMBS = {
+    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true,
+    ["Left Leg"] = true, ["Right Leg"] = true, ["HumanoidRootPart"] = true,
+    ["UpperTorso"] = true, ["LowerTorso"] = true,
+    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
+    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
+    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
+    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
+}
+
 local function safeDestroy(inst)
     if inst and inst.Parent then
         pcall(inst.Destroy, inst)
@@ -121,7 +131,42 @@ local function safeDestroy(inst)
 end
 
 -- ==========================================
--- 6. LIGHTING OPTIMIZATION (ANTI BRIGHT)
+-- 6. CHARACTER CLEANING (ANTI-LAG) [DITAMBAHKAN]
+-- ==========================================
+local function cleanChar(char)
+    if not char then return end
+    for _, inst in ipairs(char:GetDescendants()) do
+        local cName = inst.ClassName
+        -- Hapus aksesoris dan pakaian
+        if cName == "Accessory" or cName == "Shirt" or cName == "Pants" or
+           cName == "ShirtGraphic" or cName == "BodyColors" or cName == "CharacterMesh" then
+            safeDestroy(inst)
+        -- Optimasi BasePart karakter
+        elseif IS_BASEPART[cName] then
+            if not CORE_LIMBS[inst.Name] then
+                inst.Transparency = 1
+                inst.LocalTransparencyModifier = 1
+            else
+                inst.Color = WARNA_GELAP
+                inst.Material = Enum.Material.SmoothPlastic
+                inst.Transparency = 0
+                inst.CastShadow = false
+            end
+        -- Hapus efek dekoratif pada karakter
+        elseif DECORATIVE[cName] then
+            safeDestroy(inst)
+        end
+    end
+end
+
+-- Jalankan pembersihan saat karakter spawn atau saat script pertama kali jalan
+LocalPlayer.CharacterAdded:Connect(cleanChar)
+if LocalPlayer.Character then
+    cleanChar(LocalPlayer.Character)
+end
+
+-- ==========================================
+-- 7. LIGHTING OPTIMIZATION (ANTI BRIGHT)
 -- ==========================================
 local FORCED_LIGHTING = {
     GlobalShadows = false,
@@ -173,7 +218,7 @@ Lighting.ChildRemoved:Connect(function(child)
 end)
 
 -- ==========================================
--- 7. WORLD OPTIMIZATION (NO MEMORY LEAK)
+-- 8. WORLD OPTIMIZATION (NO MEMORY LEAK)
 -- ==========================================
 local function neutralizeTarget(obj)
     if obj.Name == "BaseGrayCC" then
@@ -210,6 +255,7 @@ local function neutralizeTarget(obj)
 end
 
 local function handleDescendant(inst)
+    -- Skip karakter player agar tidak konflik dengan cleanChar
     if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(HiddenGui) then 
         return 
     end
@@ -226,7 +272,6 @@ local function handleDescendant(inst)
     elseif DECORATIVE[cName] or cName == "PostEffect" then
         safeDestroy(inst)
     elseif TARGET_CLASSES[cName] then
-        -- [FIX] Hapus koneksi Changed untuk mencegah memory leak
         pcall(neutralizeTarget, inst)
     end
 end
@@ -239,7 +284,7 @@ for _, obj in ipairs(Lighting:GetDescendants()) do
 end
 
 -- ==========================================
--- 8. TERRAIN & INITIAL BATCH PROCESSING
+-- 9. TERRAIN & INITIAL BATCH PROCESSING
 -- ==========================================
 task.spawn(function()
     pcall(function()
@@ -264,7 +309,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 9. NPC FOLDER DELETION ONLY
+-- 10. NPC FOLDER DELETION ONLY
 -- ==========================================
 task.spawn(function()
     local npcFolderDeleted = false
@@ -291,7 +336,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 10. AUTO CLOSE DAILY LOGIN
+-- 11. AUTO CLOSE DAILY LOGIN
 -- ==========================================
 task.spawn(function()
     local lastClose = 0
@@ -330,14 +375,14 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 11. FPS CAP
+-- 12. FPS CAP
 -- ==========================================
 if setfpscap then
     setfpscap(30)
 end
 
 -- ==========================================
--- 12. AUTO CLOSE DELTA (WHITELIST & ANTI-LEAK)
+-- 13. AUTO CLOSE DELTA (WHITELIST & ANTI-LEAK)
 -- ==========================================
 task.spawn(function()
     local deltaClosed = false
