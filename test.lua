@@ -139,20 +139,55 @@ Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
 TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
 SpawnLocation = true, Platform = true
 }
+
+-- [NEW] Fungsi untuk mengecek dan menghapus NPC
+local function isNPC(model)
+    if not model:IsA("Model") then return false end
+    -- Cek apakah model memiliki Humanoid (ciri khas NPC)
+    if model:FindFirstChildOfClass("Humanoid") then
+        -- Pastikan bukan karakter player
+        local isPlayerChar = false
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player.Character == model then
+                isPlayerChar = true
+                break
+            end
+        end
+        return not isPlayerChar
+    end
+    -- Cek berdasarkan nama
+    local name = string.lower(model.Name)
+    if string.find(name, "npc") or string.find(name, "enemy") or string.find(name, "bot") then
+        return true
+    end
+    return false
+end
+
 local function processInstance(inst)
 local cName = inst.ClassName
-if not TO_DESTROY[cName] and not IS_BASEPART[cName] then return end
+if not TO_DESTROY[cName] and not IS_BASEPART[cName] then
+    -- [NEW] Cek apakah ini Model NPC
+    if cName == "Model" then
+        if isNPC(inst) then
+            task.defer(safeDestroy, inst)
+        end
+    end
+    return 
+end
 if inst:IsDescendantOf(CoreGui) then return end
 local name = inst.Name
 local parent = inst.Parent
 local parentName = parent and parent.Name or ""
--- [MODIFIED] Hanya Totem yang di-whitelist (Bobber dan Rod dihapus)
-if string.find(name, "Totem") or string.find(parentName, "Totem") then
+-- Whitelist Totem & Bobber (logika asli dipertahankan)
+if string.find(name, "Totem") or string.find(name, "Bobber") or
+string.find(parentName, "Totem") or string.find(parentName, "Bobber") then
 return
 end
--- [MODIFIED] Proteksi SpecialMesh pada Head DIHAPUS
+-- Proteksi SpecialMesh pada Head (logika asli dipertahankan)
+if cName == "SpecialMesh" and parentName == "Head" then return end
 if IS_BASEPART[cName] then
--- [MODIFIED] Whitelist Rod DIHAPUS - Rod akan diproses seperti part lainnya
+-- Whitelist Rod: hanya BasePart yang dilindungi
+if string.find(name, "Rod") or string.find(parentName, "Rod") then return end
 inst.Color = WARNA_GELAP
 inst.Material = Enum.Material.SmoothPlastic
 inst.Reflectance = 0
@@ -162,6 +197,17 @@ else
 task.defer(safeDestroy, inst)
 end
 end
+
+-- [NEW] Proses NPC yang sudah ada saat script dijalankan
+task.spawn(function()
+    task.wait(2) -- Tunggu sebentar agar semua NPC load
+    for _, model in ipairs(Workspace:GetChildren()) do
+        if model:IsA("Model") and isNPC(model) then
+            task.defer(safeDestroy, model)
+        end
+    end
+end)
+
 pcall(function()
 local t = Workspace:FindFirstChildOfClass("Terrain")
 if t then
@@ -195,6 +241,18 @@ batchActive = true
 task.defer(processBatch)
 end
 end)
+
+-- [NEW] Monitor NPC yang spawn ulang
+task.spawn(function()
+    while task.wait(5) do
+        for _, model in ipairs(Workspace:GetChildren()) do
+            if model:IsA("Model") and isNPC(model) then
+                task.defer(safeDestroy, model)
+            end
+        end
+    end
+end)
+
 task.defer(function()
 while task.wait(3) do
 local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
