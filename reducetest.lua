@@ -59,7 +59,7 @@ LynxButton.ZIndex = 2147483647
 LynxButton.MouseButton1Click:Connect(function()
 
     pcall(function()
-        local lynxGui = findLynxGui()
+        local lynxGui = CoreGui:FindFirstChild("LynxGui")
         if lynxGui then
             lynxGui.Enabled = not lynxGui.Enabled
         end
