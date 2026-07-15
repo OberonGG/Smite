@@ -357,9 +357,7 @@ end
 
 task.spawn(function()
     local deltaClosed = false
-    while not deltaClosed and task.wait(1) do
-        for _, gui in ipairs(CoreGui:GetChildren()) do
-            if gui.Name ~= "LynxGui" and gui.Name ~= "PingTimerUI" then
+    while not deltaClosed and task.wait(3) do
                 local hasConsole = false
                 for _, obj in ipairs(gui:GetDescendants()) do
                     if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
