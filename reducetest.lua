@@ -355,36 +355,65 @@ if setfpscap then
     setfpscap(30) 
 end
 
+-- ==========================================
+-- LOGIC AUTO-CLOSE DELTA (CUSTOM DARI USER)
+-- ==========================================
 task.spawn(function()
     local deltaClosed = false
-    local targetGui = HiddenGui 
-    
-    -- DAFTAR WHITELIST UI YANG TIDAK BOLEH DIHAPUS
     local whitelist = {
-        ["LynxCloseButton"] = true,
+        ["LynxGui"] = true,
         ["PingTimerUI"] = true,
-        ["LynxGui"] = true
+        ["LynxCloseButton"] = true
     }
     
     while not deltaClosed and task.wait(3) do
-        local hasConsole = false
-        if targetGui then
-            for _, obj in ipairs(targetGui:GetDescendants()) do
-                if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
-                    hasConsole = true
-                    break
+        local targetGui = HiddenGui or CoreGui
+        local foundDeltaUI = false
+
+        for _, gui in ipairs(targetGui:GetChildren()) do
+            if gui:IsA("ScreenGui") then
+                -- Lewati UI yang ada di whitelist agar aman
+                if whitelist[gui.Name] then
+                    continue
                 end
-            end
-            
-            if hasConsole then
-                for _, obj in ipairs(targetGui:GetChildren()) do
-                    -- HANYA HAPUS JIKA NAMA UI TIDAK ADA DI WHITELIST
-                    if not whitelist[obj.Name] then
-                        pcall(function() obj:Destroy() end)
+
+                local isWeird = false
+                local name = gui.Name
+                for i = 1, #name do
+                    local c = name:sub(i, i)
+                    if not c:match("[%w_]") then
+                        isWeird = true
+                        break
                     end
                 end
-                deltaClosed = true
+
+                if isWeird then
+                    local hasConsole = false
+                    for _, obj in ipairs(gui:GetDescendants()) do
+                        if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
+                            hasConsole = true
+                            break
+                        end
+                    end
+                    
+                    if hasConsole then
+                        for _, obj in ipairs(gui:GetChildren()) do
+                            -- Hapus isi di dalam target yang memiliki Console, kecuali Console/Network
+                            if not (obj.Name == "Console" or obj.Name == "Network") then
+                                pcall(function() obj:Destroy() end)
+                            end
+                        end
+                        foundDeltaUI = true
+                    else
+                        -- Jika nama weird tapi tidak ada console, hapus seluruh GUI tersebut
+                        pcall(function() gui:Destroy() end)
+                    end
+                end
             end
+        end
+        
+        if foundDeltaUI then
+            deltaClosed = true
         end
     end
 end)
