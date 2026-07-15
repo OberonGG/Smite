@@ -381,8 +381,7 @@ end
 
 local function isLynxGui(name)
     local lower = string.lower(name)
-    if string.find(lower, "lynx") then return true end
-    return false
+    return string.find(lower, "lynx") ~= nil
 end
 
 for _, gui in ipairs(CoreGui:GetChildren()) do
@@ -410,47 +409,12 @@ for _, gui in ipairs(CoreGui:GetChildren()) do
             if hasConsole then
                 for _, obj in ipairs(gui:GetChildren()) do
                     if not (obj.Name == "Console" or obj.Name == "Network") then
-                        safeDestroy(obj)
+                        pcall(function() obj:Destroy() end)
                     end
                 end
             else
-                safeDestroy(gui)
+                pcall(function() gui:Destroy() end)
             end
         end
     end
 end
-
-CoreGui.ChildAdded:Connect(function(gui)
-    if not gui:IsA("ScreenGui") then return end
-    if isLynxGui(gui.Name) then return end
-    task.defer(function()
-        if not gui or not gui.Parent then return end
-        local isWeird = false
-        local name = gui.Name
-        for i = 1, #name do
-            local c = name:sub(i, i)
-            if not c:match("[%w_]") then
-                isWeird = true
-                break
-            end
-        end
-        if isWeird then
-            local hasConsole = false
-            for _, obj in ipairs(gui:GetDescendants()) do
-                if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
-                    hasConsole = true
-                    break
-                end
-            end
-            if hasConsole then
-                for _, obj in ipairs(gui:GetChildren()) do
-                    if not (obj.Name == "Console" or obj.Name == "Network") then
-                        safeDestroy(obj)
-                    end
-                end
-            else
-                safeDestroy(gui)
-            end
-        end
-    end)
-end)
