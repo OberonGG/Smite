@@ -363,7 +363,5 @@ for _, gui in ipairs(CoreGui:GetChildren()) do
 						obj:Destroy()
 					end
 				end
-			else
-				gui:Destroy()
 			end
-		end
+end
