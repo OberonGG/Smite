@@ -56,37 +56,11 @@ LynxButton.Image = "rbxassetid://118176705805619"
 LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
-
--- ==========================================
--- LOGIC TOGGLE LYNX (FIXED - TOGGLE ENABLED)
--- ==========================================
-local function findLynxGui()
-    -- Try exact names first
-    local target = CoreGui:FindFirstChild("LynxGui")
-    if target and target:IsA("ScreenGui") then 
-        return target 
-    end
-    
-    target = CoreGui:FindFirstChild("LynxHub")
-    if target and target:IsA("ScreenGui") then 
-        return target 
-    end
-    
-    -- Pattern search for "lynx" in name
-    for _, child in ipairs(CoreGui:GetChildren()) do
-        if child:IsA("ScreenGui") and string.find(string.lower(child.Name), "lynx") then
-            return child
-        end
-    end
-    
-    return nil
-end
-
 LynxButton.MouseButton1Click:Connect(function()
+
     pcall(function()
         local lynxGui = findLynxGui()
         if lynxGui then
-            -- TOGGLE ENABLED (bukan Visible!)
             lynxGui.Enabled = not lynxGui.Enabled
         end
     end)
