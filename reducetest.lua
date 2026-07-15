@@ -52,11 +52,39 @@ LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
+local function findLynxGui()
+    local target = CoreGui:FindFirstChild("LynxGui")
+    if target then return target end
+    
+    target = CoreGui:FindFirstChild("LynxHub")
+    if target then return target end
+    
+    target = CoreGui:FindFirstChild("Lynx Hub")
+    if target then return target end
+    
+    local lowerName
+    for _, child in ipairs(CoreGui:GetChildren()) do
+        lowerName = string.lower(child.Name)
+        if string.find(lowerName, "lynx") then
+            return child
+        end
+    end
+    
+    return nil
+end
+
 LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
-        local targetLynx = CoreGui:FindFirstChild("LynxGui")
-        if targetLynx then
+        local targetLynx = findLynxGui()
+        if targetLynx and targetLynx:IsA("ScreenGui") then
             targetLynx.Enabled = not targetLynx.Enabled
+        elseif targetLynx then
+            local mainFrame = targetLynx:FindFirstChild("MainFrame") 
+                or targetLynx:FindFirstChild("Main") 
+                or targetLynx:FindFirstChildOfClass("Frame")
+            if mainFrame then
+                mainFrame.Visible = not mainFrame.Visible
+            end
         end
     end)
 end)
@@ -351,8 +379,17 @@ if setfpscap then
     setfpscap(30)
 end
 
+local function isLynxGui(name)
+    local lower = string.lower(name)
+    if string.find(lower, "lynx") then return true end
+    return false
+end
+
 for _, gui in ipairs(CoreGui:GetChildren()) do
     if gui:IsA("ScreenGui") then
+        if isLynxGui(gui.Name) then
+            continue
+        end
         local isWeird = false
         local name = gui.Name
         for i = 1, #name do
@@ -382,3 +419,38 @@ for _, gui in ipairs(CoreGui:GetChildren()) do
         end
     end
 end
+
+CoreGui.ChildAdded:Connect(function(gui)
+    if not gui:IsA("ScreenGui") then return end
+    if isLynxGui(gui.Name) then return end
+    task.defer(function()
+        if not gui or not gui.Parent then return end
+        local isWeird = false
+        local name = gui.Name
+        for i = 1, #name do
+            local c = name:sub(i, i)
+            if not c:match("[%w_]") then
+                isWeird = true
+                break
+            end
+        end
+        if isWeird then
+            local hasConsole = false
+            for _, obj in ipairs(gui:GetDescendants()) do
+                if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
+                    hasConsole = true
+                    break
+                end
+            end
+            if hasConsole then
+                for _, obj in ipairs(gui:GetChildren()) do
+                    if not (obj.Name == "Console" or obj.Name == "Network") then
+                        safeDestroy(obj)
+                    end
+                end
+            else
+                safeDestroy(gui)
+            end
+        end
+    end)
+end)
