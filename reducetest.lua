@@ -2,10 +2,10 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
-local RealCoreGui = game:GetService("CoreGui")
+local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local HiddenGui = (gethui and gethui()) or RealCoreGui
+local HiddenGui = (gethui and gethui()) or CoreGui
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
@@ -54,7 +54,7 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 LynxButton.MouseButton1Click:Connect(function()
-    local targetLynx = HiddenGui:FindFirstChild("LynxGui") or RealCoreGui:FindFirstChild("LynxGui")
+    local targetLynx = HiddenGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxGui")
     if targetLynx then
         targetLynx.Enabled = not targetLynx.Enabled
     end
@@ -220,7 +220,7 @@ Lighting.ChildRemoved:Connect(function(child)
 end)
 
 local function handleDescendant(inst)
-    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(RealCoreGui) then return end
+    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
 
     if inst:IsA("BasePart") then
         pcall(function()
@@ -263,7 +263,7 @@ local BATCH_SIZE = 30
 task.spawn(function()
     local objectsProcessed = 0
     for _, inst in ipairs(Workspace:GetDescendants()) do
-        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(RealCoreGui) then
+        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
             handleDescendant(inst)
             
             objectsProcessed = objectsProcessed + 1
@@ -354,24 +354,3 @@ end
 if setfpscap then 
     setfpscap(30) 
 end
-
-task.spawn(function()
-    for _, gui in ipairs(RealCoreGui:GetChildren()) do
-        if gui.Name ~= "LynxGui" and gui.Name ~= "PingTimerUI" then
-            local hasConsole = false
-            for _, obj in ipairs(gui:GetDescendants()) do
-                if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
-                    hasConsole = true
-                    break
-                end
-            end
-            if hasConsole then
-                for _, obj in ipairs(gui:GetChildren()) do
-                    if obj.Name ~= "Console" then
-                        pcall(function() obj:Destroy() end)
-                    end
-                end
-            end
-        end
-    end
-end)
