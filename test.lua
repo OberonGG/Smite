@@ -4,10 +4,20 @@ local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
+
+-- ==========================================
+-- 0. GARBAGE COLLECTION (72-HOUR STABILITY)
+-- ==========================================
+task.spawn(function()
+    while task.wait(3600) do  -- Every hour
+        collectgarbage("collect")
+    end
+end)
 
 -- ==========================================
 -- 1. UI SETUP (POSISI FIX - TANPA DRAGGABLE)
@@ -49,7 +59,7 @@ LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
 -- ==========================================
--- 2. LOGIC CLOSE LYNX (TIDAK DIUBAH)
+-- 2. LOGIC CLOSE LYNX
 -- ==========================================
 local function closeLynx()
     local LynxGui = CoreGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxHub")
@@ -71,7 +81,7 @@ end
 LynxButton.MouseButton1Click:Connect(closeLynx)
 
 -- ==========================================
--- 3. REAL PING & TIMER (TIDAK DIUBAH)
+-- 3. REAL PING & TIMER
 -- ==========================================
 local startTime = os.time()
 task.spawn(function()
@@ -192,7 +202,9 @@ task.defer(function()
     end
 end)
 
--- Batching DescendantAdded
+-- ==========================================
+-- 6. BATCHING WITH RATE LIMITING (72-HOUR FIX)
+-- ==========================================
 local pendingInstances = {}
 local batchActive = false
 
@@ -200,10 +212,16 @@ local function processBatch()
     batchActive = false
     local batch = pendingInstances
     pendingInstances = {}
+    
     for i = 1, #batch do
         local inst = batch[i]
         if inst.Parent ~= nil then
             processInstance(inst)
+        end
+        
+        -- Rate limiting: Wait every 10 objects to prevent CPU spikes
+        if i % 10 == 0 then
+            RunService.Heartbeat:Wait()
         end
     end
 end
@@ -217,10 +235,8 @@ Workspace.DescendantAdded:Connect(function(inst)
 end)
 
 -- ==========================================
--- 6. HAPUS NPC (TARGET SPESIFIK WORKSPACE.NPC)
+-- 7. HAPUS NPC (OPTIMIZED FOR 72-HOUR STABILITY)
 -- ==========================================
--- [OPT] Langsung menargetkan folder Workspace.NPC. 
--- Jauh lebih ringan daripada scanning seluruh Workspace dengan GetChildren() berulang.
 task.spawn(function()
     local npcFolder = Workspace:FindFirstChild("NPC")
     if not npcFolder then
@@ -232,29 +248,50 @@ task.spawn(function()
         for _, npc in ipairs(npcFolder:GetChildren()) do
             task.defer(safeDestroy, npc)
         end
-        -- Pasang listener: Hapus instan setiap kali NPC baru masuk ke folder
+        
+        -- [FIX] Queue-based NPC deletion to prevent accumulation
+        local npcQueue = {}
+        local npcProcessing = false
+        
         npcFolder.ChildAdded:Connect(function(npc)
-            task.defer(safeDestroy, npc)
+            table.insert(npcQueue, npc)
+            if not npcProcessing then
+                npcProcessing = true
+                task.defer(function()
+                    local batch = npcQueue
+                    npcQueue = {}
+                    for _, n in ipairs(batch) do
+                        safeDestroy(n)
+                    end
+                    npcProcessing = false
+                end)
+            end
         end)
     end
 end)
 
 -- ==========================================
--- 7. AUTO CLOSE DAILY LOGIN (EVENT-DRIVEN)
+-- 8. AUTO CLOSE DAILY LOGIN (DEBOUNCED & EVENT-DRIVEN)
 -- ==========================================
--- [OPT] Mengganti while loop dengan event-driven approach
 task.spawn(function()
+    local lastClose = 0
+    local CLOSE_COOLDOWN = 5  -- Max once per 5 seconds
+    
     local function tryCloseDaily(gui)
         if gui and gui.Enabled then
-            pcall(function() 
-                local modules = ReplicatedStorage:FindFirstChild("Modules")
-                if modules then
-                    local guiControl = modules:FindFirstChild("GuiControl")
-                    if guiControl then 
-                        require(guiControl):Close() 
+            local now = tick()
+            if now - lastClose > CLOSE_COOLDOWN then
+                lastClose = now
+                pcall(function() 
+                    local modules = ReplicatedStorage:FindFirstChild("Modules")
+                    if modules then
+                        local guiControl = modules:FindFirstChild("GuiControl")
+                        if guiControl then 
+                            require(guiControl):Close() 
+                        end
                     end
-                end
-            end)
+                end)
+            end
         end
     end
     
@@ -265,17 +302,17 @@ task.spawn(function()
         tryCloseDaily(existingDaily)
     end
     
-    -- Listen untuk UI yang baru muncul
+    -- [FIX] Debounced listener to prevent event spam accumulation
     PlayerGui.ChildAdded:Connect(function(child)
         if child.Name == "!!! Daily Login" then
-            task.wait(0.1) -- Wait untuk UI load properly
+            task.wait(0.1)
             tryCloseDaily(child)
         end
     end)
 end)
 
 -- ==========================================
--- 8. FPS CAP
+-- 9. FPS CAP (SET ONCE)
 -- ==========================================
 if setfpscap then 
     setfpscap(30) 
