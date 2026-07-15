@@ -8,15 +8,22 @@ local Workspace = game:GetService("Workspace")
 local HiddenGui = (gethui and gethui()) or CoreGui
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
-local ABU_GELAP = Color3.fromRGB(0, 0, 0)
 
+-- WARNA GELAP (50, 50, 50)
+local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
+
+-- ==========================================
+-- 1. GARBAGE COLLECTION (72-HOUR STABILITY)
+-- ==========================================
 task.spawn(function()
     while task.wait(3600) do
         collectgarbage("collect")
     end
 end)
 
+-- ==========================================
+-- 2. UI SETUP (POSISI FIX - TANPA DRAGGABLE)
+-- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -53,13 +60,21 @@ LynxButton.ImageTransparency = 0
 LynxButton.ScaleType = Enum.ScaleType.Fit
 LynxButton.ZIndex = 2147483647
 
+-- ==========================================
+-- 3. LOGIC CLOSE LYNX (TOGGLE ENABLED)
+-- ==========================================
 LynxButton.MouseButton1Click:Connect(function()
-    local targetLynx = HiddenGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxGui")
-    if targetLynx then
-        targetLynx.Enabled = not targetLynx.Enabled
-    end
+    pcall(function()
+        local targetLynx = HiddenGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxGui")
+        if targetLynx then
+            targetLynx.Enabled = not targetLynx.Enabled
+        end
+    end)
 end)
 
+-- ==========================================
+-- 4. REAL PING & TIMER
+-- ==========================================
 local startTime = os.time()
 task.spawn(function()
     while task.wait(1) do
@@ -73,6 +88,9 @@ task.spawn(function()
     end
 end)
 
+-- ==========================================
+-- 5. DICTIONARIES (O(1) LOOKUP)
+-- ==========================================
 local DECORATIVE = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
     Beam = true, Trail = true, Explosion = true, Discharge = true,
@@ -91,88 +109,25 @@ local IS_BASEPART = {
     SpawnLocation = true, Platform = true
 }
 
-local CORE_LIMBS = {
-    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, 
-    ["Left Leg"] = true, ["Right Leg"] = true, ["HumanoidRootPart"] = true, 
-    ["UpperTorso"] = true, ["LowerTorso"] = true, 
-    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
-    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
-    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
-    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
-}
-
-local function safeDestroy(inst)
-    pcall(inst.Destroy, inst)
-end
-
-local function cleanChar(char)
-    if not char then return end
-    for _, inst in ipairs(char:GetDescendants()) do
-        if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or 
-           inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
-            pcall(function() inst:Destroy() end)
-        elseif inst:IsA("BasePart") then
-            if not CORE_LIMBS[inst.Name] then
-                inst.Transparency = 1
-                inst.LocalTransparencyModifier = 1
-            else
-                inst.Color = Color3.fromRGB(150, 150, 150)
-                inst.Material = Enum.Material.SmoothPlastic
-                inst.Transparency = 0
-            end
-        elseif DECORATIVE[inst.ClassName] then
-            pcall(function() inst:Destroy() end)
-        end
-    end
-end
-
-local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
-
 local TARGET_CLASSES = {
     Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
     SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
 }
 
-local function neutralizeTarget(obj)
-    if obj.Name == "BaseGrayCC" then
-        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
-        if obj.Contrast ~= 0 then obj.Contrast = 0 end
-        if obj.Saturation ~= -1 then obj.Saturation = -1 end
-        if obj.Enabled ~= true then obj.Enabled = true end
-        return
-    end
-    if obj.Name == "BaseNormalSky" then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        return
-    end
-
-    if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or 
-       obj:IsA("BlurEffect") or obj:IsA("Clouds") then
-        if obj.Enabled ~= false then obj.Enabled = false end
-    elseif obj:IsA("Atmosphere") then
-        if obj.Density ~= 0 then obj.Density = 0 end
-        if obj.Glare ~= 0 then obj.Glare = 0 end
-        if obj.Haze ~= 0 then obj.Haze = 0 end
-    elseif obj:IsA("Sky") then
-        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
-        if obj.StarCount ~= 0 then obj.StarCount = 0 end
-        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
-        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
-        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
-        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
-        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
-        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
-        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
-        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+local function safeDestroy(inst)
+    if inst and inst.Parent then
+        pcall(inst.Destroy, inst)
     end
 end
 
+-- ==========================================
+-- 6. LIGHTING OPTIMIZATION (ANTI BRIGHT)
+-- ==========================================
 local FORCED_LIGHTING = {
     GlobalShadows = false,
     Brightness = 0,
-    Ambient = ABU_GELAP,
-    OutdoorAmbient = ABU_GELAP,
+    Ambient = WARNA_GELAP,
+    OutdoorAmbient = WARNA_GELAP,
     ExposureCompensation = 0,
     EnvironmentDiffuseScale = 0,
     EnvironmentSpecularScale = 0,
@@ -197,7 +152,6 @@ local function ensureBaseEffects()
         normalSky.StarCount = 0
         normalSky.Parent = Lighting
     end
-
     if not Lighting:FindFirstChild("BaseGrayCC") then
         local grayCC = Instance.new("ColorCorrectionEffect")
         grayCC.Name = "BaseGrayCC"
@@ -212,71 +166,108 @@ applyLightingOverride()
 ensureBaseEffects()
 
 Lighting.Changed:Connect(applyLightingOverride)
-
 Lighting.ChildRemoved:Connect(function(child)
     if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
         ensureBaseEffects()
     end
 end)
 
-local function handleDescendant(inst)
-    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
+-- ==========================================
+-- 7. WORLD OPTIMIZATION (NO MEMORY LEAK)
+-- ==========================================
+local function neutralizeTarget(obj)
+    if obj.Name == "BaseGrayCC" then
+        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
+        if obj.Contrast ~= 0 then obj.Contrast = 0 end
+        if obj.Saturation ~= -1 then obj.Saturation = -1 end
+        if obj.Enabled ~= true then obj.Enabled = true end
+        return
+    end
+    if obj.Name == "BaseNormalSky" then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        return
+    end
+    if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or
+       obj:IsA("BlurEffect") or obj:IsA("Clouds") then
+        if obj.Enabled ~= false then obj.Enabled = false end
+    elseif obj:IsA("Atmosphere") then
+        if obj.Density ~= 0 then obj.Density = 0 end
+        if obj.Glare ~= 0 then obj.Glare = 0 end
+        if obj.Haze ~= 0 then obj.Haze = 0 end
+    elseif obj:IsA("Sky") then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
+        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
+        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
+        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
+        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
+        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
+        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
+        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+    end
+end
 
-    if inst:IsA("BasePart") then
+local function handleDescendant(inst)
+    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) or inst:IsDescendantOf(HiddenGui) then 
+        return 
+    end
+    
+    local cName = inst.ClassName
+    
+    if IS_BASEPART[cName] then
         pcall(function()
             inst.Transparency = 1
-            inst.Color = ABU_GELAP
+            inst.Color = WARNA_GELAP
             inst.CastShadow = false
             inst.Material = Enum.Material.SmoothPlastic
         end)
-    elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
-        pcall(function() inst:Destroy() end)
-    elseif TARGET_CLASSES[inst.ClassName] then
+    elseif DECORATIVE[cName] or cName == "PostEffect" then
+        safeDestroy(inst)
+    elseif TARGET_CLASSES[cName] then
+        -- [FIX] Hapus koneksi Changed untuk mencegah memory leak
         pcall(neutralizeTarget, inst)
-        if not WATCHED_REGISTRY[inst] then
-            WATCHED_REGISTRY[inst] = true
-            inst.Changed:Connect(function()
-                pcall(neutralizeTarget, inst)
-            end)
-        end
-    elseif inst:IsA("Humanoid") then
-        local model = inst.Parent
-        if model and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
-            task.defer(function() pcall(function() model:Destroy() end) end)
-        end
     end
 end
 
 Lighting.DescendantAdded:Connect(handleDescendant)
 Workspace.DescendantAdded:Connect(handleDescendant)
 
-for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
+for _, obj in ipairs(Lighting:GetDescendants()) do 
+    handleDescendant(obj) 
+end
 
+-- ==========================================
+-- 8. TERRAIN & INITIAL BATCH PROCESSING
+-- ==========================================
 task.spawn(function()
     pcall(function()
-        Workspace.Terrain:Clear()
+        local terrain = Workspace:FindFirstChildOfClass("Terrain")
+        if terrain then
+            terrain:Clear()
+        end
     end)
 end)
-
-local BATCH_SIZE = 30
 
 task.spawn(function()
     local objectsProcessed = 0
     for _, inst in ipairs(Workspace:GetDescendants()) do
         if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
             handleDescendant(inst)
-            
             objectsProcessed = objectsProcessed + 1
-            if objectsProcessed % BATCH_SIZE == 0 then
+            if objectsProcessed % 50 == 0 then
                 RunService.Heartbeat:Wait()
             end
         end
     end
 end)
 
+-- ==========================================
+-- 9. NPC FOLDER DELETION ONLY
+-- ==========================================
 task.spawn(function()
     local npcFolderDeleted = false
-    
     local function deleteNPCFolder()
         local npcFolder = Workspace:FindFirstChild("NPC")
         if npcFolder and not npcFolderDeleted then
@@ -297,19 +288,11 @@ task.spawn(function()
             end)
         end
     end)
-    
-    task.spawn(function()
-        while task.wait(30) do
-            if Workspace:FindFirstChild("NPC") then
-                local npcFolder = Workspace:FindFirstChild("NPC")
-                if npcFolder then
-                    safeDestroy(npcFolder)
-                end
-            end
-        end
-    end)
 end)
 
+-- ==========================================
+-- 10. AUTO CLOSE DAILY LOGIN
+-- ==========================================
 task.spawn(function()
     local lastClose = 0
     local CLOSE_COOLDOWN = 5
@@ -319,12 +302,12 @@ task.spawn(function()
             local now = tick()
             if now - lastClose > CLOSE_COOLDOWN then
                 lastClose = now
-                pcall(function() 
+                pcall(function()
                     local modules = ReplicatedStorage:FindFirstChild("Modules")
                     if modules then
                         local guiControl = modules:FindFirstChild("GuiControl")
-                        if guiControl then 
-                            require(guiControl):Close() 
+                        if guiControl then
+                            require(guiControl):Close()
                         end
                     end
                 end)
@@ -346,17 +329,15 @@ task.spawn(function()
     end)
 end)
 
-LocalPlayer.CharacterAdded:Connect(cleanChar)
-if LocalPlayer.Character then
-    cleanChar(LocalPlayer.Character)
-end
-
-if setfpscap then 
-    setfpscap(30) 
+-- ==========================================
+-- 11. FPS CAP
+-- ==========================================
+if setfpscap then
+    setfpscap(30)
 end
 
 -- ==========================================
--- LOGIC AUTO-CLOSE DELTA (CUSTOM DARI USER)
+-- 12. AUTO CLOSE DELTA (WHITELIST & ANTI-LEAK)
 -- ==========================================
 task.spawn(function()
     local deltaClosed = false
@@ -369,14 +350,11 @@ task.spawn(function()
     while not deltaClosed and task.wait(3) do
         local targetGui = HiddenGui or CoreGui
         local foundDeltaUI = false
-
+        
         for _, gui in ipairs(targetGui:GetChildren()) do
             if gui:IsA("ScreenGui") then
-                -- Lewati UI yang ada di whitelist agar aman
-                if whitelist[gui.Name] then
-                    continue
-                end
-
+                if whitelist[gui.Name] then continue end
+                
                 local isWeird = false
                 local name = gui.Name
                 for i = 1, #name do
@@ -386,7 +364,7 @@ task.spawn(function()
                         break
                     end
                 end
-
+                
                 if isWeird then
                     local hasConsole = false
                     for _, obj in ipairs(gui:GetDescendants()) do
@@ -398,15 +376,14 @@ task.spawn(function()
                     
                     if hasConsole then
                         for _, obj in ipairs(gui:GetChildren()) do
-                            -- Hapus isi di dalam target yang memiliki Console, kecuali Console/Network
                             if not (obj.Name == "Console" or obj.Name == "Network") then
-                                pcall(function() obj:Destroy() end)
+                                task.defer(function() pcall(function() obj:Destroy() end) end)
                             end
                         end
                         foundDeltaUI = true
                     else
-                        -- Jika nama weird tapi tidak ada console, hapus seluruh GUI tersebut
-                        pcall(function() gui:Destroy() end)
+                        task.defer(function() pcall(function() gui:Destroy() end) end)
+                        foundDeltaUI = true
                     end
                 end
             end
