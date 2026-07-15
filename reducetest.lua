@@ -350,17 +350,6 @@ end
 
 
 for _, gui in ipairs(CoreGui:GetChildren()) do
-	if gui:IsA("ScreenGui") then
-		local isWeird = false
-		local name = gui.Name
-		for i = 1, #name do
-			local c = name:sub(i, i)
-			if not c:match("[%w_]") then
-				isWeird = true
-				break
-			end
-		end
-		if isWeird then
 			local hasConsole = false
 			for _, obj in ipairs(gui:GetDescendants()) do
 				if obj:IsA("GuiObject") and string.find(obj.Name, "Console") then
@@ -378,5 +367,3 @@ for _, gui in ipairs(CoreGui:GetChildren()) do
 				gui:Destroy()
 			end
 		end
-	end
-end
