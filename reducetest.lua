@@ -1,6 +1,5 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
@@ -46,40 +45,6 @@ LynxButton.Image = "rbxassetid://118176705805619"
 LynxButton.Active = true
 LynxButton.ZIndex = 2147483647
 
-local function makeDraggable(obj, frameToDrag)
-    local dragging, dragInput, dragStart, startPos
-    
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frameToDrag.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    obj.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            frameToDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
-makeDraggable(frame, frame)
-makeDraggable(LynxButton, LynxButton)
-
 LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
         local targetLynx = CoreGui:FindFirstChild("LynxGui")
@@ -122,7 +87,6 @@ local CORE_LIMBS = {
     ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
 }
 
--- [PERBAIKAN]: Fungsi cleanChar di-fix untuk memusnahkan part tanpa double-closure memori.
 local function cleanChar(char)
     if not char then return end
     for _, inst in ipairs(char:GetDescendants()) do
@@ -311,16 +275,13 @@ task.spawn(function()
     end
 end)
 
--- ==========================================
--- TAMBAHAN: AUTO CLOSE DELTA
--- ==========================================
 local HiddenGui = gethui and gethui()
 local function safeDestroy(inst)
     pcall(function() inst:Destroy() end)
 end
 
 task.spawn(function()
-    local whitelist = { ["LynxGui"] = true, ["PingTimerUI"] = true, ["LynxCloseButton"] = true }
+    local whitelist = { ["LynxGui"] = true, ["PingTimerUI"] = true, ["LynxCloseButton"] = true, ["ToggleBtn"] = true }
     local closed = false
     
     while not closed and task.wait(3) do
