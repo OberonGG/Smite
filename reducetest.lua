@@ -1,29 +1,22 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Stats = game:GetService("Stats")
 local Lighting = game:GetService("Lighting")
 local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
-local HiddenGui = (gethui and gethui()) or CoreGui
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ABU_GELAP = Color3.fromRGB(0, 0, 0)
+local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
+local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
+local BATCH_SIZE = 10
 
-local WARNA_GELAP = Color3.fromRGB(50, 50, 50)
-
--- Matikan Streaming untuk mencegah Memory Fragmentation saat AFK
-pcall(function()
-    Workspace.StreamingEnabled = false
-end)
-
--- ==========================================
--- 1. UI SETUP
--- ==========================================
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
 ui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ui.Parent = HiddenGui
+ui.Parent = (gethui and gethui()) or CoreGui
 
 local frame = Instance.new("Frame", ui)
 frame.Size = UDim2.new(0, 220, 0, 40)
@@ -32,7 +25,9 @@ frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BackgroundTransparency = 0.15
 frame.BorderSizePixel = 0
 frame.Active = true
-Instance.new("UICorner", frame).CornerRadius = UDim.new(1, 0)
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(1, 0)
 
 local textLabel = Instance.new("TextLabel", frame)
 textLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -43,23 +38,54 @@ textLabel.TextSize = 16
 textLabel.Text = "Ping: 0 ms | 0:00:00"
 
 local LynxButton = Instance.new("ImageButton", ui)
-LynxButton.Name = "LynxCloseButton"
-LynxButton.Size = UDim2.new(0, 40, 0, 40)
+LynxButton.Name = "ToggleBtn"
+LynxButton.Size = UDim2.new(0, 45, 0, 45)
 LynxButton.Position = UDim2.new(0.015, 0, 0.1, 0)
 LynxButton.BackgroundTransparency = 1
-LynxButton.BorderSizePixel = 0
-LynxButton.Active = true
 LynxButton.Image = "rbxassetid://118176705805619"
-LynxButton.ScaleType = Enum.ScaleType.Fit
+LynxButton.Active = true
 LynxButton.ZIndex = 2147483647
 
--- ==========================================
--- 2. LOGIC LYNX & PING
--- ==========================================
+local function makeDraggable(obj, frameToDrag)
+    local dragging, dragInput, dragStart, startPos
+    
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frameToDrag.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frameToDrag.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+makeDraggable(frame, frame)
+makeDraggable(LynxButton, LynxButton)
+
 LynxButton.MouseButton1Click:Connect(function()
     pcall(function()
-        local targetLynx = HiddenGui:FindFirstChild("LynxGui") or CoreGui:FindFirstChild("LynxGui")
-        if targetLynx then targetLynx.Enabled = not targetLynx.Enabled end
+        local targetLynx = CoreGui:FindFirstChild("LynxGui")
+        if targetLynx then
+            targetLynx.Enabled = not targetLynx.Enabled
+        end
     end)
 end)
 
@@ -67,174 +93,231 @@ local startTime = os.time()
 task.spawn(function()
     while task.wait(1) do
         local ping = 0
-        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        pcall(function()
+            ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+        end)
         local elapsed = os.time() - startTime
-        textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, math.floor(elapsed/3600), math.floor((elapsed%3600)/60), elapsed%60)
+        local h = math.floor(elapsed / 3600)
+        local m = math.floor((elapsed % 3600) / 60)
+        local s = elapsed % 60
+        textLabel.Text = string.format("Ping: %d ms | %d:%02d:%02d", ping, h, m, s)
     end
 end)
 
--- ==========================================
--- 3. DICTIONARIES (O(1) LOOKUP)
--- ==========================================
-local TO_DESTROY = {
+local DECORATIVE = {
     ParticleEmitter = true, Smoke = true, Fire = true, Sparkles = true,
-    Beam = true, Trail = true, Explosion = true, Discharge = true, Dust = true,
-    PointLight = true, SpotLight = true, SurfaceLight = true, Light = true,
-    Accessory = true, CharacterMesh = true,
-    Shirt = true, Pants = true, ShirtGraphic = true, Clothing = true, BodyColors = true,
-    PostEffect = true, SelectionBox = true, Decal = true, Texture = true,
-    SurfaceAppearance = true, SpecialMesh = true,
-    BillboardGui = true, SurfaceGui = true -- Penting untuk whitelist Totem
+    Beam = true, Trail = true, Explosion = true, Discharge = true,
+    Dust = true, PointLight = true, SpotLight = true, SurfaceLight = true,
+    Decal = true, Texture = true, SurfaceAppearance = true,
+    Highlight = true, SelectionBox = true, RopeConstraint = true,
+    BillboardGui = true, SurfaceGui = true
 }
 
-local IS_BASEPART = {
-    Part = true, MeshPart = true, WedgePart = true, CornerWedgePart = true,
-    TrussPart = true, UnionOperation = true, Seat = true, VehicleSeat = true,
-    SpawnLocation = true, Platform = true
+local CORE_LIMBS = {
+    ["Head"] = true, ["Torso"] = true, ["Left Arm"] = true, ["Right Arm"] = true, ["Left Leg"] = true, ["Right Leg"] = true,
+    ["HumanoidRootPart"] = true, ["UpperTorso"] = true, ["LowerTorso"] = true, 
+    ["LeftUpperArm"] = true, ["LeftLowerArm"] = true, ["LeftHand"] = true,
+    ["RightUpperArm"] = true, ["RightLowerArm"] = true, ["RightHand"] = true,
+    ["LeftUpperLeg"] = true, ["LeftLowerLeg"] = true, ["LeftFoot"] = true,
+    ["RightUpperLeg"] = true, ["RightLowerLeg"] = true, ["RightFoot"] = true
 }
 
-local KILL_LIGHTING = {
-    Sky = true, Atmosphere = true, BloomEffect = true,
-    SunRaysEffect = true, ColorCorrectionEffect = true, BlurEffect = true, Clouds = true
+-- [PERBAIKAN]: Fungsi cleanChar di-fix untuk memusnahkan part tanpa double-closure memori.
+local function cleanChar(char)
+    if not char then return end
+    for _, inst in ipairs(char:GetDescendants()) do
+        if inst:IsA("Accessory") or inst:IsA("Shirt") or inst:IsA("Pants") or inst:IsA("ShirtGraphic") or inst:IsA("BodyColors") or inst:IsA("CharacterMesh") then
+            pcall(inst.Destroy, inst)
+        elseif inst:IsA("BasePart") then
+            if not CORE_LIMBS[inst.Name] then
+                inst.Transparency = 1
+                inst.LocalTransparencyModifier = 1
+            else
+                inst.Color = Color3.fromRGB(150, 150, 150)
+                inst.Material = Enum.Material.SmoothPlastic
+                inst.Transparency = 0
+            end
+        elseif DECORATIVE[inst.ClassName] then
+            pcall(inst.Destroy, inst)
+        end
+    end
+end
+
+local TARGET_CLASSES = {
+    Atmosphere = true, ColorCorrectionEffect = true, Sky = true,
+    SunRaysEffect = true, BloomEffect = true, BlurEffect = true, Clouds = true
 }
 
-local LOCK_PROPS = {
-    Ambient = true, OutdoorAmbient = true, TimeOfDay = true,
-    Brightness = true, GlobalShadows = true, FogStart = true, FogEnd = true
-}
+local function neutralizeTarget(obj)
+    if obj.Name == "BaseGrayCC" then
+        if obj.Brightness ~= 0.07843 then obj.Brightness = 0.07843 end
+        if obj.Contrast ~= 0 then obj.Contrast = 0 end
+        if obj.Saturation ~= -1 then obj.Saturation = -1 end
+        if obj.Enabled ~= true then obj.Enabled = true end
+        return
+    end
+    if obj.Name == "BaseNormalSky" then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        return
+    end
+
+    if obj:IsA("ColorCorrectionEffect") or obj:IsA("SunRaysEffect") or obj:IsA("BloomEffect") or obj:IsA("BlurEffect") or obj:IsA("Clouds") then
+        if obj.Enabled ~= false then obj.Enabled = false end
+    elseif obj:IsA("Atmosphere") then
+        if obj.Density ~= 0 then obj.Density = 0 end
+        if obj.Glare ~= 0 then obj.Glare = 0 end
+        if obj.Haze ~= 0 then obj.Haze = 0 end
+    elseif obj:IsA("Sky") then
+        if obj.CelestialBodiesShown ~= false then obj.CelestialBodiesShown = false end
+        if obj.StarCount ~= 0 then obj.StarCount = 0 end
+        if obj.SkyboxBk ~= "rbxassetid://0" then obj.SkyboxBk = "rbxassetid://0" end
+        if obj.SkyboxDn ~= "rbxassetid://0" then obj.SkyboxDn = "rbxassetid://0" end
+        if obj.SkyboxFt ~= "rbxassetid://0" then obj.SkyboxFt = "rbxassetid://0" end
+        if obj.SkyboxLf ~= "rbxassetid://0" then obj.SkyboxLf = "rbxassetid://0" end
+        if obj.SkyboxRt ~= "rbxassetid://0" then obj.SkyboxRt = "rbxassetid://0" end
+        if obj.SkyboxUp ~= "rbxassetid://0" then obj.SkyboxUp = "rbxassetid://0" end
+        if obj.SunTextureId ~= "rbxassetid://0" then obj.SunTextureId = "rbxassetid://0" end
+        if obj.MoonTextureId ~= "rbxassetid://0" then obj.MoonTextureId = "rbxassetid://0" end
+    end
+end
+
+local function handleDescendant(inst)
+    if inst:IsDescendantOf(LocalPlayer.Character) or inst:IsDescendantOf(CoreGui) then return end
+
+    if inst:IsA("BasePart") then
+        pcall(function()
+            inst.Transparency = 1
+            inst.Color = Color3.fromRGB(0, 0, 0)
+            inst.CastShadow = false
+            inst.Material = Enum.Material.SmoothPlastic
+        end)
+    elseif DECORATIVE[inst.ClassName] or inst:IsA("PostEffect") then
+        pcall(function() inst:Destroy() end)
+    elseif TARGET_CLASSES[inst.ClassName] then
+        pcall(neutralizeTarget, inst)
+        if not WATCHED_REGISTRY[inst] then
+            WATCHED_REGISTRY[inst] = true
+            inst.Changed:Connect(function()
+                pcall(neutralizeTarget, inst)
+            end)
+        end
+    elseif inst:IsA("Humanoid") then
+        local model = inst.Parent
+        if model and model:IsA("Model") and not Players:GetPlayerFromCharacter(model) then
+            task.defer(function() pcall(function() model:Destroy() end) end)
+        end
+    end
+end
+
+Lighting.DescendantAdded:Connect(handleDescendant)
+workspace.DescendantAdded:Connect(handleDescendant)
+
+for _, obj in ipairs(Lighting:GetDescendants()) do handleDescendant(obj) end
 
 local FORCED_LIGHTING = {
-    GlobalShadows = false, Brightness = 0,
-    Ambient = WARNA_GELAP, OutdoorAmbient = WARNA_GELAP,
-    ExposureCompensation = 0, EnvironmentDiffuseScale = 0, EnvironmentSpecularScale = 0,
-    TimeOfDay = "00:00:00", FogStart = 999999, FogEnd = 999999,
+    GlobalShadows = false,
+    Brightness = 0,
+    Ambient = ABU_GELAP,
+    OutdoorAmbient = ABU_GELAP,
+    ExposureCompensation = 0,
+    EnvironmentDiffuseScale = 0,
+    EnvironmentSpecularScale = 0,
+    TimeOfDay = "00:00:00",
+    FogStart = 999999,
+    FogEnd = 999999,
 }
 
--- ==========================================
--- 4. LIGHTING OPTIMIZATION (ULTRA LIGHT)
--- ==========================================
 local function applyLightingOverride()
-    for prop, val in pairs(FORCED_LIGHTING) do
-        if Lighting[prop] ~= val then Lighting[prop] = val end
+    for property, value in pairs(FORCED_LIGHTING) do
+        if Lighting[property] ~= value then
+             Lighting[property] = value
+        end
     end
 end
 
 local function ensureBaseEffects()
     if not Lighting:FindFirstChild("BaseNormalSky") then
-        local s = Instance.new("Sky"); s.Name = "BaseNormalSky"; s.CelestialBodiesShown = false; s.StarCount = 0; s.Parent = Lighting
+        local normalSky = Instance.new("Sky")
+        normalSky.Name = "BaseNormalSky"
+        normalSky.CelestialBodiesShown = false
+        normalSky.StarCount = 0
+        normalSky.Parent = Lighting
     end
+
     if not Lighting:FindFirstChild("BaseGrayCC") then
-        local c = Instance.new("ColorCorrectionEffect"); c.Name = "BaseGrayCC"; c.Brightness = 0.07843; c.Saturation = -1; c.Parent = Lighting
+        local grayCC = Instance.new("ColorCorrectionEffect")
+        grayCC.Name = "BaseGrayCC"
+        grayCC.Brightness = 0.07843
+        grayCC.Contrast = 0
+        grayCC.Saturation = -1
+        grayCC.Parent = Lighting
     end
 end
 
 applyLightingOverride()
 ensureBaseEffects()
 
-Lighting.Changed:Connect(function(prop)
-    if LOCK_PROPS[prop] then applyLightingOverride() end
-end)
+Lighting.Changed:Connect(applyLightingOverride)
 
 Lighting.ChildRemoved:Connect(function(child)
-    if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then ensureBaseEffects() end
+    if child.Name == "BaseNormalSky" or child.Name == "BaseGrayCC" then
+        ensureBaseEffects()
+    end
 end)
 
-local function safeDestroy(inst) pcall(inst.Destroy, inst) end
-
-local function killLightingChild(child)
-    if KILL_LIGHTING[child.ClassName] then task.defer(safeDestroy, child) end
+if setfpscap then
+    setfpscap(30)
+    task.spawn(function()
+        while true do
+           task.wait(10)
+            setfpscap(30)
+        end
+    end)
 end
 
-for _, obj in ipairs(Lighting:GetChildren()) do killLightingChild(obj) end
-Lighting.ChildAdded:Connect(killLightingChild)
-
--- ==========================================
--- 5. WORLD OPTIMIZATION (NO SPAM CHECKS)
--- ==========================================
-local function processInstance(inst)
-    -- [OPT] Hanya cek Character. Workspace event tidak akan memicu ReplicatedStorage/CoreGui
-    if inst:IsDescendantOf(LocalPlayer.Character) then return end
-    
-    local cName = inst.ClassName
-    
-    -- [OPT] Fast Exit: Jika bukan target, langsung keluar. Hemat 90% CPU.
-    if not TO_DESTROY[cName] and not IS_BASEPART[cName] then return end
-
-    -- [OPT] String check HANYA jika objek berpotensi dihancurkan
-    local name = inst.Name
-    if name:find("Totem") or name:find("Bobber") or name:find("Luck") then return end
-    
-    local parent = inst.Parent
-    if parent then
-        local pName = parent.Name
-        if pName:find("Totem") or pName:find("Bobber") or pName:find("Luck") then return end
-    end
-
-    if IS_BASEPART[cName] then
-        if name:find("Rod") or (parent and parent.Name:find("Rod")) then return end
-        pcall(function()
-            inst.Color = WARNA_GELAP
-            inst.Material = Enum.Material.SmoothPlastic
-            inst.Reflectance = 0
-            inst.CastShadow = false
-            if cName == "MeshPart" then inst.TextureID = "" end
-        end)
-    else
-        task.defer(safeDestroy, inst)
-    end
-end
-
--- Initial Processing dengan Batching Heartbeat (Lebih stabil dari task.defer queue)
 task.spawn(function()
-    pcall(function() Workspace.Terrain:Clear() end)
+    pcall(function()
+        workspace.Terrain:Clear()
+    end)
     
-    local count = 0
-    for _, inst in ipairs(Workspace:GetDescendants()) do
-        processInstance(inst)
-        count = count + 1
-        if count % 50 == 0 then RunService.Heartbeat:Wait() end
-    end
-end)
-
--- Event Listener
-Workspace.DescendantAdded:Connect(processInstance)
-
--- ==========================================
--- 6. NPC & DAILY LOGIN
--- ==========================================
-task.spawn(function()
-    local deleted = false
-    local function del()
-        local f = Workspace:FindFirstChild("NPC")
-        if f and not deleted then task.defer(safeDestroy, f); deleted = true end
-    end
-    del()
-    Workspace.ChildAdded:Connect(function(c) if c.Name == "NPC" then del() end end)
-end)
-
-task.spawn(function()
-    local last = 0
-    local function closeDaily(gui)
-        if gui and gui.Enabled and tick() - last > 5 then
-            last = tick()
-            pcall(function()
-                local m = ReplicatedStorage:FindFirstChild("Modules")
-                if m then
-                    local gc = m:FindFirstChild("GuiControl")
-                    if gc then require(gc):Close() end
-                end
-            end)
+    local objectsProcessed = 0
+    for _, inst in ipairs(workspace:GetDescendants()) do
+        if not inst:IsDescendantOf(LocalPlayer.Character) and not inst:IsDescendantOf(CoreGui) then
+            handleDescendant(inst)
+            
+            objectsProcessed = objectsProcessed + 1
+            if objectsProcessed % BATCH_SIZE == 0 then
+                RunService.Heartbeat:Wait()
+            end
         end
     end
-    local ex = PlayerGui:FindFirstChild("!!! Daily Login")
-    if ex then task.wait(0.1); closeDaily(ex) end
-    PlayerGui.ChildAdded:Connect(function(c) if c.Name == "!!! Daily Login" then task.wait(0.1); closeDaily(c) end end)
+end)
+
+LocalPlayer.CharacterAdded:Connect(cleanChar)
+if LocalPlayer.Character then
+    cleanChar(LocalPlayer.Character)
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        local dailyUI = PlayerGui:FindFirstChild("!!! Daily Login")
+        if dailyUI and dailyUI.Enabled == true then
+            pcall(function()
+                GuiControl:Close()
+            end)
+            task.wait(3)
+        end
+    end
 end)
 
 -- ==========================================
--- 7. FPS CAP & AUTO CLOSE DELTA
+-- TAMBAHAN: AUTO CLOSE DELTA
 -- ==========================================
-if setfpscap then setfpscap(20) end -- Turunkan ke 20 untuk AFK 72 jam
+local HiddenGui = gethui and gethui()
+local function safeDestroy(inst)
+    pcall(function() inst:Destroy() end)
+end
 
 task.spawn(function()
     local whitelist = { ["LynxGui"] = true, ["PingTimerUI"] = true, ["LynxCloseButton"] = true }
@@ -264,9 +347,4 @@ task.spawn(function()
         end
         if found then closed = true end
     end
-end)
-
--- Garbage Collection
-task.spawn(function()
-    while task.wait(3600) do collectgarbage("collect") end
 end)
