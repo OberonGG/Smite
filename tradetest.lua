@@ -155,7 +155,7 @@ if not isWhitelisted then
 		if targetPlayer == LocalPlayer then return false end
 		if targetPlayer:GetAttribute("IsTrading") == true then return false end
 		local joinTime = playerJoinTimes[targetPlayer.UserId]
-		if joinTime and (tick() - joinTime) < 30 then
+		if joinTime and (tick() - joinTime) < 60 then
 			return false
 		end
 		local userKey = "User_" .. tostring(targetPlayer.UserId)
