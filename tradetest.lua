@@ -1,9 +1,13 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local config = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Whitelist Username"] = {}}
-local whitelist = config["Whitelist Username"]
-local isWhitelisted = table.find(whitelist, LocalPlayer.Name) ~= nil
+local config = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Enabled"] = false, ["Whitelist Username"] = {}, ["Items"] = {}}
+local isAutoTradeEnabled = config["Enabled"] == true
+local whitelist = config["Whitelist Username"] or {}
+local itemFilter = config["Items"] or {}
+local wantRunic = itemFilter["Runic"] == true
+local wantEvo = itemFilter["Evo"] == true
+local wantFishTier = itemFilter["FishTier"] == true
 local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
 local Replion = require(ReplicatedStorage.Packages.Replion)
 local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
@@ -104,7 +108,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 	end
 end)
 
-if not isWhitelisted then
+if isAutoTradeEnabled then
 	local PlayerData = Replion.Client:WaitReplion("Data")
 	local ReplicatedPlayerData = Replion.Client:WaitReplion("ReplicatedPlayerData")
 
@@ -164,7 +168,8 @@ if not isWhitelisted then
 								isSecretOrForgotten = true
 							end
 						end
-						if isRunic or isSecretOrForgotten or isEvolvedEnchant then
+						local matchesFilter = (isRunic and wantRunic) or (isEvolvedEnchant and wantEvo) or (isSecretOrForgotten and wantFishTier)
+						if matchesFilter then
 							table.insert(tradeable, {
 								UUID = item.UUID,
 								Category = itemData.Data.Type
@@ -201,7 +206,7 @@ if not isWhitelisted then
 		if count == 0 then return nil end
 		if count == 1 then
 			local targetPlayer = Players:FindFirstChild(whitelist[1])
-			if targetPlayer and tradeCooldowns[targetPlayer.UserId] and (tick() - tradeCooldowns[targetPlayer.UserId]) < 30 then
+			if targetPlayer and tradeCooldowns[targetPlayer.UserId] and (tick() - tradeCooldowns[targetPlayer.UserId]) < 15 then
 				return nil
 			end
 			if isTargetReady(targetPlayer) then
@@ -212,7 +217,7 @@ if not isWhitelisted then
 		for i = 1, count do
 			local index = (lastTargetIndex + i - 1) % count + 1
 			local targetPlayer = Players:FindFirstChild(whitelist[index])
-			if targetPlayer and tradeCooldowns[targetPlayer.UserId] and (tick() - tradeCooldowns[targetPlayer.UserId]) < 30 then
+			if targetPlayer and tradeCooldowns[targetPlayer.UserId] and (tick() - tradeCooldowns[targetPlayer.UserId]) < 15 then
 				continue
 			end
 			if isTargetReady(targetPlayer) then
@@ -296,7 +301,6 @@ if not isWhitelisted then
 				continue
 			end
 			local success = processTrade(targetPlayer)
-			tradeCooldowns[targetPlayer.UserId] = tick()
 			if success then
 				local tradeFinished = false
 				local endConn = TradeData.Remotes.TradeEnded.OnClientEvent:Connect(function()
@@ -339,7 +343,9 @@ if not isWhitelisted then
 						sendingActive = false
 					end
 				end
+				tradeCooldowns[targetPlayer.UserId] = tick()
 			else
+				tradeCooldowns[targetPlayer.UserId] = tick()
 				task.wait(2)
 			end
 		end
