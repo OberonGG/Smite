@@ -59,13 +59,17 @@ TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
 	readyToConfirm = not sendingActive
 end)
 
+if LocalPlayer:GetAttribute("IsTrading") == true then
+	readyToConfirm = not sendingActive
+end
+
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 	if LocalPlayer:GetAttribute("IsTrading") == true then
 		task.spawn(function()
 			local timeStuck = 0
 			while LocalPlayer:GetAttribute("IsTrading") == true do
 				if LocalPlayer:GetAttribute("IsTrading") == false then break end
-				if timeStuck >= 60 then
+				if timeStuck >= 40 then
 					isProcessingAutoTrade = true
 					local cancelConfirmed = false
 					for attempt = 1, 3 do
@@ -276,9 +280,20 @@ if isAutoTradeEnabled then
 		isProcessingAutoTrade = true
 		for _, itemData in ipairs(itemsToTrade) do
 			task.wait(math.random(3, 6) / 10)
-			pcall(function()
-				TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
-			end)
+			local added = false
+			for addAttempt = 1, 3 do
+				local ok, addSuccess = pcall(function()
+					return TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
+				end)
+				if ok and addSuccess then
+					added = true
+					break
+				end
+				if LocalPlayer:GetAttribute("IsTrading") == false then
+					break
+				end
+				task.wait(0.3)
+			end
 		end
 		isProcessingAutoTrade = false
 		sendingActive = false
