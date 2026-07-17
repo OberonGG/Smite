@@ -205,22 +205,34 @@ if not isWhitelisted then
 		task.delay(5, function()
 			isSendingRequest = false
 		end)
-		sendingActive = true
-		local success, err = TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
-		if not success then
-			sendingActive = false
-			return false
-		end
 		local tradeStarted = false
-		local conn
-		conn = TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
-			tradeStarted = true
+		local maxAttempts = 3
+		for attempt = 1, maxAttempts do
+			if LocalPlayer:GetAttribute("IsTrading") == true then break end
+			if targetPlayer:GetAttribute("IsTrading") == true then break end
+			sendingActive = true
+			local success = TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
+			if not success then
+				sendingActive = false
+				break
+			end
+			local conn
+			conn = TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
+				tradeStarted = true
+			end)
+			local waitTime = 0
+			while not tradeStarted and waitTime < 20 do
+				task.wait(0.1)
+				waitTime = waitTime + 0.1
+			end
 			conn:Disconnect()
-		end)
-		local waitTime = 0
-		while not tradeStarted and waitTime < 50 do
-			task.wait(0.1)
-			waitTime = waitTime + 1
+			if tradeStarted then
+				break
+			end
+			sendingActive = false
+			if attempt < maxAttempts then
+				task.wait(2)
+			end
 		end
 		if not tradeStarted then
 			sendingActive = false
@@ -298,9 +310,9 @@ end
 local LP = LocalPlayer
 
 pcall(function()
-    if getconnections then
-        for _, connection in pairs(getconnections(LP.Idled)) do
-            connection:Disable()
-        end
-    end
+	if getconnections then
+		for _, connection in pairs(getconnections(LP.Idled)) do
+			connection:Disable()
+		end
+	end
 end)
