@@ -42,7 +42,7 @@ end
 
 disableOfferListener()
 task.spawn(function()
-	for _ = 1, 10 do
+	for _ = 1, 40 do
 		task.wait(0.5)
 		disableOfferListener()
 	end
@@ -69,7 +69,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 			local timeStuck = 0
 			while LocalPlayer:GetAttribute("IsTrading") == true do
 				if LocalPlayer:GetAttribute("IsTrading") == false then break end
-				if timeStuck >= 40 then
+				if timeStuck >= 60 then
 					isProcessingAutoTrade = true
 					local cancelConfirmed = false
 					for attempt = 1, 3 do
@@ -99,7 +99,7 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 					isProcessingAutoTrade = false
 					break
 				end
-				if readyToConfirm and not isProcessingAutoTrade then
+				if not isProcessingAutoTrade then
 					pcall(function()
 						TradeData.Remotes.SetReady:InvokeServer(true)
 						TradeData.Remotes.ConfirmTrade:InvokeServer()
