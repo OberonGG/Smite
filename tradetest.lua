@@ -37,16 +37,17 @@ end)
 
 if getconnections then
 	task.spawn(function()
-		LocalPlayer.PlayerGui:WaitForChild("!!! Trade History", 9e9)
-		LocalPlayer.PlayerGui:WaitForChild("Prompt", 9e9)
-		task.wait(2.5)
-		local conns = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-		if conns then
-			for _, conn in pairs(conns) do
-				if conn ~= myOfferConnection then
-					conn:Disable()
+		while true do
+			local conns = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+			if conns and #conns > 1 then
+				for _, conn in pairs(conns) do
+					if conn ~= myOfferConnection then
+						conn:Disable()
+					end
 				end
+				break 
 			end
+			task.wait(0.5)
 		end
 	end)
 end
