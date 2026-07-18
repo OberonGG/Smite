@@ -2,20 +2,14 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Mengambil konfigurasi
-local config = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Enabled"] = false, ["Whitelist Username"] = {}, ["Items"] = {}}
-local isAutoTradeEnabled = config["Enabled"] == true
-local whitelist = config["Whitelist Username"] or {}
-local itemFilter = config["Items"] or {}
-local wantRunic = itemFilter["Runic"] == true
-local wantEvo = itemFilter["Evo"] == true
-local wantFishTier = itemFilter["FishTier"] == true
+local baseConfig = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Enabled"] = false, ["Whitelist Username"] = {}, ["Items"] = {}}
+local isAutoTradeEnabled = baseConfig["Enabled"] == true
+local whitelist = baseConfig["Whitelist Username"] or {}
 
 local TradeData = require(ReplicatedStorage.Shared.Trading.TradeData)
 local Replion = require(ReplicatedStorage.Packages.Replion)
 local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 
--- Variabel Status
 local isProcessingAutoTrade = false
 local sendingActive = false
 local isSendingRequest = false
@@ -23,19 +17,16 @@ local tradeCooldowns = {}
 local playerJoinTimes = {}
 local lastTargetIndex = #whitelist > 0 and (LocalPlayer.UserId % #whitelist) or 0
 
--- Mencatat waktu join pemain yang sudah ada di server
 for _, player in ipairs(Players:GetPlayers()) do
 	if player ~= LocalPlayer and not playerJoinTimes[player.UserId] then
 		playerJoinTimes[player.UserId] = 0
 	end
 end
 
--- Mencatat waktu join pemain baru (Memberi jeda loading untuk akun stok)
 Players.PlayerAdded:Connect(function(player)
 	playerJoinTimes[player.UserId] = tick()
 end)
 
--- Mematikan Pop-up UI bawaan game HANYA SEKALI (Mencegah sabotase listener sendiri)
 local function disableOfferListener()
 	if getconnections then
 		pcall(function()
@@ -48,7 +39,6 @@ local function disableOfferListener()
 end
 disableOfferListener()
 
--- 1. STANDALONE AUTO ACCEPT OFFER (Bypass Pop-up & Terima dari siapapun)
 TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
 	task.wait(0.2)
 	pcall(function()
@@ -56,27 +46,31 @@ TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
 	end)
 end)
 
--- 2. STANDALONE AUTO CONFIRM TRADE UI (Spam SetReady & Confirm tanpa peduli target)
 local function watchTradingState()
 	task.spawn(function()
 		local timeStuck = 0
 		while LocalPlayer:GetAttribute("IsTrading") == true do
 			if LocalPlayer:GetAttribute("IsTrading") == false then break end
 			
-			-- Proteksi Anti-Stuck 60 Detik
-			if timeStuck >= 60 then
+			if timeStuck >= 30 then
 				isProcessingAutoTrade = true
 				local cancelConfirmed = false
-				for attempt = 1, 3 do
-					local ok, success = pcall(function()
-						return TradeData.Remotes.CancelTrade:InvokeServer()
-					end)
-					if ok and success then
-						cancelConfirmed = true
-						break
+				
+				task.spawn(function()
+					for attempt = 1, 3 do
+						local ok, success = pcall(function()
+							return TradeData.Remotes.CancelTrade:InvokeServer()
+						end)
+						if ok and success then
+							cancelConfirmed = true
+							break
+						end
+						task.wait(0.5)
 					end
-					task.wait(0.5)
-				end
+				end)
+				
+				task.wait(2) 
+				
 				pcall(function()
 					local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
 					if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
@@ -85,23 +79,24 @@ local function watchTradingState()
 					GuiControl:Unlock()
 					GuiControl:Close()
 				end)
-				if not cancelConfirmed then
-					LocalPlayer:SetAttribute("IsTrading", false)
-				end
+				
+				LocalPlayer:SetAttribute("IsTrading", false)
 				sendingActive = false
 				task.wait(1)
 				isProcessingAutoTrade = false
 				break
 			end
 			
-			-- Auto Accept UI Standalone 
-			-- (isProcessingAutoTrade akan selalu false bagi akun stok)
 			if not isProcessingAutoTrade then
-				pcall(function()
-					TradeData.Remotes.SetReady:InvokeServer(true)
-					TradeData.Remotes.ConfirmTrade:InvokeServer()
+				task.spawn(function()
+					pcall(function()
+						TradeData.Remotes.SetReady:InvokeServer(true)
+						task.wait(0.2)
+						TradeData.Remotes.ConfirmTrade:InvokeServer()
+					end)
 				end)
 			end
+			
 			task.wait(0.5)
 			timeStuck = timeStuck + 0.5
 		end
@@ -118,9 +113,6 @@ if LocalPlayer:GetAttribute("IsTrading") == true then
 	watchTradingState()
 end
 
--- ==========================================
--- SCRIPT PENGIRIM (TUYUL) - HANYA BERJALAN JIKA ENABLED = TRUE
--- ==========================================
 if isAutoTradeEnabled then
 	local PlayerData = Replion.Client:WaitReplion("Data")
 	local ReplicatedPlayerData = Replion.Client:WaitReplion("ReplicatedPlayerData")
@@ -153,9 +145,17 @@ if isAutoTradeEnabled then
 	end
 
 	local function getTradeableItems()
+		-- Cek config secara dinamis setiap kali fungsi ini dipanggil
+		local currentConfig = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Items"] = {}}
+		local currentFilter = currentConfig["Items"] or {}
+		local wantRunic = currentFilter["Runic"] == true
+		local wantEvo = currentFilter["Evo"] == true
+		local wantFishTier = currentFilter["FishTier"] == true
+		
 		local tradeable = {}
 		local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
 		if not inventory then return tradeable end
+		
 		for categoryName, items in pairs(inventory) do
 			if type(items) == "table" then
 				for _, item in ipairs(items) do
@@ -202,8 +202,6 @@ if isAutoTradeEnabled then
 		if targetPlayer == LocalPlayer then return false end
 		if targetPlayer:GetAttribute("IsTrading") == true then return false end
 		
-		-- 3. JEDA WAKTU MASUK (Grace Period)
-		-- Memberi jeda 80 detik agar akun stok memuat script auto-acceptnya
 		local joinTime = playerJoinTimes[targetPlayer.UserId]
 		if joinTime and joinTime > 0 and (tick() - joinTime) < 80 then
 			return false
@@ -223,7 +221,6 @@ if isAutoTradeEnabled then
 		if count == 0 then return nil end
 		if count == 1 then
 			local targetPlayer = Players:FindFirstChild(whitelist[1])
-			-- Cek Cooldown untuk menghindari Tunnel Vision
 			if targetPlayer and tradeCooldowns[targetPlayer.UserId] and (tick() - tradeCooldowns[targetPlayer.UserId]) < 15 then
 				return nil
 			end
@@ -232,7 +229,6 @@ if isAutoTradeEnabled then
 			end
 			return nil
 		end
-		-- Rotasi Target (Mencegah stuck di username urutan pertama)
 		for i = 1, count do
 			local index = (lastTargetIndex + i - 1) % count + 1
 			local targetPlayer = Players:FindFirstChild(whitelist[index])
@@ -247,14 +243,9 @@ if isAutoTradeEnabled then
 		return nil
 	end
 
-	local function processTrade(targetPlayer)
+	local function processTrade(targetPlayer, itemsToTrade)
 		if LocalPlayer:GetAttribute("IsTrading") == true then return false end
 		if isSendingRequest then return false end
-		
-		local itemsToTrade = getTradeableItems()
-		if #itemsToTrade == 0 then
-			return false
-		end
 		
 		isSendingRequest = true
 		task.delay(5, function()
@@ -290,10 +281,12 @@ if isAutoTradeEnabled then
 				task.wait(2)
 			end
 		end
+		
 		if not tradeStarted then
 			sendingActive = false
 			return false
 		end
+		
 		task.wait(1.5)
 		isProcessingAutoTrade = true
 		for _, itemData in ipairs(itemsToTrade) do
@@ -320,17 +313,27 @@ if isAutoTradeEnabled then
 		waitUntilReady()
 		task.wait(2)
 		while true do
-			local itemsToTrade = getTradeableItems()
+			-- Retry logic: Cek inventaris hingga 3x sebelum cancel loop
+			local itemsToTrade = {}
+			for retry = 1, 3 do
+				itemsToTrade = getTradeableItems()
+				if #itemsToTrade > 0 then break end
+				task.wait(1)
+			end
+			
 			if #itemsToTrade == 0 then
 				task.wait(3)
 				continue
 			end
+			
 			local targetPlayer = getAvailableTarget()
 			if not targetPlayer then
 				task.wait(2)
 				continue
 			end
-			local success = processTrade(targetPlayer)
+			
+			-- Kirim data item yang sudah valid ke proses trade
+			local success = processTrade(targetPlayer, itemsToTrade)
 			if success then
 				local tradeFinished = false
 				local endConn = TradeData.Remotes.TradeEnded.OnClientEvent:Connect(function()
@@ -340,14 +343,16 @@ if isAutoTradeEnabled then
 					tradeFinished = true
 				end)
 				local elapsed = 0
-				while not tradeFinished and elapsed < 60 do
+				
+				while not tradeFinished and elapsed < 30 do
 					if LocalPlayer:GetAttribute("IsTrading") == false then break end
 					task.wait(1)
 					elapsed = elapsed + 1
 				end
 				endConn:Disconnect()
 				completeConn:Disconnect()
-				if elapsed >= 60 and LocalPlayer:GetAttribute("IsTrading") == true then
+				
+				if elapsed >= 30 and LocalPlayer:GetAttribute("IsTrading") == true then
 					local cancelConfirmed = false
 					for attempt = 1, 3 do
 						local ok, cancelSuccess = pcall(function()
@@ -372,7 +377,6 @@ if isAutoTradeEnabled then
 						sendingActive = false
 					end
 				end
-				-- Menerapkan Cooldown agar script mencari target whitelist yang lain
 				tradeCooldowns[targetPlayer.UserId] = tick()
 			else
 				tradeCooldowns[targetPlayer.UserId] = tick()
@@ -383,9 +387,6 @@ if isAutoTradeEnabled then
 	task.spawn(startTradeLoop)
 end
 
--- ==========================================
--- PROTEKSI ANTI-AFK (NON-INPUT, SANGAT AMAN)
--- ==========================================
 pcall(function()
 	if getconnections then
 		for _, connection in pairs(getconnections(LocalPlayer.Idled)) do
