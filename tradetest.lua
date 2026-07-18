@@ -32,14 +32,18 @@ Players.PlayerAdded:Connect(function(player)
 	print(("[AutoTrade] PlayerAdded: %s"):format(player.Name))
 end)
 
+local ourAcceptConnection = nil
+
 local function disableOfferListener()
 	if getconnections then
 		local ok, err = pcall(function()
 			local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
 			local count = 0
 			for _, conn in pairs(offerConnections) do
-				conn:Disable()
-				count = count + 1
+				if conn ~= ourAcceptConnection then
+					conn:Disable()
+					count = count + 1
+				end
 			end
 			print(("[AutoTrade] disableOfferListener: disabled %d connection(s)"):format(count))
 		end)
@@ -59,7 +63,7 @@ task.spawn(function()
 	end
 end)
 
-TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
+ourAcceptConnection = TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
 	print(("[AutoTrade] TradeOfferReceived from: %s"):format(sender and sender.Name or "unknown"))
 	task.wait(0.2)
 	local ok, err = pcall(function()
