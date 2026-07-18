@@ -27,30 +27,24 @@ Players.PlayerAdded:Connect(function(player)
 	playerJoinTimes[player.UserId] = tick()
 end)
 
-local myOfferConnection
-myOfferConnection = TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
-	task.wait(0.2)
-	pcall(function()
-		TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
+task.spawn(function()
+	task.wait(10)
+	if getconnections then
+		pcall(function()
+			local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+			for _, conn in pairs(offerConnections) do
+				conn:Disable()
+			end
+		end)
+	end
+	
+	TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
+		task.wait(0.2)
+		pcall(function()
+			TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
+		end)
 	end)
 end)
-
-if getconnections then
-	task.spawn(function()
-		while true do
-			local conns = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-			if conns and #conns > 1 then
-				for _, conn in pairs(conns) do
-					if conn ~= myOfferConnection then
-						conn:Disable()
-					end
-				end
-				break 
-			end
-			task.wait(0.5)
-		end
-	end)
-end
 
 local function watchTradingState()
 	task.spawn(function()
@@ -380,7 +374,6 @@ if isAutoTradeEnabled then
 						sendingActive = false
 					end
 				end
-				tradeCooldowns[targetPlayer.UserId] = tick()
 			else
 				tradeCooldowns[targetPlayer.UserId] = tick()
 				task.wait(2)
