@@ -27,24 +27,29 @@ Players.PlayerAdded:Connect(function(player)
 	playerJoinTimes[player.UserId] = tick()
 end)
 
-local function disableOfferListener()
-	if getconnections then
-		pcall(function()
-			local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-			for _, conn in pairs(offerConnections) do
-				conn:Disable()
-			end
-		end)
-	end
-end
-disableOfferListener()
-
-TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
+local myOfferConnection
+myOfferConnection = TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
 	task.wait(0.2)
 	pcall(function()
 		TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
 	end)
 end)
+
+if getconnections then
+	task.spawn(function()
+		LocalPlayer.PlayerGui:WaitForChild("!!! Trade History", 9e9)
+		LocalPlayer.PlayerGui:WaitForChild("Prompt", 9e9)
+		task.wait(2.5)
+		local conns = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+		if conns then
+			for _, conn in pairs(conns) do
+				if conn ~= myOfferConnection then
+					conn:Disable()
+				end
+			end
+		end
+	end)
+end
 
 local function watchTradingState()
 	task.spawn(function()
@@ -145,7 +150,6 @@ if isAutoTradeEnabled then
 	end
 
 	local function getTradeableItems()
-		-- Cek config secara dinamis setiap kali fungsi ini dipanggil
 		local currentConfig = _G.FishItConfig and _G.FishItConfig["Auto Trade"] or {["Items"] = {}}
 		local currentFilter = currentConfig["Items"] or {}
 		local wantRunic = currentFilter["Runic"] == true
@@ -313,7 +317,6 @@ if isAutoTradeEnabled then
 		waitUntilReady()
 		task.wait(2)
 		while true do
-			-- Retry logic: Cek inventaris hingga 3x sebelum cancel loop
 			local itemsToTrade = {}
 			for retry = 1, 3 do
 				itemsToTrade = getTradeableItems()
@@ -332,7 +335,6 @@ if isAutoTradeEnabled then
 				continue
 			end
 			
-			-- Kirim data item yang sudah valid ke proses trade
 			local success = processTrade(targetPlayer, itemsToTrade)
 			if success then
 				local tradeFinished = false
