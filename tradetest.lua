@@ -31,12 +31,12 @@ end)
 
 local function disableOfferListener()
 	if getconnections then
-		local ok, offerConnections = pcall(getconnections, TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-		if ok and offerConnections then
+		pcall(function()
+			local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
 			for _, conn in pairs(offerConnections) do
-				pcall(function() conn:Disable() end)
+				conn:Disable()
 			end
-		end
+		end)
 	end
 end
 
@@ -63,54 +63,62 @@ if LocalPlayer:GetAttribute("IsTrading") == true then
 	readyToConfirm = not sendingActive
 end
 
+local function watchTradingState()
+	task.spawn(function()
+		local timeStuck = 0
+		while LocalPlayer:GetAttribute("IsTrading") == true do
+			if LocalPlayer:GetAttribute("IsTrading") == false then break end
+			if timeStuck >= 60 then
+				isProcessingAutoTrade = true
+				local cancelConfirmed = false
+				for attempt = 1, 3 do
+					local ok, success = pcall(function()
+						return TradeData.Remotes.CancelTrade:InvokeServer()
+					end)
+					if ok and success then
+						cancelConfirmed = true
+						break
+					end
+					task.wait(0.5)
+				end
+				pcall(function()
+					local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
+					if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
+						LocalPlayer.PlayerGui["! Trading"].Enabled = false
+					end
+					GuiControl:Unlock()
+					GuiControl:Close()
+				end)
+				if not cancelConfirmed then
+					LocalPlayer:SetAttribute("IsTrading", false)
+				end
+				readyToConfirm = false
+				sendingActive = false
+				task.wait(1)
+				isProcessingAutoTrade = false
+				break
+			end
+			if not isProcessingAutoTrade then
+				pcall(function()
+					TradeData.Remotes.SetReady:InvokeServer(true)
+					TradeData.Remotes.ConfirmTrade:InvokeServer()
+				end)
+			end
+			task.wait(0.5)
+			timeStuck = timeStuck + 0.5
+		end
+	end)
+end
+
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
 	if LocalPlayer:GetAttribute("IsTrading") == true then
-		task.spawn(function()
-			local timeStuck = 0
-			while LocalPlayer:GetAttribute("IsTrading") == true do
-				if LocalPlayer:GetAttribute("IsTrading") == false then break end
-				if timeStuck >= 60 then
-					isProcessingAutoTrade = true
-					local cancelConfirmed = false
-					for attempt = 1, 3 do
-						local ok, success = pcall(function()
-							return TradeData.Remotes.CancelTrade:InvokeServer()
-						end)
-						if ok and success then
-							cancelConfirmed = true
-							break
-						end
-						task.wait(0.5)
-					end
-					pcall(function()
-						local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
-						if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
-							LocalPlayer.PlayerGui["! Trading"].Enabled = false
-						end
-						GuiControl:Unlock()
-						GuiControl:Close()
-					end)
-					if not cancelConfirmed then
-						LocalPlayer:SetAttribute("IsTrading", false)
-					end
-					readyToConfirm = false
-					sendingActive = false
-					task.wait(1)
-					isProcessingAutoTrade = false
-					break
-				end
-				if not isProcessingAutoTrade then
-					pcall(function()
-						TradeData.Remotes.SetReady:InvokeServer(true)
-						TradeData.Remotes.ConfirmTrade:InvokeServer()
-					end)
-				end
-				task.wait(0.5)
-				timeStuck = timeStuck + 0.5
-			end
-		end)
+		watchTradingState()
 	end
 end)
+
+if LocalPlayer:GetAttribute("IsTrading") == true then
+	watchTradingState()
+end
 
 if isAutoTradeEnabled then
 	local PlayerData = Replion.Client:WaitReplion("Data")
