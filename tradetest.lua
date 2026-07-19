@@ -171,22 +171,24 @@ if isAutoTradeEnabled then
 		local startTime = tick()
 		local maxDuration = 60
 		
-		local function checkTimeoutAndCancel()
+		local function forceCancel()
+			pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
+			pcall(function()
+				local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
+				if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then LocalPlayer.PlayerGui["! Trading"].Enabled = false end
+				GuiControl:Unlock()
+				GuiControl:Close()
+			end)
+			LocalPlayer:SetAttribute("IsTrading", false)
+		end
+
+		local function checkTimeout()
 			if (tick() - startTime) > maxDuration then
-				pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
-				pcall(function()
-					local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
-					if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then LocalPlayer.PlayerGui["! Trading"].Enabled = false end
-					GuiControl:Unlock()
-					GuiControl:Close()
-				end)
-				LocalPlayer:SetAttribute("IsTrading", false)
+				forceCancel()
 				return true
 			end
 			return false
 		end
-
-		if LocalPlayer:GetAttribute("IsTrading") == true then return false end
 
 		local tradeStarted = false
 		local startConn = TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
@@ -197,13 +199,13 @@ if isAutoTradeEnabled then
 			return TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
 		end)
 		
-		if not okSend or not sendResult then
+		if not okSend or sendResult == false then
 			startConn:Disconnect()
 			return false
 		end
 
 		while not tradeStarted do
-			if checkTimeoutAndCancel() then 
+			if checkTimeout() then 
 				startConn:Disconnect()
 				return false 
 			end
@@ -214,34 +216,34 @@ if isAutoTradeEnabled then
 		task.wait(1.5)
 		
 		for _, itemData in ipairs(itemsToTrade) do
-			if checkTimeoutAndCancel() then return false end
+			if checkTimeout() then return false end
 			task.wait(math.random(3, 6) / 10) 
 			
 			for addAttempt = 1, 3 do
 				local okAdd, addSuccess = pcall(function()
 					return TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
 				end)
-				if okAdd and addSuccess then break end
+				if okAdd and addSuccess ~= false then break end
 				if LocalPlayer:GetAttribute("IsTrading") == false then break end
 				task.wait(0.3)
 			end
 		end
 
-		if checkTimeoutAndCancel() then return false end
+		if checkTimeout() then return false end
 		task.wait(0.5)
 		
 		local okReady, readyRes = pcall(function() return TradeData.Remotes.SetReady:InvokeServer(true) end)
-		if not okReady or not readyRes then
-			checkTimeoutAndCancel()
+		if not okReady or readyRes == false then
+			forceCancel()
 			return false
 		end
 		
-		if checkTimeoutAndCancel() then return false end
+		if checkTimeout() then return false end
 		task.wait(0.5)
 		
 		local okConfirm, confirmRes = pcall(function() return TradeData.Remotes.ConfirmTrade:InvokeServer() end)
-		if not okConfirm or not confirmRes then
-			checkTimeoutAndCancel()
+		if not okConfirm or confirmRes == false then
+			forceCancel()
 			return false
 		end
 
@@ -250,7 +252,7 @@ if isAutoTradeEnabled then
 		local completeConn = TradeData.Remotes.TradeCompleted.OnClientEvent:Connect(function() tradeFinished = true end)
 
 		while not tradeFinished do
-			if checkTimeoutAndCancel() then break end
+			if checkTimeout() then break end
 			task.wait(0.5)
 		end
 		
@@ -263,7 +265,23 @@ if isAutoTradeEnabled then
 	local function startTradeLoop()
 		waitUntilReady()
 		task.wait(2)
+		
+		local timeTrading = 0
+		
 		while true do
+			if LocalPlayer:GetAttribute("IsTrading") == true then
+				timeTrading = timeTrading + 1
+				if timeTrading > 45 then
+					pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
+					LocalPlayer:SetAttribute("IsTrading", false)
+					timeTrading = 0
+				end
+				task.wait(1)
+				continue
+			else
+				timeTrading = 0
+			end
+		
 			local itemsToTrade = {}
 			for retry = 1, 3 do
 				itemsToTrade = getTradeableItems()
