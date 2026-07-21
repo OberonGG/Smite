@@ -27,7 +27,7 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 task.spawn(function()
-	task.wait(10)
+	task.wait(3)
 	if getconnections then
 		pcall(function()
 			local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
