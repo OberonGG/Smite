@@ -26,7 +26,6 @@ Players.PlayerAdded:Connect(function(player)
 	playerJoinTimes[player.UserId] = tick()
 end)
 
--- [STANDALONE 1: AUTO ACCEPT OFFER]
 task.spawn(function()
 	task.wait(10)
 	if getconnections then
@@ -46,7 +45,6 @@ task.spawn(function()
 	end)
 end)
 
--- [STANDALONE 2: AUTO CONFIRM TRADE UI]
 local function watchTradingState()
 	task.spawn(function()
 		local timeStuck = 0
@@ -114,7 +112,6 @@ if LocalPlayer:GetAttribute("IsTrading") == true then
 	watchTradingState()
 end
 
--- [SENDER/TUYUL LOGIC]
 if isAutoTradeEnabled then
 	local PlayerData = Replion.Client:WaitReplion("Data")
 	local ReplicatedPlayerData = Replion.Client:WaitReplion("ReplicatedPlayerData")
@@ -204,7 +201,7 @@ if isAutoTradeEnabled then
 		if targetPlayer:GetAttribute("IsTrading") == true then return false end
 		
 		local joinTime = playerJoinTimes[targetPlayer.UserId]
-		if joinTime and joinTime > 0 and (tick() - joinTime) < 80 then
+		if joinTime and joinTime > 0 and (tick() - joinTime) < 60 then
 			return false
 		end
 		
@@ -344,7 +341,7 @@ if isAutoTradeEnabled then
 				end)
 				local elapsed = 0
 				
-				while not tradeFinished and elapsed < 30 do
+				while not tradeFinished and elapsed < 20 do
 					if LocalPlayer:GetAttribute("IsTrading") == false then break end
 					task.wait(1)
 					elapsed = elapsed + 1
@@ -352,7 +349,7 @@ if isAutoTradeEnabled then
 				endConn:Disconnect()
 				completeConn:Disconnect()
 				
-				if elapsed >= 30 and LocalPlayer:GetAttribute("IsTrading") == true then
+				if elapsed >= 20 and LocalPlayer:GetAttribute("IsTrading") == true then
 					local cancelConfirmed = false
 					for attempt = 1, 3 do
 						local ok, cancelSuccess = pcall(function()
