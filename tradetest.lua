@@ -310,7 +310,7 @@ if isAutoTradeEnabled then
 
 	local function startTradeLoop()
 		waitUntilReady()
-		task.wait(2)
+		task.wait(0.5)
 		while true do
 			local itemsToTrade = {}
 			for retry = 1, 3 do
