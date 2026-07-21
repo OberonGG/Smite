@@ -11,6 +11,33 @@ local WATCHED_REGISTRY = setmetatable({}, {__mode = "k"})
 local GuiControl = require(ReplicatedStorage.Modules.GuiControl)
 local BATCH_SIZE = 30
 
+local gs = UserSettings():GetService("UserGameSettings")
+local rs = settings().Rendering
+
+local function applyAutoSettings()
+    local success1 = pcall(function()
+        gs.MasterVolume = 0
+        gs.SavedQualityLevel = Enum.SavedQualitySetting.QualityLevel1
+        rs.QualityLevel = Enum.QualityLevel.Level01
+    end)
+    if success1 then return end
+
+    local success2 = pcall(function()
+        gs.MasterVolume = 0
+        gs.SavedQualityLevel = 1
+        rs.QualityLevel = 1
+    end)
+    if success2 then return end
+
+    if type(sethiddenproperty) == "function" then
+        pcall(function()
+            sethiddenproperty(gs, "MasterVolume", 0)
+            sethiddenproperty(gs, "SavedQualityLevel", Enum.SavedQualitySetting.QualityLevel1)
+            sethiddenproperty(rs, "QualityLevel", Enum.QualityLevel.Level01)
+        end)
+    end
+end
+
 local ui = Instance.new("ScreenGui")
 ui.Name = "PingTimerUI"
 ui.ResetOnSpawn = false
@@ -309,3 +336,5 @@ task.spawn(function()
         if found then closed = true end
     end
 end)
+
+applyAutoSettings()
