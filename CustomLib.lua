@@ -5,6 +5,15 @@ local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
+-- Assets Configuration Table
+CustomLib.Assets = {
+    Icons = {
+        Minimize = "rbxassetid://9886659276",
+        Close = "rbxassetid://9886659671",
+        Arrow = "rbxassetid://16851841101"
+    }
+}
+
 function CustomLib:CreateWindow(config)
     config = config or {}
     local titleText = config.Title or "Custom Hub"
@@ -82,6 +91,41 @@ function CustomLib:CreateWindow(config)
     TitleLabel.TextSize = 14
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+    -- Close Button (Menggunakan ImageButton dengan asset id kustom)
+    local CloseBtn = Instance.new("ImageButton", MainFrame)
+    CloseBtn.Name = "CloseButton"
+    CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+    CloseBtn.Position = UDim2.new(1, -28, 0, 14)
+    CloseBtn.Image = CustomLib.Assets.Icons.Close
+    CloseBtn.BackgroundTransparency = 1
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+        if CoreGui:FindFirstChild("CustomLibDropdownOverlay") then
+            CoreGui.CustomLibDropdownOverlay:Destroy()
+        end
+    end)
+
+    -- Minimize Button (Menggunakan ImageButton dengan asset id kustom)
+    local MinBtn = Instance.new("ImageButton", MainFrame)
+    MinBtn.Name = "MinimizeButton"
+    MinBtn.Size = UDim2.new(0, 20, 0, 20)
+    MinBtn.Position = UDim2.new(1, -54, 0, 14)
+    MinBtn.Image = CustomLib.Assets.Icons.Minimize
+    MinBtn.BackgroundTransparency = 1
+
+    local minimized = false
+    MinBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        MainFrame:TweenSize(
+            minimized and UDim2.new(0, size.X.Offset, 0, 45) or size,
+            Enum.EasingDirection.Out,
+            Enum.EasingStyle.Quart,
+            0.3,
+            true
+        )
+    end)
+
     -- Container Tab Content
     local Container = Instance.new("Frame", MainFrame)
     Container.BackgroundTransparency = 1
@@ -129,7 +173,7 @@ function CustomLib:CreateWindow(config)
     WelcomeLabel.Size = UDim2.new(1, -36, 1, -4)
     WelcomeLabel.Font = Enum.Font.GothamBold
     WelcomeLabel.Text = "Welcome, " .. tostring(LocalPlayer.DisplayName)
-    WelcomeLabel.TextColor3 = Color3.fromRGB(200, 200, 210) -- Putih keabuan bersih
+    WelcomeLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
     WelcomeLabel.TextSize = 9
     WelcomeLabel.TextXAlignment = Enum.TextXAlignment.Left
     WelcomeLabel.TextWrapped = true
@@ -150,6 +194,14 @@ function CustomLib:CreateWindow(config)
         TabButton.BorderSizePixel = 0
         local BtnCorner = Instance.new("UICorner", TabButton) BtnCorner.CornerRadius = UDim.new(0, 6)
 
+        -- Arrow Indicator Icon (Menggunakan asset id kustom)
+        local ArrowIcon = Instance.new("ImageLabel", TabButton)
+        ArrowIcon.BackgroundTransparency = 1
+        ArrowIcon.Position = UDim2.new(1, -20, 0.5, -7)
+        ArrowIcon.Size = UDim2.new(0, 14, 0, 14)
+        ArrowIcon.Image = CustomLib.Assets.Icons.Arrow
+        ArrowIcon.ImageTransparency = 0.5
+
         local TabContent = Instance.new("ScrollingFrame", Container)
         TabContent.BackgroundTransparency = 1
         TabContent.Size = UDim2.new(1, 0, 1, 0)
@@ -168,7 +220,8 @@ function CustomLib:CreateWindow(config)
         if firstTab then
             TabContent.Visible = true
             TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
-            TabButton.BackgroundColor3 = Color3.fromRGB(45, 45, 58) -- Abu-abu terang netral (ganti ungu)
+            TabButton.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
+            ArrowIcon.ImageTransparency = 0
             firstTab = false
         end
 
@@ -177,13 +230,15 @@ function CustomLib:CreateWindow(config)
                 t.Content.Visible = false
                 t.Button.TextColor3 = Color3.fromRGB(150, 150, 165)
                 t.Button.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                if t.Arrow then t.Arrow.ImageTransparency = 0.5 end
             end
             TabContent.Visible = true
             TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
             TabButton.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
+            ArrowIcon.ImageTransparency = 0
         end)
 
-        table.insert(tabs, {Button = TabButton, Content = TabContent})
+        table.insert(tabs, {Button = TabButton, Content = TabContent, Arrow = ArrowIcon})
 
         local TabAPI = {}
 
@@ -272,7 +327,7 @@ function CustomLib:CreateWindow(config)
                 local state = config.Default == true
                 local function updateVisual(anim)
                     if state then
-                        SwitchBg.BackgroundColor3 = Color3.fromRGB(180, 180, 200) -- Abu terang saat aktif (ganti ungu)
+                        SwitchBg.BackgroundColor3 = Color3.fromRGB(180, 180, 200)
                         Knob.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
                         if anim then TweenService:Create(Knob, TweenInfo.new(0.15), {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
                         else Knob.Position = UDim2.new(1, -18, 0.5, -8) end
@@ -345,7 +400,6 @@ function CustomLib:CreateWindow(config)
                 return iAPI
             end
 
-            -- DROPDOWN: Menggunakan Pop-up Overlay di Layer Atas agar TIDAK KETIMPA
             function ElementAPI:AddDropdown(config)
                 local DropFrame = Instance.new("Frame", parentContainer)
                 DropFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
@@ -377,13 +431,11 @@ function CustomLib:CreateWindow(config)
                 local sbc = Instance.new("UICorner", SelectBtn) sbc.CornerRadius = UDim.new(0, 4)
 
                 SelectBtn.MouseButton1Click:Connect(function()
-                    -- Hapus popup lama jika ada
                     if DropdownOverlayGui:FindFirstChild("ActiveDropdown") then
                         DropdownOverlayGui.ActiveDropdown:Destroy()
                         return
                     end
 
-                    -- Ambil posisi absolut tombol di layar
                     local absPos = SelectBtn.AbsolutePosition
                     local absSize = SelectBtn.AbsoluteSize
 
@@ -466,7 +518,7 @@ function CustomLib:CreateWindow(config)
                 InnerContainer.Position = UDim2.new(0, 0, 0, 35)
                 InnerContainer.Size = UDim2.new(1, 0, 0, 0)
 
-                TheInnerLayout = Instance.new("UIListLayout", InnerContainer)
+                local TheInnerLayout = Instance.new("UIListLayout", InnerContainer)
                 TheInnerLayout.SortOrder = Enum.SortOrder.LayoutOrder
                 TheInnerLayout.Padding = UDim.new(0, 6)
 
