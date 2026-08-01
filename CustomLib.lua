@@ -10,7 +10,7 @@ CustomLib.Assets = {
     Icons = {
         Minimize = "rbxassetid://9886659276",
         Close = "rbxassetid://9886659671",
-        Arrow = "rbxassetid://16851841101" -- Masih disimoan jika diperlukan bagian lain
+        Arrow = "rbxassetid://16851841101" -- Masih disimpan jika diperlukan bagian lain
     }
 }
 
