@@ -202,7 +202,6 @@ function CustomLib:CreateWindow(config)
         TabContent.ScrollBarThickness = 3
         TabContent.Visible = false
 
-        -- Tutup dropdown otomatis jika tab di-scroll untuk menghindari bug posisi
         TabContent:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
             if DropdownOverlayGui:FindFirstChild("ActiveDropdown") then
                 DropdownOverlayGui:ClearAllChildren()
@@ -247,10 +246,9 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddParagraph(config)
                 local ParaFrame = Instance.new("Frame", parentContainer)
-                ParaFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22) -- Sama persis dengan warna background utama UI
+                ParaFrame.BackgroundTransparency = 1
                 ParaFrame.Size = UDim2.new(1, -10, 0, 65)
                 ParaFrame.BorderSizePixel = 0
-                local pbc = Instance.new("UICorner", ParaFrame) pbc.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", ParaFrame)
                 Title.BackgroundTransparency = 1
@@ -280,7 +278,7 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddButton(config)
                 local Btn = Instance.new("TextButton", parentContainer)
-                Btn.BackgroundColor3 = Color3.fromRGB(18, 18, 22) -- Selaras dengan warna UI
+                Btn.BackgroundTransparency = 1
                 Btn.Size = UDim2.new(1, -10, 0, 35)
                 Btn.Font = Enum.Font.GothamBold
                 Btn.Text = config.Title or "Button"
@@ -289,6 +287,7 @@ function CustomLib:CreateWindow(config)
                 Btn.TextXAlignment = Enum.TextXAlignment.Center
                 Btn.BorderSizePixel = 0
                 local bc = Instance.new("UICorner", Btn) bc.CornerRadius = UDim.new(0, 6)
+                local bs = Instance.new("UIStroke", Btn) bs.Color = Color3.fromRGB(45, 45, 55) bs.Thickness = 1
 
                 Btn.MouseButton1Click:Connect(function()
                     if config.Callback then pcall(config.Callback) end
@@ -297,10 +296,9 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddToggle(config)
                 local ToggleFrame = Instance.new("Frame", parentContainer)
-                ToggleFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22) -- Selaras dengan warna UI
+                ToggleFrame.BackgroundTransparency = 1
                 ToggleFrame.Size = UDim2.new(1, -10, 0, 35)
                 ToggleFrame.BorderSizePixel = 0
-                local tc = Instance.new("UICorner", ToggleFrame) tc.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", ToggleFrame)
                 Title.BackgroundTransparency = 1
@@ -362,10 +360,9 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddInput(config)
                 local InputFrame = Instance.new("Frame", parentContainer)
-                InputFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22) -- Selaras dengan warna UI
+                InputFrame.BackgroundTransparency = 1
                 InputFrame.Size = UDim2.new(1, -10, 0, 35)
                 InputFrame.BorderSizePixel = 0
-                local ic = Instance.new("UICorner", InputFrame) ic.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", InputFrame)
                 Title.BackgroundTransparency = 1
@@ -377,7 +374,6 @@ function CustomLib:CreateWindow(config)
                 Title.TextSize = 13
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Tanpa kotak (BackgroundTransparency = 1), menyatu rata dengan warna baris
                 local TextBox = Instance.new("TextBox", InputFrame)
                 TextBox.BackgroundTransparency = 1
                 TextBox.Position = UDim2.new(0.5, 0, 0.5, -11)
@@ -402,10 +398,9 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddDropdown(config)
                 local DropFrame = Instance.new("Frame", parentContainer)
-                DropFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22) -- Selaras dengan warna UI
+                DropFrame.BackgroundTransparency = 1
                 DropFrame.Size = UDim2.new(1, -10, 0, 35)
                 DropFrame.BorderSizePixel = 0
-                local dc = Instance.new("UICorner", DropFrame) dc.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", DropFrame)
                 Title.BackgroundTransparency = 1
@@ -417,7 +412,6 @@ function CustomLib:CreateWindow(config)
                 Title.TextSize = 13
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Tanpa kotak (BackgroundTransparency = 1), menyatu rata tanpa border
                 local SelectBtn = Instance.new("TextButton", DropFrame)
                 SelectBtn.BackgroundTransparency = 1
                 SelectBtn.Position = UDim2.new(0.5, 0, 0.5, -11)
@@ -440,17 +434,17 @@ function CustomLib:CreateWindow(config)
 
                 SelectBtn.MouseButton1Click:Connect(function()
                     if DropdownOverlayGui:FindFirstChild("ActiveDropdown") then
-                        DropdownOverlayGui.ActiveDropdown:Destroy()
+                        DropdownOverlayGui:Destroy() -- or clear children
+                        DropdownOverlayGui:ClearAllChildren()
                         return
                     end
 
                     local absPos = SelectBtn.AbsolutePosition
                     local absSize = SelectBtn.AbsoluteSize
 
-                    -- Warna background popup disamakan persis dengan latar belakang UI
                     local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
                     PopFrame.Name = "ActiveDropdown"
-                    PopFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+                    PopFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
                     PopFrame.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 4)
                     PopFrame.Size = UDim2.new(0, absSize.X, 0, math.min(#(config.Values or {}) * 26, 130))
                     PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 26)
@@ -498,11 +492,10 @@ function CustomLib:CreateWindow(config)
                 defaultOpen = defaultOpen ~= false
 
                 local SectionFrame = Instance.new("Frame", parentContainer)
-                SectionFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22) -- Selaras dengan warna UI
+                SectionFrame.BackgroundTransparency = 1
                 SectionFrame.Size = UDim2.new(1, -10, 0, 35)
                 SectionFrame.BorderSizePixel = 0
                 SectionFrame.ClipsDescendants = true
-                local sc = Instance.new("UICorner", SectionFrame) sc.CornerRadius = UDim.new(0, 6)
 
                 local HeaderBtn = Instance.new("TextButton", SectionFrame)
                 HeaderBtn.BackgroundTransparency = 1
