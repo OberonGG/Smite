@@ -13,11 +13,21 @@ function CustomLib:CreateWindow(config)
     if CoreGui:FindFirstChild("CustomLibGui") then
         CoreGui.CustomLibGui:Destroy()
     end
+    if CoreGui:FindFirstChild("CustomLibDropdownOverlay") then
+        CoreGui.CustomLibDropdownOverlay:Destroy()
+    end
 
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "CustomLibGui"
     ScreenGui.Parent = CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    -- ScreenGui khusus overlay dropdown agar tidak pernah ketimpa elemen lain
+    local DropdownOverlayGui = Instance.new("ScreenGui")
+    DropdownOverlayGui.Name = "CustomLibDropdownOverlay"
+    DropdownOverlayGui.Parent = CoreGui
+    DropdownOverlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    DropdownOverlayGui.DisplayOrder = 999 -- Pastikan selalu di lapisan paling atas layar
 
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Name = "MainFrame"
@@ -30,7 +40,7 @@ function CustomLib:CreateWindow(config)
     MainCorner.CornerRadius = UDim.new(0, 8)
 
     local MainStroke = Instance.new("UIStroke", MainFrame)
-    MainStroke.Color = Color3.fromRGB(45, 45, 55)
+    MainStroke.Color = Color3.fromRGB(50, 50, 60)
     MainStroke.Thickness = 1.5
 
     -- Draggable Logic
@@ -94,9 +104,9 @@ function CustomLib:CreateWindow(config)
         Sidebar.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
     end)
 
-    -- User Info Card
+    -- User Info Card (Nuansa abu keputihan, netral)
     local UserCard = Instance.new("Frame", MainFrame)
-    UserCard.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+    UserCard.BackgroundColor3 = Color3.fromRGB(25, 25, 32)
     UserCard.Position = UDim2.new(0, 10, 1, -45)
     UserCard.Size = UDim2.new(0, 120, 0, 35)
     UserCard.BorderSizePixel = 0
@@ -119,7 +129,7 @@ function CustomLib:CreateWindow(config)
     WelcomeLabel.Size = UDim2.new(1, -36, 1, -4)
     WelcomeLabel.Font = Enum.Font.GothamBold
     WelcomeLabel.Text = "Welcome, " .. tostring(LocalPlayer.DisplayName)
-    WelcomeLabel.TextColor3 = Color3.fromRGB(180, 180, 195)
+    WelcomeLabel.TextColor3 = Color3.fromRGB(200, 200, 210) -- Putih keabuan bersih
     WelcomeLabel.TextSize = 9
     WelcomeLabel.TextXAlignment = Enum.TextXAlignment.Left
     WelcomeLabel.TextWrapped = true
@@ -130,11 +140,11 @@ function CustomLib:CreateWindow(config)
 
     function Window:AddTab(tabName)
         local TabButton = Instance.new("TextButton", Sidebar)
-        TabButton.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+        TabButton.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
         TabButton.Size = UDim2.new(1, 0, 0, 30)
         TabButton.Font = Enum.Font.GothamBold
         TabButton.Text = "  " .. tabName
-        TabButton.TextColor3 = Color3.fromRGB(160, 160, 175)
+        TabButton.TextColor3 = Color3.fromRGB(150, 150, 165)
         TabButton.TextSize = 12
         TabButton.TextXAlignment = Enum.TextXAlignment.Left
         TabButton.BorderSizePixel = 0
@@ -157,20 +167,20 @@ function CustomLib:CreateWindow(config)
 
         if firstTab then
             TabContent.Visible = true
-            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TabButton.BackgroundColor3 = Color3.fromRGB(60, 45, 95)
+            TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
+            TabButton.BackgroundColor3 = Color3.fromRGB(45, 45, 58) -- Abu-abu terang netral (ganti ungu)
             firstTab = false
         end
 
         TabButton.MouseButton1Click:Connect(function()
             for _, t in pairs(tabs) do
                 t.Content.Visible = false
-                t.Button.TextColor3 = Color3.fromRGB(160, 160, 175)
-                t.Button.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+                t.Button.TextColor3 = Color3.fromRGB(150, 150, 165)
+                t.Button.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
             end
             TabContent.Visible = true
-            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            TabButton.BackgroundColor3 = Color3.fromRGB(60, 45, 95)
+            TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
+            TabButton.BackgroundColor3 = Color3.fromRGB(45, 45, 58)
         end)
 
         table.insert(tabs, {Button = TabButton, Content = TabContent})
@@ -203,7 +213,7 @@ function CustomLib:CreateWindow(config)
                 Desc.Size = UDim2.new(1, -24, 0, 30)
                 Desc.Font = Enum.Font.GothamBold
                 Desc.Text = config.Content or "Content"
-                Desc.TextColor3 = Color3.fromRGB(190, 190, 205)
+                Desc.TextColor3 = Color3.fromRGB(180, 180, 195)
                 Desc.TextSize = 12
                 Desc.TextXAlignment = Enum.TextXAlignment.Left
                 Desc.TextWrapped = true
@@ -248,13 +258,13 @@ function CustomLib:CreateWindow(config)
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
                 local SwitchBg = Instance.new("Frame", ToggleFrame)
-                SwitchBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                SwitchBg.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
                 SwitchBg.Position = UDim2.new(1, -45, 0.5, -10)
                 SwitchBg.Size = UDim2.new(0, 36, 0, 20)
                 local sbc = Instance.new("UICorner", SwitchBg) sbc.CornerRadius = UDim.new(1, 0)
 
                 local Knob = Instance.new("Frame", SwitchBg)
-                Knob.BackgroundColor3 = Color3.fromRGB(200, 200, 210)
+                Knob.BackgroundColor3 = Color3.fromRGB(220, 220, 230)
                 Knob.Position = UDim2.new(0, 2, 0.5, -8)
                 Knob.Size = UDim2.new(0, 16, 0, 16)
                 local kc = Instance.new("UICorner", Knob) kc.CornerRadius = UDim.new(1, 0)
@@ -262,11 +272,13 @@ function CustomLib:CreateWindow(config)
                 local state = config.Default == true
                 local function updateVisual(anim)
                     if state then
-                        SwitchBg.BackgroundColor3 = Color3.fromRGB(80, 50, 160)
+                        SwitchBg.BackgroundColor3 = Color3.fromRGB(180, 180, 200) -- Abu terang saat aktif (ganti ungu)
+                        Knob.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
                         if anim then TweenService:Create(Knob, TweenInfo.new(0.15), {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
                         else Knob.Position = UDim2.new(1, -18, 0.5, -8) end
                     else
-                        SwitchBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+                        SwitchBg.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+                        Knob.BackgroundColor3 = Color3.fromRGB(220, 220, 230)
                         if anim then TweenService:Create(Knob, TweenInfo.new(0.15), {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
                         else Knob.Position = UDim2.new(0, 2, 0.5, -8) end
                     end
@@ -296,7 +308,7 @@ function CustomLib:CreateWindow(config)
             function ElementAPI:AddInput(config)
                 local InputFrame = Instance.new("Frame", parentContainer)
                 InputFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
-                InputFrame.Size = UDim2.new(1, -10, 0, 35) -- Dibuat sebaris kompak ala Meng Hub
+                InputFrame.Size = UDim2.new(1, -10, 0, 35)
                 InputFrame.BorderSizePixel = 0
                 local ic = Instance.new("UICorner", InputFrame) ic.CornerRadius = UDim.new(0, 6)
 
@@ -316,10 +328,11 @@ function CustomLib:CreateWindow(config)
                 TextBox.Size = UDim2.new(0.5, -12, 0, 22)
                 TextBox.Font = Enum.Font.GothamBold
                 TextBox.Text = config.Default or ""
-                TextBox.PlaceholderText = config.Placeholder or ""
+                TextBox.PlaceholderText = config.Placeholder or "Select Option"
                 TextBox.TextColor3 = Color3.fromRGB(240, 240, 250)
                 TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 135)
                 TextBox.TextSize = 12
+                TextBox.TextXAlignment = Enum.TextXAlignment.Center
                 TextBox.BorderSizePixel = 0
                 local tbc = Instance.new("UICorner", TextBox) tbc.CornerRadius = UDim.new(0, 4)
 
@@ -332,13 +345,12 @@ function CustomLib:CreateWindow(config)
                 return iAPI
             end
 
-            -- DROPDOWN: Style Sejajar Horizontal Kiri-Kanan ala Meng Hub
+            -- DROPDOWN: Menggunakan Pop-up Overlay di Layer Atas agar TIDAK KETIMPA
             function ElementAPI:AddDropdown(config)
                 local DropFrame = Instance.new("Frame", parentContainer)
                 DropFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
-                DropFrame.Size = UDim2.new(1, -10, 0, 35) -- Kompak sebaris
+                DropFrame.Size = UDim2.new(1, -10, 0, 35)
                 DropFrame.BorderSizePixel = 0
-                DropFrame.ClipsDescendants = false
                 local dc = Instance.new("UICorner", DropFrame) dc.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", DropFrame)
@@ -356,76 +368,67 @@ function CustomLib:CreateWindow(config)
                 SelectBtn.Position = UDim2.new(0.5, 0, 0.5, -11)
                 SelectBtn.Size = UDim2.new(0.5, -12, 0, 22)
                 SelectBtn.Font = Enum.Font.GothamBold
-                local selectedVal = config.Values and config.Values[config.Default or 1] or ""
-                SelectBtn.Text = tostring(selectedVal)
+                local selectedVal = (config.Values and config.Values[config.Default or 1]) or "Select Option"
+                SelectBtn.Text = tostring(selectedVal) .. "  v"
                 SelectBtn.TextColor3 = Color3.fromRGB(240, 240, 250)
                 SelectBtn.TextSize = 12
                 SelectBtn.TextXAlignment = Enum.TextXAlignment.Center
                 SelectBtn.BorderSizePixel = 0
                 local sbc = Instance.new("UICorner", SelectBtn) sbc.CornerRadius = UDim.new(0, 4)
 
-                local ListFrame = Instance.new("ScrollingFrame", DropFrame)
-                ListFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-                ListFrame.Position = UDim2.new(0.5, 0, 1, 4)
-                ListFrame.Size = UDim2.new(0.5, -12, 0, 0)
-                ListFrame.CanvasSize = UDim2.new(0,0,0,0)
-                ListFrame.ScrollBarThickness = 2
-                ListFrame.Visible = false
-                ListFrame.ZIndex = 25
-                local lfc = Instance.new("UICorner", ListFrame) lfc.CornerRadius = UDim.new(0, 4)
-
-                local listLayout = Instance.new("UIListLayout", ListFrame)
-                listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-                local isOpen = false
-                local function rebuildList(values)
-                    for _, ch in ipairs(ListFrame:GetChildren()) do
-                        if ch:IsA("TextButton") then ch:Destroy() end
+                SelectBtn.MouseButton1Click:Connect(function()
+                    -- Hapus popup lama jika ada
+                    if DropdownOverlayGui:FindFirstChild("ActiveDropdown") then
+                        DropdownOverlayGui.ActiveDropdown:Destroy()
+                        return
                     end
-                    for _, val in ipairs(values) do
-                        local optBtn = Instance.new("TextButton", ListFrame)
-                        optBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-                        optBtn.Size = UDim2.new(1, 0, 0, 25)
+
+                    -- Ambil posisi absolut tombol di layar
+                    local absPos = SelectBtn.AbsolutePosition
+                    local absSize = SelectBtn.AbsoluteSize
+
+                    local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
+                    PopFrame.Name = "ActiveDropdown"
+                    PopFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                    PopFrame.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 4)
+                    PopFrame.Size = UDim2.new(0, absSize.X, 0, math.min(#(config.Values or {}) * 26, 130))
+                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 26)
+                    PopFrame.ScrollBarThickness = 2
+                    PopFrame.BorderSizePixel = 0
+                    local pfc = Instance.new("UICorner", PopFrame) pfc.CornerRadius = UDim.new(0, 4)
+                    local pfs = Instance.new("UIStroke", PopFrame) pfs.Color = Color3.fromRGB(60, 60, 75) pfs.Thickness = 1
+
+                    local popLayout = Instance.new("UIListLayout", PopFrame)
+                    popLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+                    for _, val in ipairs(config.Values or {}) do
+                        local optBtn = Instance.new("TextButton", PopFrame)
+                        optBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                        optBtn.Size = UDim2.new(1, 0, 0, 26)
                         optBtn.Font = Enum.Font.GothamBold
                         optBtn.Text = tostring(val)
                         optBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
                         optBtn.TextSize = 12
                         optBtn.TextXAlignment = Enum.TextXAlignment.Center
                         optBtn.BorderSizePixel = 0
-                        optBtn.ZIndex = 26
 
                         optBtn.MouseButton1Click:Connect(function()
                             selectedVal = val
-                            SelectBtn.Text = tostring(val)
-                            isOpen = false
-                            ListFrame.Visible = false
+                            SelectBtn.Text = tostring(val) .. "  v"
+                            DropdownOverlayGui:ClearAllChildren()
                             if config.Callback then pcall(config.Callback, val) end
                         end)
-                    end
-                    ListFrame.CanvasSize = UDim2.new(0,0,0, #values * 25)
-                end
-                rebuildList(config.Values or {})
-
-                SelectBtn.MouseButton1Click:Connect(function()
-                    isOpen = not isOpen
-                    ListFrame.Visible = isOpen
-                    if isOpen then
-                        local h = math.min(#(config.Values or {}) * 25, 120)
-                        ListFrame.Size = UDim2.new(0.5, -12, 0, h)
-                    else
-                        ListFrame.Size = UDim2.new(0.5, -12, 0, 0)
                     end
                 end)
 
                 local dAPI = {}
                 function dAPI:SetValue(val)
                     selectedVal = val
-                    SelectBtn.Text = tostring(val)
+                    SelectBtn.Text = tostring(val) .. "  v"
                     if config.Callback then pcall(config.Callback, val) end
                 end
                 function dAPI:SetValues(newVals)
                     config.Values = newVals
-                    rebuildList(newVals)
                 end
                 return dAPI
             end
@@ -463,14 +466,14 @@ function CustomLib:CreateWindow(config)
                 InnerContainer.Position = UDim2.new(0, 0, 0, 35)
                 InnerContainer.Size = UDim2.new(1, 0, 0, 0)
 
-                local InnerLayout = Instance.new("UIListLayout", InnerContainer)
-                InnerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-                InnerLayout.Padding = UDim.new(0, 6)
+                TheInnerLayout = Instance.new("UIListLayout", InnerContainer)
+                TheInnerLayout.SortOrder = Enum.SortOrder.LayoutOrder
+                TheInnerLayout.Padding = UDim.new(0, 6)
 
                 local isOpen = defaultOpen
 
                 local function updateSize()
-                    local contentHeight = InnerLayout.AbsoluteContentSize.Y + 10
+                    local contentHeight = TheInnerLayout.AbsoluteContentSize.Y + 10
                     if isOpen then
                         InnerContainer.Size = UDim2.new(1, 0, 0, contentHeight)
                         SectionFrame.Size = UDim2.new(1, -10, 0, 35 + contentHeight)
@@ -482,7 +485,7 @@ function CustomLib:CreateWindow(config)
                     end
                 end
 
-                InnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+                TheInnerLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
                     if isOpen then updateSize() end
                 end)
 
