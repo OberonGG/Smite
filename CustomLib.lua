@@ -5,12 +5,12 @@ local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- Assets Configuration Table (Menggunakan Asset ID Arrow dan Window Control kustom)
+-- Assets Configuration Table (Hanya untuk Minimize dan Close pada Top Bar)
 CustomLib.Assets = {
     Icons = {
         Minimize = "rbxassetid://9886659276",
         Close = "rbxassetid://9886659671",
-        Arrow = "rbxassetid://16851841101"
+        Arrow = "rbxassetid://16851841101" -- Masih disimoan jika diperlukan bagian lain
     }
 }
 
@@ -194,13 +194,7 @@ function CustomLib:CreateWindow(config)
         TabButton.BorderSizePixel = 0
         local BtnCorner = Instance.new("UICorner", TabButton) BtnCorner.CornerRadius = UDim.new(0, 6)
 
-        -- Arrow Indicator di Sidebar (di sebelah kanan)
-        local ArrowIcon = Instance.new("ImageLabel", TabButton)
-        ArrowIcon.BackgroundTransparency = 1
-        ArrowIcon.Position = UDim2.new(1, -20, 0.5, -7)
-        ArrowIcon.Size = UDim2.new(0, 14, 0, 14)
-        ArrowIcon.Image = CustomLib.Assets.Icons.Arrow
-        ArrowIcon.ImageTransparency = 0.5
+        -- Ikon panah pada sidebar telah dihapus sesuai permintaan (tanda hijau)
 
         local TabContent = Instance.new("ScrollingFrame", Container)
         TabContent.BackgroundTransparency = 1
@@ -221,7 +215,6 @@ function CustomLib:CreateWindow(config)
             TabContent.Visible = true
             TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
             TabButton.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-            ArrowIcon.ImageTransparency = 0
             firstTab = false
         end
 
@@ -230,15 +223,13 @@ function CustomLib:CreateWindow(config)
                 t.Content.Visible = false
                 t.Button.TextColor3 = Color3.fromRGB(150, 150, 165)
                 t.Button.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
-                if t.Arrow then t.Arrow.ImageTransparency = 0.5 end
             end
             TabContent.Visible = true
             TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
             TabButton.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-            ArrowIcon.ImageTransparency = 0
         end)
 
-        table.insert(tabs, {Button = TabButton, Content = TabContent, Arrow = ArrowIcon})
+        table.insert(tabs, {Button = TabButton, Content = TabContent})
 
         local TabAPI = {}
 
@@ -377,9 +368,9 @@ function CustomLib:CreateWindow(config)
                 Title.TextSize = 13
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Input Box tidak kaku (menyatu menyamarkan background abu-abu halus)
+                -- Warna diselaraskan seragam (Color3.fromRGB(26, 26, 34))
                 local TextBox = Instance.new("TextBox", InputFrame)
-                TextBox.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+                TextBox.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
                 TextBox.Position = UDim2.new(0.5, 0, 0.5, -11)
                 TextBox.Size = UDim2.new(0.5, -12, 0, 22)
                 TextBox.Font = Enum.Font.GothamBold
@@ -418,14 +409,13 @@ function CustomLib:CreateWindow(config)
                 Title.TextSize = 13
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Dropdown Button tidak kotak kaku, menyatu dengan warna tema
+                -- Warna diselaraskan seragam (Color3.fromRGB(26, 26, 34))
                 local SelectBtn = Instance.new("TextButton", DropFrame)
-                SelectBtn.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+                SelectBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
                 SelectBtn.Position = UDim2.new(0.5, 0, 0.5, -11)
                 SelectBtn.Size = UDim2.new(0.5, -12, 0, 22)
                 SelectBtn.Font = Enum.Font.GothamBold
                 
-                -- Default teks diubah menjadi "Select Option" jika tidak ditentukan
                 local selectedVal = config.DefaultValue or "Select Option"
                 SelectBtn.Text = tostring(selectedVal)
                 SelectBtn.TextColor3 = Color3.fromRGB(210, 210, 220)
@@ -434,7 +424,6 @@ function CustomLib:CreateWindow(config)
                 SelectBtn.BorderSizePixel = 0
                 local sbc = Instance.new("UICorner", SelectBtn) sbc.CornerRadius = UDim.new(0, 4)
 
-                -- Arrow Indicator pada tombol Dropdown (di sebelah kanan)
                 local DropArrow = Instance.new("ImageLabel", SelectBtn)
                 DropArrow.BackgroundTransparency = 1
                 DropArrow.Position = UDim2.new(1, -18, 0.5, -6)
@@ -451,9 +440,10 @@ function CustomLib:CreateWindow(config)
                     local absPos = SelectBtn.AbsolutePosition
                     local absSize = SelectBtn.AbsoluteSize
 
+                    -- Warna background popup dropdown disamakan persis (Color3.fromRGB(26, 26, 34))
                     local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
                     PopFrame.Name = "ActiveDropdown"
-                    PopFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+                    PopFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
                     PopFrame.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 4)
                     PopFrame.Size = UDim2.new(0, absSize.X, 0, math.min(#(config.Values or {}) * 26, 130))
                     PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 26)
@@ -467,11 +457,11 @@ function CustomLib:CreateWindow(config)
 
                     for _, val in ipairs(config.Values or {}) do
                         local optBtn = Instance.new("TextButton", PopFrame)
-                        optBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
+                        optBtn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
                         optBtn.Size = UDim2.new(1, 0, 0, 26)
                         optBtn.Font = Enum.Font.GothamBold
                         optBtn.Text = tostring(val)
-                        optBtn.TextColor3 = Color3.fromRGB(190, 190, 205)
+                        optBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
                         optBtn.TextSize = 12
                         optBtn.TextXAlignment = Enum.TextXAlignment.Center
                         optBtn.BorderSizePixel = 0
@@ -516,7 +506,6 @@ function CustomLib:CreateWindow(config)
                 HeaderBtn.TextSize = 13
                 HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Arrow Indicator pada Accordion Section (di sebelah kanan)
                 local SectionArrow = Instance.new("ImageLabel", HeaderBtn)
                 SectionArrow.BackgroundTransparency = 1
                 SectionArrow.Position = UDim2.new(1, -26, 0.5, -7)
