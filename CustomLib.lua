@@ -127,7 +127,7 @@ function CustomLib:CreateWindow(config)
         end
     end)
 
-    -- Container Tab Content (Dibuat Full ke Kanan tanpa sisa)
+    -- Container Tab Content
     local Container = Instance.new("Frame", MainFrame)
     Container.BackgroundTransparency = 1
     Container.Position = UDim2.new(0, 140, 0, 45)
@@ -276,7 +276,6 @@ function CustomLib:CreateWindow(config)
                 return f
             end
 
-            -- Tombol dengan box background tersendiri agar terlihat jelas sebagai Button
             function ElementAPI:AddButton(config)
                 local Btn = Instance.new("TextButton", parentContainer)
                 Btn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
@@ -439,6 +438,17 @@ function CustomLib:CreateWindow(config)
                         return
                     end
 
+                    -- Tombol transparan penuh untuk menangkap klik di luar dropdown agar tertutup otomatis
+                    local OutsideClick = Instance.new("TextButton", DropdownOverlayGui)
+                    OutsideClick.Name = "OutsideClick"
+                    OutsideClick.Size = UDim2.new(1, 0, 1, 0)
+                    OutsideClick.BackgroundTransparency = 1
+                    OutsideClick.Text = ""
+                    OutsideClick.ZIndex = 998
+                    OutsideClick.MouseButton1Click:Connect(function()
+                        DropdownOverlayGui:ClearAllChildren()
+                    end)
+
                     local absPos = SelectBtn.AbsolutePosition
                     local absSize = SelectBtn.AbsoluteSize
 
@@ -450,6 +460,7 @@ function CustomLib:CreateWindow(config)
                     PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 26)
                     PopFrame.ScrollBarThickness = 2
                     PopFrame.BorderSizePixel = 0
+                    PopFrame.ZIndex = 999
                     local pfc = Instance.new("UICorner", PopFrame) pfc.CornerRadius = UDim.new(0, 4)
                     local pfs = Instance.new("UIStroke", PopFrame) pfs.Color = Color3.fromRGB(45, 45, 55) pfs.Thickness = 1
 
@@ -466,6 +477,7 @@ function CustomLib:CreateWindow(config)
                         optBtn.TextSize = 13
                         optBtn.TextXAlignment = Enum.TextXAlignment.Center
                         optBtn.BorderSizePixel = 0
+                        optBtn.ZIndex = 1000
 
                         optBtn.MouseButton1Click:Connect(function()
                             selectedVal = val
