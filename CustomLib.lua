@@ -36,9 +36,10 @@ function CustomLib:CreateWindow(config)
     DropdownOverlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     DropdownOverlayGui.DisplayOrder = 999
 
+    -- Background Utama diubah menjadi Hitam Absolut (0, 0, 0)
     local MainFrame = Instance.new("Frame", ScreenGui)
     MainFrame.Name = "MainFrame"
-    MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     MainFrame.Position = UDim2.new(0.5, -size.X.Offset/2, 0.5, -size.Y.Offset/2)
     MainFrame.Size = size
     MainFrame.BorderSizePixel = 0
@@ -210,7 +211,7 @@ function CustomLib:CreateWindow(config)
 
         local ContentLayout = Instance.new("UIListLayout", TabContent)
         ContentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        ContentLayout.Padding = UDim.new(0, 8)
+        ContentLayout.Padding = UDim.new(0, 6)
 
         ContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             TabContent.CanvasSize = UDim2.new(0, 0, 0, ContentLayout.AbsoluteContentSize.Y + 10)
@@ -244,16 +245,19 @@ function CustomLib:CreateWindow(config)
         local function createElementAPI(parentContainer)
             local ElementAPI = {}
 
+            -- Warna isi tab dibuat agak keabuan (Color3.fromRGB(26, 26, 34)) agar kontras dengan hitam absolut
             function ElementAPI:AddParagraph(config)
                 local ParaFrame = Instance.new("Frame", parentContainer)
-                ParaFrame.BackgroundTransparency = 1
+                ParaFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                ParaFrame.BackgroundTransparency = 0
                 ParaFrame.Size = UDim2.new(1, 0, 0, 65)
                 ParaFrame.BorderSizePixel = 0
+                local pcorner = Instance.new("UICorner", ParaFrame) pcorner.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", ParaFrame)
                 Title.BackgroundTransparency = 1
-                Title.Position = UDim2.new(0, 5, 0, 8)
-                Title.Size = UDim2.new(1, -10, 0, 20)
+                Title.Position = UDim2.new(0, 10, 0, 8)
+                Title.Size = UDim2.new(1, -20, 0, 20)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Title"
                 Title.TextColor3 = Color3.fromRGB(230, 230, 240)
@@ -262,8 +266,8 @@ function CustomLib:CreateWindow(config)
 
                 local Desc = Instance.new("TextLabel", ParaFrame)
                 Desc.BackgroundTransparency = 1
-                Desc.Position = UDim2.new(0, 5, 0, 28)
-                Desc.Size = UDim2.new(1, -10, 0, 30)
+                Desc.Position = UDim2.new(0, 10, 0, 28)
+                Desc.Size = UDim2.new(1, -20, 0, 30)
                 Desc.Font = Enum.Font.GothamBold
                 Desc.Text = config.Content or "Content"
                 Desc.TextColor3 = Color3.fromRGB(160, 160, 175)
@@ -278,7 +282,7 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddButton(config)
                 local Btn = Instance.new("TextButton", parentContainer)
-                Btn.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                Btn.BackgroundColor3 = Color3.fromRGB(32, 32, 42)
                 Btn.Size = UDim2.new(1, 0, 0, 36)
                 Btn.Font = Enum.Font.GothamBold
                 Btn.Text = config.Title or "Button"
@@ -296,14 +300,16 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddToggle(config)
                 local ToggleFrame = Instance.new("Frame", parentContainer)
-                ToggleFrame.BackgroundTransparency = 1
+                ToggleFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                ToggleFrame.BackgroundTransparency = 0
                 ToggleFrame.Size = UDim2.new(1, 0, 0, 35)
                 ToggleFrame.BorderSizePixel = 0
+                local tcorner = Instance.new("UICorner", ToggleFrame) tcorner.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", ToggleFrame)
                 Title.BackgroundTransparency = 1
-                Title.Position = UDim2.new(0, 5, 0, 0)
-                Title.Size = UDim2.new(1, -50, 1, 0)
+                Title.Position = UDim2.new(0, 10, 0, 0)
+                Title.Size = UDim2.new(1, -55, 1, 0)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Toggle"
                 Title.TextColor3 = Color3.fromRGB(210, 210, 220)
@@ -311,8 +317,8 @@ function CustomLib:CreateWindow(config)
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
                 local SwitchBg = Instance.new("Frame", ToggleFrame)
-                SwitchBg.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-                SwitchBg.Position = UDim2.new(1, -36, 0.5, -10)
+                SwitchBg.BackgroundColor3 = Color3.fromRGB(42, 42, 54)
+                SwitchBg.Position = UDim2.new(1, -42, 0.5, -10)
                 SwitchBg.Size = UDim2.new(0, 36, 0, 20)
                 local sbc = Instance.new("UICorner", SwitchBg) sbc.CornerRadius = UDim.new(1, 0)
 
@@ -330,7 +336,7 @@ function CustomLib:CreateWindow(config)
                         if anim then TweenService:Create(Knob, TweenInfo.new(0.15), {Position = UDim2.new(1, -18, 0.5, -8)}):Play()
                         else Knob.Position = UDim2.new(1, -18, 0.5, -8) end
                     else
-                        SwitchBg.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
+                        SwitchBg.BackgroundColor3 = Color3.fromRGB(42, 42, 54)
                         Knob.BackgroundColor3 = Color3.fromRGB(180, 180, 195)
                         if anim then TweenService:Create(Knob, TweenInfo.new(0.15), {Position = UDim2.new(0, 2, 0.5, -8)}):Play()
                         else Knob.Position = UDim2.new(0, 2, 0.5, -8) end
@@ -360,13 +366,15 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddInput(config)
                 local InputFrame = Instance.new("Frame", parentContainer)
-                InputFrame.BackgroundTransparency = 1
+                InputFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                InputFrame.BackgroundTransparency = 0
                 InputFrame.Size = UDim2.new(1, 0, 0, 35)
                 InputFrame.BorderSizePixel = 0
+                local icorner = Instance.new("UICorner", InputFrame) icorner.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", InputFrame)
                 Title.BackgroundTransparency = 1
-                Title.Position = UDim2.new(0, 5, 0, 0)
+                Title.Position = UDim2.new(0, 10, 0, 0)
                 Title.Size = UDim2.new(0.5, 0, 1, 0)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Input"
@@ -377,7 +385,7 @@ function CustomLib:CreateWindow(config)
                 local TextBox = Instance.new("TextBox", InputFrame)
                 TextBox.BackgroundTransparency = 1
                 TextBox.Position = UDim2.new(0.5, 0, 0.5, -11)
-                TextBox.Size = UDim2.new(0.5, 0, 0, 22)
+                TextBox.Size = UDim2.new(0.5, -10, 0, 22)
                 TextBox.Font = Enum.Font.GothamBold
                 TextBox.Text = config.Default or ""
                 TextBox.PlaceholderText = config.Placeholder or "Select Option"
@@ -398,13 +406,15 @@ function CustomLib:CreateWindow(config)
 
             function ElementAPI:AddDropdown(config)
                 local DropFrame = Instance.new("Frame", parentContainer)
-                DropFrame.BackgroundTransparency = 1
+                DropFrame.BackgroundColor3 = Color3.fromRGB(26, 26, 34)
+                DropFrame.BackgroundTransparency = 0
                 DropFrame.Size = UDim2.new(1, 0, 0, 35)
                 DropFrame.BorderSizePixel = 0
+                local dcorner = Instance.new("UICorner", DropFrame) dcorner.CornerRadius = UDim.new(0, 6)
 
                 local Title = Instance.new("TextLabel", DropFrame)
                 Title.BackgroundTransparency = 1
-                Title.Position = UDim2.new(0, 5, 0, 0)
+                Title.Position = UDim2.new(0, 10, 0, 0)
                 Title.Size = UDim2.new(0.5, 0, 1, 0)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Dropdown"
@@ -415,22 +425,15 @@ function CustomLib:CreateWindow(config)
                 local SelectBtn = Instance.new("TextButton", DropFrame)
                 SelectBtn.BackgroundTransparency = 1
                 SelectBtn.Position = UDim2.new(0.5, 0, 0.5, -11)
-                SelectBtn.Size = UDim2.new(0.5, 0, 0, 22)
+                SelectBtn.Size = UDim2.new(0.5, -10, 0, 22)
                 SelectBtn.Font = Enum.Font.GothamBold
                 
                 local selectedVal = config.DefaultValue or "Select Option"
-                SelectBtn.Text = tostring(selectedVal) .. "   "
+                SelectBtn.Text = tostring(selectedVal)
                 SelectBtn.TextColor3 = Color3.fromRGB(210, 210, 220)
                 SelectBtn.TextSize = 13
                 SelectBtn.TextXAlignment = Enum.TextXAlignment.Right
                 SelectBtn.BorderSizePixel = 0
-
-                local DropArrow = Instance.new("ImageLabel", SelectBtn)
-                DropArrow.BackgroundTransparency = 1
-                DropArrow.Position = UDim2.new(1, -12, 0.5, -6)
-                DropArrow.Size = UDim2.new(0, 12, 0, 12)
-                DropArrow.Image = CustomLib.Assets.Icons.Arrow
-                DropArrow.ImageTransparency = 0.4
 
                 SelectBtn.MouseButton1Click:Connect(function()
                     if DropdownOverlayGui:FindFirstChild("ActiveDropdown") then
@@ -438,7 +441,6 @@ function CustomLib:CreateWindow(config)
                         return
                     end
 
-                    -- Tombol transparan penuh untuk menangkap klik di luar dropdown agar tertutup otomatis
                     local OutsideClick = Instance.new("TextButton", DropdownOverlayGui)
                     OutsideClick.Name = "OutsideClick"
                     OutsideClick.Size = UDim2.new(1, 0, 1, 0)
@@ -454,15 +456,15 @@ function CustomLib:CreateWindow(config)
 
                     local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
                     PopFrame.Name = "ActiveDropdown"
-                    PopFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 30)
+                    PopFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
                     PopFrame.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 4)
-                    PopFrame.Size = UDim2.new(0, absSize.X, 0, math.min(#(config.Values or {}) * 26, 130))
-                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 26)
+                    PopFrame.Size = UDim2.new(0, absSize.X, 0, math.min(#(config.Values or {}) * 28, 130))
+                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 28)
                     PopFrame.ScrollBarThickness = 2
                     PopFrame.BorderSizePixel = 0
                     PopFrame.ZIndex = 999
-                    local pfc = Instance.new("UICorner", PopFrame) pfc.CornerRadius = UDim.new(0, 4)
-                    local pfs = Instance.new("UIStroke", PopFrame) pfs.Color = Color3.fromRGB(45, 45, 55) pfs.Thickness = 1
+                    local pfc = Instance.new("UICorner", PopFrame) pfc.CornerRadius = UDim.new(0, 6)
+                    local pfs = Instance.new("UIStroke", PopFrame) pfs.Color = Color3.fromRGB(50, 50, 65) pfs.Thickness = 1
 
                     local popLayout = Instance.new("UIListLayout", PopFrame)
                     popLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -470,10 +472,10 @@ function CustomLib:CreateWindow(config)
                     for _, val in ipairs(config.Values or {}) do
                         local optBtn = Instance.new("TextButton", PopFrame)
                         optBtn.BackgroundTransparency = 1
-                        optBtn.Size = UDim2.new(1, 0, 0, 26)
+                        optBtn.Size = UDim2.new(1, 0, 0, 28)
                         optBtn.Font = Enum.Font.GothamBold
                         optBtn.Text = tostring(val)
-                        optBtn.TextColor3 = Color3.fromRGB(190, 190, 205)
+                        optBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
                         optBtn.TextSize = 13
                         optBtn.TextXAlignment = Enum.TextXAlignment.Center
                         optBtn.BorderSizePixel = 0
@@ -481,7 +483,7 @@ function CustomLib:CreateWindow(config)
 
                         optBtn.MouseButton1Click:Connect(function()
                             selectedVal = val
-                            SelectBtn.Text = tostring(val) .. "   "
+                            SelectBtn.Text = tostring(val)
                             DropdownOverlayGui:ClearAllChildren()
                             if config.Callback then pcall(config.Callback, val) end
                         end)
@@ -491,7 +493,7 @@ function CustomLib:CreateWindow(config)
                 local dAPI = {}
                 function dAPI:SetValue(val)
                     selectedVal = val
-                    SelectBtn.Text = tostring(val) .. "   "
+                    SelectBtn.Text = tostring(val)
                     if config.Callback then pcall(config.Callback, val) end
                 end
                 function dAPI:SetValues(newVals)
@@ -504,24 +506,27 @@ function CustomLib:CreateWindow(config)
                 defaultOpen = defaultOpen ~= false
 
                 local SectionFrame = Instance.new("Frame", parentContainer)
-                SectionFrame.BackgroundTransparency = 1
+                SectionFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+                SectionFrame.BackgroundTransparency = 0
                 SectionFrame.Size = UDim2.new(1, 0, 0, 35)
                 SectionFrame.BorderSizePixel = 0
                 SectionFrame.ClipsDescendants = true
+                local scorner = Instance.new("UICorner", SectionFrame) scorner.CornerRadius = UDim.new(0, 6)
+                local sstroke = Instance.new("UIStroke", SectionFrame) sstroke.Color = Color3.fromRGB(38, 38, 48) sstroke.Thickness = 1
 
                 local HeaderBtn = Instance.new("TextButton", SectionFrame)
                 HeaderBtn.BackgroundTransparency = 1
                 HeaderBtn.Size = UDim2.new(1, 0, 0, 35)
                 HeaderBtn.Font = Enum.Font.GothamBold
                 HeaderBtn.Text = "  " .. (title or "Section")
-                HeaderBtn.TextColor3 = Color3.fromRGB(210, 210, 225)
+                HeaderBtn.TextColor3 = Color3.fromRGB(220, 220, 235)
                 HeaderBtn.TextSize = 13
                 HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
 
                 local SectionArrow = Instance.new("ImageLabel", HeaderBtn)
                 SectionArrow.BackgroundTransparency = 1
-                SectionArrow.Position = UDim2.new(1, -16, 0.5, -7)
-                SectionArrow.Size = UDim2.new(0, 14, 0, 14)
+                SectionArrow.Position = UDim2.new(1, -22, 0.5, -8)
+                SectionArrow.Size = UDim2.new(0, 16, 0, 16)
                 SectionArrow.Image = CustomLib.Assets.Icons.Arrow
                 SectionArrow.ImageTransparency = 0.4
                 SectionArrow.Rotation = defaultOpen and 90 or 0
