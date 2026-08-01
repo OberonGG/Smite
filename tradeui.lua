@@ -17,36 +17,51 @@ local Window = Fluent:CreateWindow({
     Title = "Fish it Trade",
     SubTitle = "by Oberon | FluentUI",
     TabWidth = 120,
-    Size = UDim2.fromOffset(550, 360),
+    Size = UDim2.fromOffset(490, 360),
     Acrylic = false,
     Theme = "AMOLED",
     MinimizeKey = Enum.KeyCode.LeftControl
 })
 
--- logic apply custom font & size
+-- logic apply custom font global
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/StyearX/Fluent-modded/refs/heads/main/Addons/InterfaceManager.lua"))()
 InterfaceManager:SetLibrary(Fluent)
 InterfaceManager:ApplyCustomFont("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
 
--- Fungsi tambahan untuk memaksa perbesar ukuran font (TextSize)
+-- FUNGSI SAPU JAGAT: Paksa BOLD, Perbesar, dan Hilangkan Transparansi
 task.spawn(function()
-    task.wait(0.5) -- Tunggu UI selesai di-render
+    task.wait(1) -- Tunggu UI utama selesai di-render
     if Fluent.GUI then
-        local function applySize(inst, depth)
-            if depth > 15 then return end
-            for _, ch in ipairs(inst:GetChildren()) do
-                if ch:IsA("TextLabel") or ch:IsA("TextButton") or ch:IsA("TextBox") then
-                    pcall(function()
-                        -- Memaksa teks yang ukurannya kecil menjadi lebih besar
-                        if ch.TextSize < 16 then
-                            ch.TextSize = ch.TextSize + 3
-                        end
-                    end)
-                end
-                applySize(ch, depth + 1)
+        local boldFont = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold)
+        
+        local function applyToElement(ch)
+            if ch:IsA("TextLabel") or ch:IsA("TextButton") or ch:IsA("TextBox") then
+                pcall(function()
+                    ch.FontFace = boldFont -- Paksa semuanya jadi Bold
+                    ch.TextTransparency = 0 -- Matikan efek redup/transparan bawaan tema
+                    if ch.TextSize < 16 then
+                        ch.TextSize = ch.TextSize + 3 -- Perbesar ukuran
+                    end
+                end)
             end
         end
-        applySize(Fluent.GUI, 0)
+
+        local function forceTextAttributes(inst, depth)
+            if depth > 20 then return end
+            for _, ch in ipairs(inst:GetChildren()) do
+                applyToElement(ch)
+                forceTextAttributes(ch, depth + 1)
+            end
+        end
+        
+        -- Eksekusi ke semua elemen yang sudah ada di layar
+        forceTextAttributes(Fluent.GUI, 0)
+        
+        -- Pantau elemen baru (misal: saat klik dropdown atau muncul notif) dan langsung paksa Bold
+        Fluent.GUI.DescendantAdded:Connect(function(descendant)
+            task.wait(0.05) -- Beri jeda sepersekian detik agar tema bawaan selesai bekerja, lalu kita timpa
+            applyToElement(descendant)
+        end)
     end
 end)
 
