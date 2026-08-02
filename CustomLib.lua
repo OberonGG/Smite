@@ -241,7 +241,7 @@ function CustomLib:CreateWindow(config)
         TabButton.BorderSizePixel = 0
 
         local Indicator = Instance.new("Frame", TabButton)
-        Indicator.BackgroundColor3 = Color3.fromRGB(160, 100, 230)
+        Indicator.BackgroundColor3 = Color3.fromRGB(180, 180, 195)
         Indicator.Size = UDim2.new(0, 3, 0, 14)
         Indicator.Position = UDim2.new(0, 2, 0.5, -7)
         Indicator.BorderSizePixel = 0
