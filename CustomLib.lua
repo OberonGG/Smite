@@ -140,21 +140,23 @@ function CustomLib:CreateWindow(config)
         if CoreGui:FindFirstChild("CustomLibDropdownOverlay") then CoreGui.CustomLibDropdownOverlay:ClearAllChildren() end
     end)
 
-    -- LayersTab (AbsoluteSize 120, 211) diletakkan di kiri
+    -- LayersTab (AbsoluteSize 120, 211)
     local LayersTab = Instance.new("Frame", MainFrame)
     LayersTab.Name = "LayersTab"
     LayersTab.BackgroundTransparency = 1
     LayersTab.Position = UDim2.new(0, 8, 0, 45)
     LayersTab.Size = UDim2.new(0, 120, 0, 211)
 
-    -- SearchBarFrame (AbsoluteSize 112, 26) diletakkan di atas LayersTab
+    -- SearchBarFrame
     local SearchBarFrame = Instance.new("Frame", LayersTab)
     SearchBarFrame.Name = "SearchBarFrame"
-    SearchBarFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    SearchBarFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    SearchBarFrame.BackgroundTransparency = 0.5
     SearchBarFrame.Position = UDim2.new(0, 4, 0, 0)
     SearchBarFrame.Size = UDim2.new(0, 112, 0, 26)
     SearchBarFrame.BorderSizePixel = 0
     local sc = Instance.new("UICorner", SearchBarFrame) sc.CornerRadius = UDim.new(0, 4)
+    local sbs = Instance.new("UIStroke", SearchBarFrame) sbs.Color = Color3.fromRGB(45, 45, 55) sbs.Thickness = 1
     
     local SearchInput = Instance.new("TextBox", SearchBarFrame)
     SearchInput.BackgroundTransparency = 1
@@ -167,7 +169,7 @@ function CustomLib:CreateWindow(config)
     SearchInput.TextSize = 11
     SearchInput.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- ScrollTab (Isi list tombol tab)
+    -- ScrollTab
     local ScrollTab = Instance.new("ScrollingFrame", LayersTab)
     ScrollTab.Name = "ScrollTab"
     ScrollTab.BackgroundTransparency = 1
@@ -183,14 +185,13 @@ function CustomLib:CreateWindow(config)
         ScrollTab.CanvasSize = UDim2.new(0, 0, 0, TabListLayout.AbsoluteContentSize.Y)
     end)
 
-    -- PlayerFooter (AbsoluteSize 102, 40) diletakkan di paling bawah LayersTab
+    -- PlayerFooter (Welcome Message) - Tanpa background abu (Transparan 1)
     local PlayerFooter = Instance.new("Frame", LayersTab)
     PlayerFooter.Name = "PlayerFooter"
-    PlayerFooter.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    PlayerFooter.BackgroundTransparency = 1
     PlayerFooter.Position = UDim2.new(0, 4, 1, -40)
     PlayerFooter.Size = UDim2.new(0, 102, 0, 40)
     PlayerFooter.BorderSizePixel = 0
-    local pfc = Instance.new("UICorner", PlayerFooter) pfc.CornerRadius = UDim.new(0, 6)
     
     local AvatarImg = Instance.new("ImageLabel", PlayerFooter)
     AvatarImg.BackgroundTransparency = 1
@@ -214,7 +215,7 @@ function CustomLib:CreateWindow(config)
     WelcomeLabel.TextXAlignment = Enum.TextXAlignment.Left
     WelcomeLabel.TextWrapped = true
 
-    -- Container Layers (AbsoluteSize = 323, 211) diletakkan di kanan sidebar
+    -- Container Layers
     local Container = Instance.new("Frame", MainFrame)
     Container.Name = "Layers"
     Container.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -233,12 +234,20 @@ function CustomLib:CreateWindow(config)
         TabButton.BackgroundTransparency = 1 
         TabButton.Size = UDim2.new(1, 0, 0, 26)
         TabButton.Font = Enum.Font.GothamBold
-        TabButton.Text = "  " .. tabName
+        TabButton.Text = "   " .. tabName
         TabButton.TextColor3 = Color3.fromRGB(150, 150, 165)
         TabButton.TextSize = 12
         TabButton.TextXAlignment = Enum.TextXAlignment.Left
         TabButton.BorderSizePixel = 0
-        local BtnCorner = Instance.new("UICorner", TabButton) BtnCorner.CornerRadius = UDim.new(0, 4)
+
+        -- Indikator Tab Terpilih (Kecil Ungu di Kiri)
+        local Indicator = Instance.new("Frame", TabButton)
+        Indicator.BackgroundColor3 = Color3.fromRGB(160, 100, 230) -- Warna ungu khas MengHub
+        Indicator.Size = UDim2.new(0, 3, 0, 14)
+        Indicator.Position = UDim2.new(0, 2, 0.5, -7)
+        Indicator.BorderSizePixel = 0
+        Indicator.Visible = false
+        local indCorner = Instance.new("UICorner", Indicator) indCorner.CornerRadius = UDim.new(1, 0)
 
         local TabContent = Instance.new("ScrollingFrame", Container)
         TabContent.Name = "ScrollLayers"
@@ -264,8 +273,7 @@ function CustomLib:CreateWindow(config)
         if firstTab then
             TabContent.Visible = true
             TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
-            TabButton.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-            TabButton.BackgroundTransparency = 0
+            Indicator.Visible = true
             firstTab = false
         end
 
@@ -274,22 +282,20 @@ function CustomLib:CreateWindow(config)
             for _, t in pairs(tabs) do
                 t.Content.Visible = false
                 t.Button.TextColor3 = Color3.fromRGB(150, 150, 165)
-                t.Button.BackgroundTransparency = 1 
+                t.Indicator.Visible = false
             end
             TabContent.Visible = true
             TabButton.TextColor3 = Color3.fromRGB(240, 240, 250)
-            TabButton.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
-            TabButton.BackgroundTransparency = 0 
+            Indicator.Visible = true
         end)
 
-        table.insert(tabs, {Button = TabButton, Content = TabContent})
+        table.insert(tabs, {Button = TabButton, Indicator = Indicator, Content = TabContent})
 
         local TabAPI = {}
 
         local function createElementAPI(parentContainer)
             local ElementAPI = {}
 
-            -- Element disesuaikan agar compact
             function ElementAPI:AddParagraph(config)
                 local ParaFrame = Instance.new("Frame", parentContainer)
                 ParaFrame.BackgroundTransparency = 1
@@ -303,7 +309,7 @@ function CustomLib:CreateWindow(config)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Title"
                 Title.TextColor3 = Color3.fromRGB(230, 230, 240)
-                Title.TextSize = 13
+                Title.TextSize = 12
                 Title.TextXAlignment = Enum.TextXAlignment.Left
 
                 local Desc = Instance.new("TextLabel", ParaFrame)
@@ -325,7 +331,8 @@ function CustomLib:CreateWindow(config)
             function ElementAPI:AddButton(config)
                 local Btn = Instance.new("TextButton", parentContainer)
                 Btn.BackgroundColor3 = Color3.fromRGB(28, 28, 38)
-                Btn.Size = UDim2.new(1, -10, 0, 30)
+                Btn.BackgroundTransparency = 0.4
+                Btn.Size = UDim2.new(1, -10, 0, 28)
                 Btn.Font = Enum.Font.GothamBold
                 Btn.Text = config.Title or "Button"
                 Btn.TextColor3 = Color3.fromRGB(220, 220, 230)
@@ -333,7 +340,6 @@ function CustomLib:CreateWindow(config)
                 Btn.TextXAlignment = Enum.TextXAlignment.Center
                 Btn.BorderSizePixel = 0
                 local bc = Instance.new("UICorner", Btn) bc.CornerRadius = UDim.new(0, 4)
-                local bs = Instance.new("UIStroke", Btn) bs.Color = Color3.fromRGB(50, 50, 65) bs.Thickness = 1
 
                 Btn.MouseButton1Click:Connect(function()
                     if config.Callback then pcall(config.Callback) end
@@ -343,7 +349,7 @@ function CustomLib:CreateWindow(config)
             function ElementAPI:AddToggle(config)
                 local ToggleFrame = Instance.new("Frame", parentContainer)
                 ToggleFrame.BackgroundTransparency = 1
-                ToggleFrame.Size = UDim2.new(1, -10, 0, 30)
+                ToggleFrame.Size = UDim2.new(1, -10, 0, 28)
                 ToggleFrame.BorderSizePixel = 0
 
                 local Title = Instance.new("TextLabel", ToggleFrame)
@@ -358,7 +364,7 @@ function CustomLib:CreateWindow(config)
 
                 local SwitchBg = Instance.new("Frame", ToggleFrame)
                 SwitchBg.BackgroundColor3 = Color3.fromRGB(38, 38, 48)
-                SwitchBg.Position = UDim2.new(1, -36, 0.5, -9)
+                SwitchBg.Position = UDim2.new(1, -34, 0.5, -9)
                 SwitchBg.Size = UDim2.new(0, 32, 0, 18)
                 local sbc = Instance.new("UICorner", SwitchBg) sbc.CornerRadius = UDim.new(1, 0)
 
@@ -404,16 +410,17 @@ function CustomLib:CreateWindow(config)
                 return tAPI
             end
 
+            -- Tata Letak Input & Dropdown Persis Meng Hub (Rata Kanan)
             function ElementAPI:AddInput(config)
                 local InputFrame = Instance.new("Frame", parentContainer)
                 InputFrame.BackgroundTransparency = 1
-                InputFrame.Size = UDim2.new(1, -10, 0, 30)
+                InputFrame.Size = UDim2.new(1, -10, 0, 28)
                 InputFrame.BorderSizePixel = 0
 
                 local Title = Instance.new("TextLabel", InputFrame)
                 Title.BackgroundTransparency = 1
                 Title.Position = UDim2.new(0, 6, 0, 0)
-                Title.Size = UDim2.new(0.45, 0, 1, 0)
+                Title.Size = UDim2.new(0.5, 0, 1, 0)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Input"
                 Title.TextColor3 = Color3.fromRGB(210, 210, 220)
@@ -422,14 +429,15 @@ function CustomLib:CreateWindow(config)
 
                 local TextBox = Instance.new("TextBox", InputFrame)
                 TextBox.BackgroundTransparency = 1
-                TextBox.Position = UDim2.new(0.45, 0, 0.5, -10)
-                TextBox.Size = UDim2.new(0.55, 0, 0, 20)
+                TextBox.AnchorPoint = Vector2.new(1, 0)
+                TextBox.Position = UDim2.new(1, -6, 0, 0)
+                TextBox.Size = UDim2.new(0, 140, 1, 0)
                 TextBox.Font = Enum.Font.GothamBold
                 TextBox.Text = config.Default or ""
-                TextBox.PlaceholderText = config.Placeholder or "Select Option"
+                TextBox.PlaceholderText = config.Placeholder or "Enter..."
                 TextBox.TextColor3 = Color3.fromRGB(230, 230, 240)
                 TextBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 135)
-                TextBox.TextSize = 12
+                TextBox.TextSize = 11
                 TextBox.TextXAlignment = Enum.TextXAlignment.Right
                 TextBox.BorderSizePixel = 0
 
@@ -445,13 +453,13 @@ function CustomLib:CreateWindow(config)
             function ElementAPI:AddDropdown(config)
                 local DropFrame = Instance.new("Frame", parentContainer)
                 DropFrame.BackgroundTransparency = 1
-                DropFrame.Size = UDim2.new(1, -10, 0, 30)
+                DropFrame.Size = UDim2.new(1, -10, 0, 28)
                 DropFrame.BorderSizePixel = 0
 
                 local Title = Instance.new("TextLabel", DropFrame)
                 Title.BackgroundTransparency = 1
                 Title.Position = UDim2.new(0, 6, 0, 0)
-                Title.Size = UDim2.new(0.45, 0, 1, 0)
+                Title.Size = UDim2.new(0.5, 0, 1, 0)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Dropdown"
                 Title.TextColor3 = Color3.fromRGB(210, 210, 220)
@@ -460,21 +468,23 @@ function CustomLib:CreateWindow(config)
 
                 local SelectBtn = Instance.new("TextButton", DropFrame)
                 SelectBtn.BackgroundTransparency = 1
-                SelectBtn.Position = UDim2.new(0.45, 0, 0.5, -10)
-                SelectBtn.Size = UDim2.new(0.55, 0, 0, 20)
+                SelectBtn.AnchorPoint = Vector2.new(1, 0)
+                SelectBtn.Position = UDim2.new(1, -26, 0, 0) -- Sisakan ruang untuk panah di kanan
+                SelectBtn.Size = UDim2.new(0, 120, 1, 0)
                 SelectBtn.Font = Enum.Font.GothamBold
                 
                 local selectedVal = config.DefaultValue or "Select Option"
-                SelectBtn.Text = tostring(selectedVal) .. "      "
+                SelectBtn.Text = tostring(selectedVal)
                 SelectBtn.TextColor3 = Color3.fromRGB(210, 210, 220)
-                SelectBtn.TextSize = 12
+                SelectBtn.TextSize = 11
                 SelectBtn.TextXAlignment = Enum.TextXAlignment.Right
                 SelectBtn.BorderSizePixel = 0
 
-                -- Arrow Dropdown: Absolute Size 22,22, Logic: Belum Buka = > (0), Sesudah Buka = v (90)
-                local DropArrow = Instance.new("ImageLabel", SelectBtn)
+                -- Arrow Absolute Size 22,22. Sebelum Buka = > (0), Sesudah = v (90)
+                local DropArrow = Instance.new("ImageLabel", DropFrame)
                 DropArrow.BackgroundTransparency = 1
-                DropArrow.Position = UDim2.new(1, -22, 0.5, -11)
+                DropArrow.AnchorPoint = Vector2.new(1, 0.5)
+                DropArrow.Position = UDim2.new(1, -2, 0.5, 0)
                 DropArrow.Size = UDim2.new(0, 22, 0, 22)
                 DropArrow.Image = CustomLib.Assets.Icons.Arrow
                 DropArrow.ImageTransparency = 0.4
@@ -500,15 +510,16 @@ function CustomLib:CreateWindow(config)
                         DropArrow.Rotation = 0
                     end)
 
-                    local absPos = SelectBtn.AbsolutePosition
-                    local absSize = SelectBtn.AbsoluteSize
+                    local absPos = DropFrame.AbsolutePosition
+                    local absSize = DropFrame.AbsoluteSize
 
+                    -- Posisi pop-up menyesuaikan sisi kanan elemen
                     local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
                     PopFrame.Name = "ActiveDropdown"
-                    PopFrame.BackgroundColor3 = Color3.fromRGB(24, 24, 32)
-                    PopFrame.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 4)
-                    PopFrame.Size = UDim2.new(0, absSize.X, 0, math.min(#(config.Values or {}) * 26, 120))
-                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 26)
+                    PopFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 33)
+                    PopFrame.Position = UDim2.new(0, (absPos.X + absSize.X) - 140, 0, absPos.Y + absSize.Y + 2)
+                    PopFrame.Size = UDim2.new(0, 140, 0, math.min(#(config.Values or {}) * 24, 120))
+                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 24)
                     PopFrame.ScrollBarThickness = 2
                     PopFrame.BorderSizePixel = 0
                     PopFrame.ZIndex = 999
@@ -521,18 +532,18 @@ function CustomLib:CreateWindow(config)
                     for _, val in ipairs(config.Values or {}) do
                         local optBtn = Instance.new("TextButton", PopFrame)
                         optBtn.BackgroundTransparency = 1
-                        optBtn.Size = UDim2.new(1, 0, 0, 26)
+                        optBtn.Size = UDim2.new(1, 0, 0, 24)
                         optBtn.Font = Enum.Font.GothamBold
                         optBtn.Text = tostring(val)
                         optBtn.TextColor3 = Color3.fromRGB(200, 200, 215)
-                        optBtn.TextSize = 12
+                        optBtn.TextSize = 11
                         optBtn.TextXAlignment = Enum.TextXAlignment.Center
                         optBtn.BorderSizePixel = 0
                         optBtn.ZIndex = 1000
 
                         optBtn.MouseButton1Click:Connect(function()
                             selectedVal = val
-                            SelectBtn.Text = tostring(val) .. "      "
+                            SelectBtn.Text = tostring(val)
                             DropdownOverlayGui:ClearAllChildren()
                             DropArrow.Rotation = 0
                             if config.Callback then pcall(config.Callback, val) end
@@ -543,7 +554,7 @@ function CustomLib:CreateWindow(config)
                 local dAPI = {}
                 function dAPI:SetValue(val)
                     selectedVal = val
-                    SelectBtn.Text = tostring(val) .. "      "
+                    SelectBtn.Text = tostring(val)
                     if config.Callback then pcall(config.Callback, val) end
                 end
                 function dAPI:SetValues(newVals)
@@ -552,29 +563,30 @@ function CustomLib:CreateWindow(config)
                 return dAPI
             end
 
-            -- Accordion Section (AbsoluteSize = 323, 30)
+            -- Accordion Section
             function ElementAPI:AddCollapsibleSection(title, defaultOpen)
                 defaultOpen = defaultOpen ~= false
 
                 local SectionFrame = Instance.new("Frame", parentContainer)
                 SectionFrame.BackgroundTransparency = 1
-                SectionFrame.Size = UDim2.new(1, 0, 0, 30)
+                SectionFrame.Size = UDim2.new(1, 0, 0, 28)
                 SectionFrame.BorderSizePixel = 0
                 SectionFrame.ClipsDescendants = true
 
                 local HeaderBtn = Instance.new("TextButton", SectionFrame)
                 HeaderBtn.BackgroundTransparency = 1
-                HeaderBtn.Size = UDim2.new(1, 0, 0, 30)
+                HeaderBtn.Size = UDim2.new(1, 0, 0, 28)
                 HeaderBtn.Font = Enum.Font.GothamBold
                 HeaderBtn.Text = "  " .. (title or "Section")
                 HeaderBtn.TextColor3 = Color3.fromRGB(210, 210, 225)
                 HeaderBtn.TextSize = 12
                 HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Arrow Accordion: Absolute Size 22,22, Logic: Belum Buka = > (0), Sesudah Buka = v (90)
+                -- Arrow Accordion: Absolute Size 22,22, Belum Buka = > (0), Sesudah = v (90)
                 local SectionArrow = Instance.new("ImageLabel", HeaderBtn)
                 SectionArrow.BackgroundTransparency = 1
-                SectionArrow.Position = UDim2.new(1, -22, 0.5, -11)
+                SectionArrow.AnchorPoint = Vector2.new(1, 0.5)
+                SectionArrow.Position = UDim2.new(1, -2, 0.5, 0)
                 SectionArrow.Size = UDim2.new(0, 22, 0, 22)
                 SectionArrow.Image = CustomLib.Assets.Icons.Arrow
                 SectionArrow.ImageTransparency = 0.4
@@ -582,25 +594,25 @@ function CustomLib:CreateWindow(config)
 
                 local InnerContainer = Instance.new("Frame", SectionFrame)
                 InnerContainer.BackgroundTransparency = 1
-                InnerContainer.Position = UDim2.new(0, 0, 0, 30)
+                InnerContainer.Position = UDim2.new(0, 0, 0, 28)
                 InnerContainer.Size = UDim2.new(1, 0, 0, 0)
 
                 local TheInnerLayout = Instance.new("UIListLayout", InnerContainer)
                 TheInnerLayout.SortOrder = Enum.SortOrder.LayoutOrder
-                TheInnerLayout.Padding = UDim.new(0, 4)
+                TheInnerLayout.Padding = UDim.new(0, 2)
                 TheInnerLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
                 local isOpen = defaultOpen
 
                 local function updateSize()
-                    local contentHeight = TheInnerLayout.AbsoluteContentSize.Y + 8
+                    local contentHeight = TheInnerLayout.AbsoluteContentSize.Y + 4
                     if isOpen then
                         InnerContainer.Size = UDim2.new(1, 0, 0, contentHeight)
-                        SectionFrame.Size = UDim2.new(1, 0, 0, 30 + contentHeight)
+                        SectionFrame.Size = UDim2.new(1, 0, 0, 28 + contentHeight)
                         TweenService:Create(SectionArrow, TweenInfo.new(0.2), {Rotation = 90}):Play()
                     else
                         InnerContainer.Size = UDim2.new(1, 0, 0, 0)
-                        SectionFrame.Size = UDim2.new(1, 0, 0, 30)
+                        SectionFrame.Size = UDim2.new(1, 0, 0, 28)
                         TweenService:Create(SectionArrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
                     end
                 end
