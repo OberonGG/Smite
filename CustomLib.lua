@@ -6,10 +6,10 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 -- ==========================================
--- PENGATURAN FONT UTAMA (Edit di sini dengan mudah)
+-- PENGATURAN FONT UTAMA (Section = 18, Isi = 12)
 -- ==========================================
-local FONT_SIZE_SECTION = 18 -- Ukuran font untuk Judul Section / Title Utama
-local FONT_SIZE_CONTENT = 16 -- Ukuran font untuk isi elemen (Input, Dropdown, Text, dll)
+local FONT_SIZE_SECTION = 18 -- Ukuran font untuk Judul Section, Tombol Tab, dll
+local FONT_SIZE_CONTENT = 12 -- Ukuran font untuk isi elemen (Input, Dropdown, Text, dll)
 
 CustomLib.Assets = {
     Icons = {
@@ -236,7 +236,7 @@ function CustomLib:CreateWindow(config)
         TabButton.Font = Enum.Font.GothamBold
         TabButton.Text = "   " .. tabName
         TabButton.TextColor3 = Color3.fromRGB(150, 150, 165)
-        TabButton.TextSize = 13
+        TabButton.TextSize = FONT_SIZE_SECTION -- Mengikuti ukuran font section (18)
         TabButton.TextXAlignment = Enum.TextXAlignment.Left
         TabButton.BorderSizePixel = 0
 
@@ -486,7 +486,7 @@ function CustomLib:CreateWindow(config)
                 SelectBtn.TextXAlignment = Enum.TextXAlignment.Right
                 SelectBtn.BorderSizePixel = 0
 
-                -- Dropdown Arrow: Statis menghadap ke bawah (v)
+                -- Dropdown Arrow: Statis menghadap ke bawah (v) secara permanen
                 local DropArrow = Instance.new("ImageLabel", DropFrame)
                 DropArrow.BackgroundTransparency = 1
                 DropArrow.AnchorPoint = Vector2.new(1, 0.5)
@@ -515,15 +515,15 @@ function CustomLib:CreateWindow(config)
                     local absPos = DropFrame.AbsolutePosition
                     local absSize = DropFrame.AbsoluteSize
 
-                    -- Kustomisasi Ukuran Dropdown (Bisa diatur melalui config.DropdownSize atau default setengah layer yakni 160)
+                    -- Pop-up dropdown disesuaikan menutup setengah dari area layers (lebar persis seperti Meng Hub)
                     local dropdownWidth = config.DropdownSize or 160
 
                     local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
                     PopFrame.Name = "ActiveDropdown"
                     PopFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
                     PopFrame.Position = UDim2.new(0, absPos.X + (absSize.X - dropdownWidth), 0, absPos.Y + absSize.Y + 2)
-                    PopFrame.Size = UDim2.new(0, dropdownWidth, 0, math.min(#(config.Values or {}) * 30, 130))
-                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 30)
+                    PopFrame.Size = UDim2.new(0, dropdownWidth, 0, math.min(#(config.Values or {}) * 32, 130))
+                    PopFrame.CanvasSize = UDim2.new(0, 0, 0, #(config.Values or {}) * 32)
                     PopFrame.ScrollBarThickness = 2
                     PopFrame.BorderSizePixel = 0
                     PopFrame.ZIndex = 999
@@ -536,7 +536,7 @@ function CustomLib:CreateWindow(config)
                     for _, val in ipairs(config.Values or {}) do
                         local optBtn = Instance.new("TextButton", PopFrame)
                         optBtn.BackgroundTransparency = 1
-                        optBtn.Size = UDim2.new(1, 0, 0, 30)
+                        optBtn.Size = UDim2.new(1, 0, 0, 32)
                         optBtn.Font = Enum.Font.GothamBold
                         optBtn.Text = tostring(val)
                         optBtn.TextColor3 = Color3.fromRGB(210, 210, 225)
@@ -586,7 +586,7 @@ function CustomLib:CreateWindow(config)
                 HeaderBtn.TextSize = FONT_SIZE_SECTION
                 HeaderBtn.TextXAlignment = Enum.TextXAlignment.Left
 
-                -- Section Arrow: Default ke kanan (> / rotasi 0), Terbuka ke bawah (v / rotasi 90)
+                -- Section Arrow: Tertutup = Menghadap ke kanan (> / rotasi 0), Terbuka = Menghadap ke bawah (v / rotasi 90)
                 local SectionArrow = Instance.new("ImageLabel", HeaderBtn)
                 SectionArrow.BackgroundTransparency = 1
                 SectionArrow.AnchorPoint = Vector2.new(1, 0.5)
