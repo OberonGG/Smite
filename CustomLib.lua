@@ -8,8 +8,8 @@ local LocalPlayer = Players.LocalPlayer
 -- ==========================================
 -- PENGATURAN FONT UTAMA (Section = 18, Isi = 12)
 -- ==========================================
-local FONT_SIZE_SECTION = 18 -- Ukuran font untuk Judul Section, Tombol Tab, dll
-local FONT_SIZE_CONTENT = 12 -- Ukuran font untuk isi elemen (Input, Dropdown, Text, dll)
+local FONT_SIZE_SECTION = 18 
+local FONT_SIZE_CONTENT = 14 
 
 CustomLib.Assets = {
     Icons = {
@@ -144,7 +144,7 @@ function CustomLib:CreateWindow(config)
         if CoreGui:FindFirstChild("CustomLibDropdownOverlay") then CoreGui.CustomLibDropdownOverlay:ClearAllChildren() end
     end)
 
-    -- LayersTab
+    -- LayersTab (Sidebar)
     local LayersTab = Instance.new("Frame", MainFrame)
     LayersTab.Name = "LayersTab"
     LayersTab.BackgroundTransparency = 1
@@ -236,10 +236,11 @@ function CustomLib:CreateWindow(config)
         TabButton.Font = Enum.Font.GothamBold
         TabButton.Text = "   " .. tabName
         TabButton.TextColor3 = Color3.fromRGB(150, 150, 165)
-        TabButton.TextSize = FONT_SIZE_SECTION -- Mengikuti ukuran font section (18)
+        TabButton.TextSize = FONT_SIZE_SECTION
         TabButton.TextXAlignment = Enum.TextXAlignment.Left
         TabButton.BorderSizePixel = 0
 
+        -- Indikator Sidebar Diubah Menjadi Warna Abu-abu Elegan
         local Indicator = Instance.new("Frame", TabButton)
         Indicator.BackgroundColor3 = Color3.fromRGB(180, 180, 195)
         Indicator.Size = UDim2.new(0, 3, 0, 14)
@@ -486,7 +487,7 @@ function CustomLib:CreateWindow(config)
                 SelectBtn.TextXAlignment = Enum.TextXAlignment.Right
                 SelectBtn.BorderSizePixel = 0
 
-                -- Dropdown Arrow: Statis menghadap ke bawah (v) secara permanen
+                -- Dropdown Arrow: Statis menghadap ke bawah (v)
                 local DropArrow = Instance.new("ImageLabel", DropFrame)
                 DropArrow.BackgroundTransparency = 1
                 DropArrow.AnchorPoint = Vector2.new(1, 0.5)
@@ -515,7 +516,6 @@ function CustomLib:CreateWindow(config)
                     local absPos = DropFrame.AbsolutePosition
                     local absSize = DropFrame.AbsoluteSize
 
-                    -- Pop-up dropdown disesuaikan menutup setengah dari area layers (lebar persis seperti Meng Hub)
                     local dropdownWidth = config.DropdownSize or 160
 
                     local PopFrame = Instance.new("ScrollingFrame", DropdownOverlayGui)
@@ -566,6 +566,7 @@ function CustomLib:CreateWindow(config)
                 return dAPI
             end
 
+            -- Collapsible Section (Accordion)
             function ElementAPI:AddCollapsibleSection(title, defaultOpen)
                 defaultOpen = defaultOpen ~= false
 
@@ -596,6 +597,7 @@ function CustomLib:CreateWindow(config)
                 SectionArrow.ImageTransparency = 0.4
                 SectionArrow.Rotation = defaultOpen and 90 or 0
 
+                -- InnerContainer tempat masuknya elemen-elemen isi di dalam Section
                 local InnerContainer = Instance.new("Frame", SectionFrame)
                 InnerContainer.BackgroundTransparency = 1
                 InnerContainer.Position = UDim2.new(0, 0, 0, 34)
@@ -635,6 +637,8 @@ function CustomLib:CreateWindow(config)
 
                 updateSize()
 
+                -- PENTING: Mengembalikan createElementAPI dengan parent InnerContainer 
+                -- sehingga elemen seperti Dropdown & Button masuk ke dalam logika isi section.
                 return createElementAPI(InnerContainer)
             end
 
