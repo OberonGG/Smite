@@ -1215,35 +1215,41 @@ StartToggle = TradeSection:AddToggle({
 -- ==========================================
 -- LOGIC ANTI AFK & AUTO ACCEPT (EVENT DRIVEN)
 -- ==========================================
-local originalTradeConnections = {}
-task.spawn(function()
-    task.wait(3)
-    if getconnections then
-        pcall(function()
-            -- Mengambil koneksi bawaan game untuk TradeOfferReceived
-            originalTradeConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
-        end)
-    end
-end)
 
+-- 1. PISAHKAN DAN AMBIL KONEKSI GAME TERLEBIH DAHULU
+-- Kita harus mengambil koneksi bawaan game SEBELUM membuat koneksi event kustom di bawahnya
+-- agar skrip kita tidak men-disable dirinya sendiri.
+local gameTradeConnections = {}
+local afkConnections = {}
+
+if getconnections then
+    pcall(function()
+        -- Ambil koneksi pop-up UI trade offer bawaan game
+        for _, conn in pairs(getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)) do
+            table.insert(gameTradeConnections, conn)
+        end
+        -- Ambil koneksi idle/AFK bawaan game
+        for _, conn in pairs(getconnections(LocalPlayer.Idled)) do
+            table.insert(afkConnections, conn)
+        end
+    end)
+end
+
+-- 2. SETUP TOGGLES
 Tabs.Utilities:AddToggle({
     Title = "Auto Accept & Confirm Trade", 
     Default = false,
     Callback = function(state)
         State.AutoAccept = state
-        if getconnections then
-            pcall(function()
-                -- Bypass UI Pop-up Trade Offer (PromptController) 
-                -- dengan mematikan/menyalakan koneksi bawaan game
-                for _, conn in pairs(originalTradeConnections) do
-                    if state then
-                        conn:Disable()
-                    else
-                        conn:Enable()
-                    end
+        pcall(function()
+            for _, conn in pairs(gameTradeConnections) do
+                if state then
+                    conn:Disable() -- Bypass UI Pop-up Request bawaan game
+                else
+                    conn:Enable()
                 end
-            end)
-        end
+            end
+        end)
     end
 })
 
@@ -1252,54 +1258,80 @@ Tabs.Utilities:AddToggle({
     Default = false,
     Callback = function(state)
         State.AntiAfk = state
-        if getconnections then
-            pcall(function()
-                for _, connection in pairs(getconnections(LocalPlayer.Idled)) do
-                    if state then
-                        connection:Disable()
-                    else
-                        connection:Enable()
-                    end
+        pcall(function()
+            for _, conn in pairs(afkConnections) do
+                if state then
+                    conn:Disable()
+                else
+                    conn:Enable()
                 end
-            end)
-        end
+            end
+        end)
     end
 })
 
--- STANDALONE: Auto Accept TradeOffer (Bypass Pop-up UI PromptController)
+-- 3. LOGIC AUTO ACCEPT (Stand-alone & Terproteksi)
 TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
     if State.AutoAccept then
         task.wait(0.2)
-        -- Langsung invoke accept tanpa trigger visual pop-up
-        pcall(function() TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender) end)
+        -- Otomatis menerima tanpa memicu pop-up visual di layar
+        pcall(function() 
+            TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender) 
+        end)
     end
 end)
 
--- STANDALONE: Auto Confirm didalam Trade UI (Tanpa menutup/hide Trade UI)
-local function handleStandaloneAutoConfirm()
+-- 4. LOGIC AUTO CONFIRM & ANTI-STUCK DI DALAM TRADE UI
+local function watchTradingState()
     task.spawn(function()
+        local timeStuck = 0
+        
         while LocalPlayer:GetAttribute("IsTrading") == true do
             if not State.AutoAccept then break end
             
-            pcall(function()
-                -- Cukup set ready dan confirm, biarkan UI Trade tetap muncul/berjalan normal
-                TradeData.Remotes.SetReady:InvokeServer(true)
-                task.wait(0.2)
-                TradeData.Remotes.ConfirmTrade:InvokeServer()
-            end)
+            -- Sistem Anti-Stuck: Batalkan trade jika pemain lawan AFK/Troll lebih dari 30 detik
+            if timeStuck >= 30 then
+                pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
+                task.wait(1)
+                
+                -- Force hide UI Trade menggunakan controller bawaan jika tersangkut
+                pcall(function()
+                    local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
+                    if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
+                        LocalPlayer.PlayerGui["! Trading"].Enabled = false
+                    end
+                    GuiControl:Unlock()
+                    GuiControl:Close()
+                end)
+                
+                LocalPlayer:SetAttribute("IsTrading", false)
+                break
+            end
             
-            task.wait(0.5) 
+            -- Eksekusi Auto Ready dan Auto Confirm
+            if not isAddingItems then
+                pcall(function()
+                    TradeData.Remotes.SetReady:InvokeServer(true)
+                    task.wait(0.2)
+                    TradeData.Remotes.ConfirmTrade:InvokeServer()
+                end)
+            end
+            
+            task.wait(0.5)
+            timeStuck = timeStuck + 0.5
         end
     end)
 end
 
+-- Deteksi transisi masuk ke dalam Trade
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
     if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
-        handleStandaloneAutoConfirm()
+        watchTradingState()
     end
 end)
 
--- Handle jika toggle dinyalakan pada saat Player sudah terlanjur berada dalam state trading
+-- Handle edge case jika toggle dinyalakan pada saat Player sudah terlanjur berada dalam state trading
 if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
-    handleStandaloneAutoConfirm()
+    watchTradingState()
 end
+
