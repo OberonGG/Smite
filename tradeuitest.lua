@@ -12,7 +12,6 @@ local Replion = require(ReplicatedStorage.Packages.Replion)
 local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 local PlayerData = Replion.Client:WaitReplion("Data")
 
--- logic fungsi utilitas bawaan (DITAMBAHKAN PARAMETER ignoreLocks)
 local function getInventoryItems(ignoreLocks)
     local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
     local runic, evo, secret = {}, {}, {}
@@ -32,7 +31,6 @@ local function getInventoryItems(ignoreLocks)
                     end
                     local isFavorited = (item.Favorited == true)
                     
-                    -- Loloskan jika ignoreLocks true, ATAU jika item memang tidak di-lock/favorit
                     if ignoreLocks or (not isLocked and not isFavorited) then
                         local id = tonumber(item.Id)
                         local data = {UUID = item.UUID, Category = itemData.Data.Type}
@@ -56,7 +54,6 @@ local function getInventoryItems(ignoreLocks)
 end
 
 local function getTargetItems(targetItemString)
-    -- Auto trade TIDAK mengabaikan lock (ignoreLocks = false)
     local runic, evo, secret = getInventoryItems(false)
     if targetItemString == "Runic Enchant Stone" then return runic
     elseif targetItemString == "Evolved Enchant Stone" then return evo
@@ -1221,7 +1218,6 @@ TradeSection:AddButton({
     Title = "Check Inventory",
     Icon = "10088146947", 
     Callback = function()
-        -- visual check MENGABAIKAN lock dengan passing true
         local r, e, s = getInventoryItems(true)
         InventoryStatus:SetDesc(string.format("x%d Runic, x%d Evo, x%d Forgotten & Secret Fish", #r, #e, #s))
         CustomLib:Notify("Inventory", "Inventory check completed successfully!", 3)
@@ -1404,6 +1400,11 @@ StartToggle = TradeSection:AddToggle({
                 CustomLib:Notify("Trade Stopped", "Auto trade process was stopped.", 3)
             end
             isTradingProcess = false
+            TotalItemsSuccess = 0
+            RetryCount = 0
+            SuccessCount = 0
+            FailedCount = 0
+            TradeLog:SetDesc("Retry: 0 | Success: 0 | Failed: 0 | Sent: 0")
         end
     end
 })
@@ -1575,7 +1576,6 @@ local SelectConfigDropdown = Tabs.Configuration:AddDropdown({
     end
 })
 
--- Action Buttons using AddButtonGrid (2 columns per row)
 Tabs.Configuration:AddButtonGrid(
     {
         Title = "Save Config",
@@ -1703,7 +1703,6 @@ Tabs.Configuration:AddButtonGrid(
     }
 )
 
--- Autoload on Startup Check
 task.spawn(function()
     task.wait(1)
     if isfolder(CONFIG_FOLDER) and isfile(AUTOLOAD_FILE) then
