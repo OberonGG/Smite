@@ -1121,74 +1121,108 @@ StartToggle = TradeSection:AddToggle({
                         table.insert(batchItems, availableItems[i])
                     end
 
-                    if targetPlayer:GetAttribute("IsTrading") ~= true and LocalPlayer:GetAttribute("IsTrading") ~= true then
-                        RetryCount = RetryCount + 1
+                    -- [FIX 1]: Tunggu hingga status 'IsTrading' benar-benar clear dari trade sebelumnya
+                    local waitClear = 0
+                    while (targetPlayer:GetAttribute("IsTrading") == true or LocalPlayer:GetAttribute("IsTrading") == true) and waitClear < 10 do
+                        task.wait(0.5)
+                        waitClear = waitClear + 0.5
+                    end
+                    if not State.StartTrade then break end
+
+                    RetryCount = RetryCount + 1
+                    TradeLog:SetDesc(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", RetryCount, SuccessCount, FailedCount, TotalItemsSuccess))
+                    
+                    -- [FIX 2]: Kunci status isAddingItems SEBELUM mengirim trade agar fungsi Auto-Confirm tidak menabrak
+                    isAddingItems = true 
+                    
+                    -- [FIX 3]: Tangkap respon server. Jika tertolak (misal target cooldown), langsung hentikan dan coba lagi
+                    local ok, sendSuccess = pcall(function() 
+                        return TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer) 
+                    end)
+
+                    if not ok or sendSuccess == false then
+                        FailedCount = FailedCount + 1
                         TradeLog:SetDesc(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", RetryCount, SuccessCount, FailedCount, TotalItemsSuccess))
-                        pcall(function() TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer) end)
+                        isAddingItems = false
+                        task.wait(2.5)
+                        continue
                     end
 
+                    -- [FIX 4]: Gunakan Event TradeStarted untuk mendeteksi trade, BUKAN mengandalkan Attribute IsTrading
                     local tradeStarted = false
+                    local startConn = TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
+                        tradeStarted = true
+                    end)
+                    
                     local offerWaitTime = 0
                     while not tradeStarted and offerWaitTime < 15 and State.StartTrade do
-                        if LocalPlayer:GetAttribute("IsTrading") == true then
-                            tradeStarted = true
-                        end
                         task.wait(0.5)
                         offerWaitTime = offerWaitTime + 0.5
                     end
+                    startConn:Disconnect()
 
                     if not tradeStarted then
                         FailedCount = FailedCount + 1
                         TradeLog:SetDesc(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", RetryCount, SuccessCount, FailedCount, TotalItemsSuccess))
-                        task.wait(1)
+                        isAddingItems = false
+                        task.wait(2.5)
                         continue 
                     end
 
+                    -- KITA BERADA DI DALAM TRADE
                     local tradeFinished = false
                     local isSuccess = false
                     
-                    local endConn, compConn, attrConn
-                    local function clearListeners()
-                        if endConn then endConn:Disconnect() end
-                        if compConn then compConn:Disconnect() end
-                        if attrConn then attrConn:Disconnect() end
-                    end
-
-                    endConn = TradeData.Remotes.TradeEnded.OnClientEvent:Connect(function() 
-                        tradeFinished = true 
-                    end)
-                    compConn = TradeData.Remotes.TradeCompleted.OnClientEvent:Connect(function() 
+                    local endConn = TradeData.Remotes.TradeEnded.OnClientEvent:Connect(function() tradeFinished = true end)
+                    local compConn = TradeData.Remotes.TradeCompleted.OnClientEvent:Connect(function() 
                         tradeFinished = true
                         isSuccess = true 
                     end)
-                    attrConn = LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
-                        if LocalPlayer:GetAttribute("IsTrading") ~= true then
-                            tradeFinished = true
-                        end
-                    end)
 
-                    isAddingItems = true
+                    task.wait(1.5) -- Beri jeda agar UI/State game stabil seperti di controller asli
+
                     local itemsAddedCount = 0
-                    
                     for _, itemData in ipairs(batchItems) do
                         if tradeFinished or LocalPlayer:GetAttribute("IsTrading") ~= true then break end
                         
-                        pcall(function()
-                            local success = TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
-                            if success ~= false then itemsAddedCount = itemsAddedCount + 1 end
+                        local okAdd, addSuccess = pcall(function()
+                            return TradeData.Remotes.AddItem:InvokeServer(itemData.Category, itemData.UUID)
                         end)
                         
-                        if itemData.Category ~= "Fish" then
-                            task.wait(0.1)
+                        if okAdd and addSuccess ~= false then 
+                            itemsAddedCount = itemsAddedCount + 1 
                         end
-                    end
-                    isAddingItems = false 
-
-                    while not tradeFinished and LocalPlayer:GetAttribute("IsTrading") == true do
-                        task.wait(0.5)
+                        
+                        -- Jeda aman dan acak agar tidak memicu deteksi rate limit server
+                        task.wait(math.random(1, 3) / 8) 
                     end
                     
-                    clearListeners()
+                    -- Fase penambahan item selesai, buka kunci agar Auto Confirm bisa menekan tombol Ready
+                    isAddingItems = false 
+
+                    -- Tunggu trade selesai (dengan timeout 30 detik untuk safety anti-stuck)
+                    local waitElapsed = 0
+                    while not tradeFinished and LocalPlayer:GetAttribute("IsTrading") == true and waitElapsed < 30 do
+                        task.wait(1)
+                        waitElapsed = waitElapsed + 1
+                    end
+                    
+                    endConn:Disconnect()
+                    compConn:Disconnect()
+
+                    -- Handle jika nyangkut / stuck / di-troll
+                    if not tradeFinished and LocalPlayer:GetAttribute("IsTrading") == true then
+                        pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
+                        pcall(function()
+                            local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
+                            if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
+                                LocalPlayer.PlayerGui["! Trading"].Enabled = false
+                            end
+                            GuiControl:Unlock()
+                            GuiControl:Close()
+                        end)
+                        LocalPlayer:SetAttribute("IsTrading", false)
+                    end
 
                     if isSuccess then
                         SuccessCount = SuccessCount + 1
@@ -1198,7 +1232,7 @@ StartToggle = TradeSection:AddToggle({
                     end
                     
                     TradeLog:SetDesc(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", RetryCount, SuccessCount, FailedCount, TotalItemsSuccess))
-                    task.wait(2.5) 
+                    task.wait(3.5) -- Cooldown aman sebelum mengirim trade berikutnya
                 end
                 
                 isTradingProcess = false
@@ -1334,4 +1368,3 @@ end)
 if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
     watchTradingState()
 end
-
