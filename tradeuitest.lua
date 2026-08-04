@@ -98,36 +98,35 @@ CustomLib.Assets = {
 }
 
 -- ==========================================
--- NOTIFICATION SYSTEM
+-- NOTIFICATION SYSTEM (RIGHT BOTTOM)
 -- ==========================================
 function CustomLib:Notify(title, text, duration)
     duration = duration or 3
     
-    local NotifyGui = CoreGui:FindFirstChild("CustomLibNotifyGui")
-    if not NotifyGui then
-        NotifyGui = Instance.new("ScreenGui")
-        NotifyGui.Name = "CustomLibNotifyGui"
-        NotifyGui.Parent = CoreGui
-        NotifyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-        local Container = Instance.new("Frame", NotifyGui)
-        Container.Name = "Container"
-        Container.BackgroundTransparency = 1
-        Container.Size = UDim2.new(0, 300, 1, 0)
-        Container.Position = UDim2.new(1, -300, 0, 0)
-        
-        local ListLayout = Instance.new("UIListLayout", Container)
-        ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-        ListLayout.Padding = UDim.new(0, 10)
-        
-        local Padding = Instance.new("UIPadding", Container)
-        Padding.PaddingBottom = UDim.new(0, 20)
-        Padding.PaddingRight = UDim.new(0, 20)
-        Padding.PaddingLeft = UDim.new(0, 10)
+    if CoreGui:FindFirstChild("CustomLibNotifyGui") then
+        CoreGui.CustomLibNotifyGui:Destroy()
     end
 
-    local Container = NotifyGui.Container
+    local NotifyGui = Instance.new("ScreenGui")
+    NotifyGui.Name = "CustomLibNotifyGui"
+    NotifyGui.Parent = CoreGui
+    NotifyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+    local Container = Instance.new("Frame", NotifyGui)
+    Container.Name = "Container"
+    Container.BackgroundTransparency = 1
+    Container.Size = UDim2.new(0, 300, 1, 0)
+    Container.Position = UDim2.new(1, -300, 0, 0)
+    
+    local ListLayout = Instance.new("UIListLayout", Container)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    ListLayout.Padding = UDim.new(0, 10)
+    
+    local Padding = Instance.new("UIPadding", Container)
+    Padding.PaddingBottom = UDim.new(0, 20)
+    Padding.PaddingRight = UDim.new(0, 20)
+    Padding.PaddingLeft = UDim.new(0, 10)
 
     local Holder = Instance.new("Frame", Container)
     Holder.BackgroundTransparency = 1
@@ -176,7 +175,7 @@ function CustomLib:Notify(title, text, duration)
         local slideOut = TweenService:Create(NoteFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 320, 0, 0)})
         slideOut:Play()
         slideOut.Completed:Connect(function()
-            Holder:Destroy()
+            NotifyGui:Destroy()
         end)
     end)
 end
@@ -1077,7 +1076,6 @@ local Tabs = {
     Info = Window:AddTab("Info"),
     Trading = Window:AddTab("Trading"),
     Utilities = Window:AddTab("Utilities")
-    
 }
 
 local InfoSection = Tabs.Info:AddCollapsibleSection("About Orvion", true)
@@ -1207,7 +1205,6 @@ StartToggle = TradeSection:AddToggle({
                         table.insert(batchItems, availableItems[i])
                     end
 
-                    -- [FIX 1]: Tunggu hingga status 'IsTrading' benar-benar clear dari trade sebelumnya
                     local waitClear = 0
                     while (targetPlayer:GetAttribute("IsTrading") == true or LocalPlayer:GetAttribute("IsTrading") == true) and waitClear < 10 do
                         task.wait(0.5)
@@ -1218,10 +1215,8 @@ StartToggle = TradeSection:AddToggle({
                     RetryCount = RetryCount + 1
                     TradeLog:SetDesc(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", RetryCount, SuccessCount, FailedCount, TotalItemsSuccess))
                     
-                    -- [FIX 2]: Kunci status isAddingItems SEBELUM mengirim trade agar fungsi Auto-Confirm tidak menabrak
                     isAddingItems = true 
                     
-                    -- [FIX 3]: Tangkap respon server. Jika tertolak (misal target cooldown), langsung hentikan dan coba lagi
                     local ok, sendSuccess = pcall(function() 
                         return TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer) 
                     end)
@@ -1234,7 +1229,6 @@ StartToggle = TradeSection:AddToggle({
                         continue
                     end
 
-                    -- [FIX 4]: Gunakan Event TradeStarted untuk mendeteksi trade, BUKAN mengandalkan Attribute IsTrading
                     local tradeStarted = false
                     local startConn = TradeData.Remotes.TradeStarted.OnClientEvent:Connect(function()
                         tradeStarted = true
@@ -1255,7 +1249,6 @@ StartToggle = TradeSection:AddToggle({
                         continue 
                     end
 
-                    -- KITA BERADA DI DALAM TRADE
                     local tradeFinished = false
                     local isSuccess = false
                     
@@ -1265,7 +1258,7 @@ StartToggle = TradeSection:AddToggle({
                         isSuccess = true 
                     end)
 
-                    task.wait(1.5) -- Beri jeda agar UI/State game stabil seperti di controller asli
+                    task.wait(1.5)
 
                     local itemsAddedCount = 0
                     for _, itemData in ipairs(batchItems) do
@@ -1279,14 +1272,11 @@ StartToggle = TradeSection:AddToggle({
                             itemsAddedCount = itemsAddedCount + 1 
                         end
                         
-                        -- Jeda aman dan acak agar tidak memicu deteksi rate limit server
                         task.wait(math.random(1, 3) / 8) 
                     end
                     
-                    -- Fase penambahan item selesai, buka kunci agar Auto Confirm bisa menekan tombol Ready
                     isAddingItems = false 
 
-                    -- Tunggu trade selesai (dengan timeout 30 detik untuk safety anti-stuck)
                     local waitElapsed = 0
                     while not tradeFinished and LocalPlayer:GetAttribute("IsTrading") == true and waitElapsed < 30 do
                         task.wait(1)
@@ -1296,7 +1286,6 @@ StartToggle = TradeSection:AddToggle({
                     endConn:Disconnect()
                     compConn:Disconnect()
 
-                    -- Handle jika nyangkut / stuck / di-troll
                     if not tradeFinished and LocalPlayer:GetAttribute("IsTrading") == true then
                         pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
                         pcall(function()
@@ -1318,7 +1307,7 @@ StartToggle = TradeSection:AddToggle({
                     end
                     
                     TradeLog:SetDesc(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", RetryCount, SuccessCount, FailedCount, TotalItemsSuccess))
-                    task.wait(3.5) -- Cooldown aman sebelum mengirim trade berikutnya
+                    task.wait(3.5)
                 end
                 
                 isTradingProcess = false
@@ -1337,43 +1326,34 @@ StartToggle = TradeSection:AddToggle({
 })
 
 -- ==========================================
--- LOGIC ANTI AFK & AUTO ACCEPT (EVENT DRIVEN)
+-- LOGIC BYPASS UI TRADE OFFER & AUTO ACCEPT (REFERENSI DARI USER)
 -- ==========================================
-
--- 1. PISAHKAN DAN AMBIL KONEKSI GAME TERLEBIH DAHULU
--- Kita harus mengambil koneksi bawaan game SEBELUM membuat koneksi event kustom di bawahnya
--- agar skrip kita tidak men-disable dirinya sendiri.
-local gameTradeConnections = {}
-local afkConnections = {}
-
-if getconnections then
-    pcall(function()
-        -- Ambil koneksi pop-up UI trade offer bawaan game
-        for _, conn in pairs(getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)) do
-            table.insert(gameTradeConnections, conn)
-        end
-        -- Ambil koneksi idle/AFK bawaan game
-        for _, conn in pairs(getconnections(LocalPlayer.Idled)) do
-            table.insert(afkConnections, conn)
+task.spawn(function()
+    task.wait(3)
+    if getconnections then
+        pcall(function()
+            local offerConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
+            for _, conn in pairs(offerConnections) do
+                conn:Disable()
+            end
+        end)
+    end
+    
+    TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
+        if State.AutoAccept then
+            task.wait(0.2)
+            pcall(function()
+                TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender)
+            end)
         end
     end)
-end
+end)
 
--- 2. SETUP TOGGLES
 Tabs.Utilities:AddToggle({
     Title = "Auto Accept & Confirm Trade", 
     Default = false,
     Callback = function(state)
         State.AutoAccept = state
-        pcall(function()
-            for _, conn in pairs(gameTradeConnections) do
-                if state then
-                    conn:Disable() -- Bypass UI Pop-up Request bawaan game
-                else
-                    conn:Enable()
-                end
-            end
-        end)
     end
 })
 
@@ -1383,29 +1363,19 @@ Tabs.Utilities:AddToggle({
     Callback = function(state)
         State.AntiAfk = state
         pcall(function()
-            for _, conn in pairs(afkConnections) do
-                if state then
-                    conn:Disable()
-                else
-                    conn:Enable()
+            if getconnections then
+                for _, connection in pairs(getconnections(LocalPlayer.Idled)) do
+                    if state then
+                        connection:Disable()
+                    else
+                        connection:Enable()
+                    end
                 end
             end
         end)
     end
 })
 
--- 3. LOGIC AUTO ACCEPT (Stand-alone & Terproteksi)
-TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
-    if State.AutoAccept then
-        task.wait(0.2)
-        -- Otomatis menerima tanpa memicu pop-up visual di layar
-        pcall(function() 
-            TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender) 
-        end)
-    end
-end)
-
--- 4. LOGIC AUTO CONFIRM & ANTI-STUCK DI DALAM TRADE UI
 local function watchTradingState()
     task.spawn(function()
         local timeStuck = 0
@@ -1413,12 +1383,10 @@ local function watchTradingState()
         while LocalPlayer:GetAttribute("IsTrading") == true do
             if not State.AutoAccept then break end
             
-            -- Sistem Anti-Stuck: Batalkan trade jika pemain lawan AFK/Troll lebih dari 30 detik
             if timeStuck >= 30 then
                 pcall(function() TradeData.Remotes.CancelTrade:InvokeServer() end)
                 task.wait(1)
                 
-                -- Force hide UI Trade menggunakan controller bawaan jika tersangkut
                 pcall(function()
                     local GuiControl = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("GuiControl"))
                     if LocalPlayer.PlayerGui:FindFirstChild("! Trading") then
@@ -1432,7 +1400,6 @@ local function watchTradingState()
                 break
             end
             
-            -- Eksekusi Auto Ready dan Auto Confirm
             if not isAddingItems then
                 pcall(function()
                     TradeData.Remotes.SetReady:InvokeServer(true)
@@ -1447,14 +1414,12 @@ local function watchTradingState()
     end)
 end
 
--- Deteksi transisi masuk ke dalam Trade
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
     if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
         watchTradingState()
     end
 end)
 
--- Handle edge case jika toggle dinyalakan pada saat Player sudah terlanjur berada dalam state trading
 if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
     watchTradingState()
 end
