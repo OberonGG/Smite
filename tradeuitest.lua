@@ -97,6 +97,90 @@ CustomLib.Assets = {
     }
 }
 
+-- ==========================================
+-- NOTIFICATION SYSTEM
+-- ==========================================
+function CustomLib:Notify(title, text, duration)
+    duration = duration or 3
+    
+    local NotifyGui = CoreGui:FindFirstChild("CustomLibNotifyGui")
+    if not NotifyGui then
+        NotifyGui = Instance.new("ScreenGui")
+        NotifyGui.Name = "CustomLibNotifyGui"
+        NotifyGui.Parent = CoreGui
+        NotifyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+        local Container = Instance.new("Frame", NotifyGui)
+        Container.Name = "Container"
+        Container.BackgroundTransparency = 1
+        Container.Size = UDim2.new(0, 300, 1, 0)
+        Container.Position = UDim2.new(1, -300, 0, 0)
+        
+        local ListLayout = Instance.new("UIListLayout", Container)
+        ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        ListLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+        ListLayout.Padding = UDim.new(0, 10)
+        
+        local Padding = Instance.new("UIPadding", Container)
+        Padding.PaddingBottom = UDim.new(0, 20)
+        Padding.PaddingRight = UDim.new(0, 20)
+        Padding.PaddingLeft = UDim.new(0, 10)
+    end
+
+    local Container = NotifyGui.Container
+
+    local Holder = Instance.new("Frame", Container)
+    Holder.BackgroundTransparency = 1
+    Holder.Size = UDim2.new(1, 0, 0, 60)
+
+    local NoteFrame = Instance.new("Frame", Holder)
+    NoteFrame.BackgroundColor3 = COLOR_SECTION_BG
+    NoteFrame.BackgroundTransparency = 0.1
+    NoteFrame.Size = UDim2.new(1, 0, 1, 0)
+    NoteFrame.Position = UDim2.new(1, 320, 0, 0) 
+    NoteFrame.BorderSizePixel = 0
+    
+    local NoteCorner = Instance.new("UICorner", NoteFrame)
+    NoteCorner.CornerRadius = UDim.new(0, 6)
+    
+    local NoteStroke = Instance.new("UIStroke", NoteFrame)
+    NoteStroke.Color = Color3.fromRGB(80, 80, 100)
+    NoteStroke.Thickness = 1.5
+
+    local TitleLabel = Instance.new("TextLabel", NoteFrame)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Position = UDim2.new(0, 10, 0, 5)
+    TitleLabel.Size = UDim2.new(1, -20, 0, 20)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = COLOR_WHITE
+    TitleLabel.TextSize = CONFIG_FONT_SECTION
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    local TextLabel = Instance.new("TextLabel", NoteFrame)
+    TextLabel.BackgroundTransparency = 1
+    TextLabel.Position = UDim2.new(0, 10, 0, 25)
+    TextLabel.Size = UDim2.new(1, -20, 1, -30)
+    TextLabel.Font = Enum.Font.Gotham
+    TextLabel.Text = text
+    TextLabel.TextColor3 = COLOR_SIDEBAR_LOG
+    TextLabel.TextSize = CONFIG_FONT_GENERAL
+    TextLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TextLabel.TextYAlignment = Enum.TextYAlignment.Top
+    TextLabel.TextWrapped = true
+
+    local slideIn = TweenService:Create(NoteFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)})
+    slideIn:Play()
+    
+    task.delay(duration, function()
+        local slideOut = TweenService:Create(NoteFrame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 320, 0, 0)})
+        slideOut:Play()
+        slideOut.Completed:Connect(function()
+            Holder:Destroy()
+        end)
+    end)
+end
+
 function CustomLib:CreateWindow(config)
     config = config or {}
     local titleText = config.Title or "Custom Hub"
@@ -271,7 +355,6 @@ function CustomLib:CreateWindow(config)
     LayersTabTopCover.BorderSizePixel = 0
     LayersTabTopCover.ZIndex = 2
 
-    -- [FIX] Diturunkan posisinya dari 8 menjadi 14 agar tidak terlalu mepet ke atas
     local SearchBarFrame = Instance.new("Frame", LayersTab)
     SearchBarFrame.Name = "SearchBarFrame"
     SearchBarFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
@@ -293,7 +376,6 @@ function CustomLib:CreateWindow(config)
     SearchInput.TextSize = 12
     SearchInput.TextXAlignment = Enum.TextXAlignment.Center
 
-    -- [FIX] Posisi Y ScrollTab disesuaikan turun menjadi 38 agar rapi di bawah search bar yang lebih kecil
     local ScrollTab = Instance.new("ScrollingFrame", LayersTab)
     ScrollTab.Name = "ScrollTab"
     ScrollTab.BackgroundTransparency = 1
@@ -301,7 +383,6 @@ function CustomLib:CreateWindow(config)
     ScrollTab.Size = UDim2.new(1, -12, 1, -90)
     ScrollTab.CanvasSize = UDim2.new(0, 0, 0, 0)
     ScrollTab.ScrollBarThickness = 0
-
     
     local TabListLayout = Instance.new("UIListLayout", ScrollTab)
     TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -1032,6 +1113,7 @@ PlayerSection:AddButton({
     Icon = "10088146947", 
     Callback = function()
         PlayerDropdown:SetValues(refreshPlayerList())
+        CustomLib:Notify("Player List", "Successfully refreshed player list!", 3)
     end
 })
 
@@ -1061,6 +1143,7 @@ TradeSection:AddButton({
     Callback = function()
         local r, e, s = getInventoryItems()
         InventoryStatus:SetDesc(string.format("x%d Runic, x%d Evo, x%d Forgotten & Secret Fish", #r, #e, #s))
+        CustomLib:Notify("Inventory", "Inventory check completed successfully!", 3)
     end
 })
 
@@ -1083,6 +1166,7 @@ StartToggle = TradeSection:AddToggle({
         
         if state then
             if State.TargetPlayer == "Select Option" or State.TargetPlayer == "No Players Found" then
+                CustomLib:Notify("Error", "Please select a valid player first!", 3)
                 StartToggle:SetValue(false)
                 return
             end
@@ -1090,6 +1174,8 @@ StartToggle = TradeSection:AddToggle({
             if isTradingProcess then return end
             isTradingProcess = true
             
+            CustomLib:Notify("Trade Started", string.format("Starting auto trade with %s", State.TargetPlayer), 3)
+
             task.spawn(function()
                 local targetAmount = tonumber(State.SendAmount) or 1
                 local targetName = State.TargetPlayer
@@ -1237,10 +1323,14 @@ StartToggle = TradeSection:AddToggle({
                 
                 isTradingProcess = false
                 if TotalItemsSuccess >= targetAmount and StartToggle then
+                    CustomLib:Notify("Trade Completed", string.format("Done! Successfully sent %d items.", TotalItemsSuccess), 5)
                     StartToggle:SetValue(false)
                 end
             end)
         else
+            if isTradingProcess then
+                CustomLib:Notify("Trade Stopped", "Auto trade process was stopped.", 3)
+            end
             isTradingProcess = false
         end
     end
