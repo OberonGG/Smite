@@ -12,8 +12,8 @@ local Replion = require(ReplicatedStorage.Packages.Replion)
 local ItemUtility = require(ReplicatedStorage.Shared.ItemUtility)
 local PlayerData = Replion.Client:WaitReplion("Data")
 
--- logic fungsi utilitas bawaan
-local function getInventoryItems()
+-- logic fungsi utilitas bawaan (DITAMBAHKAN PARAMETER ignoreLocks)
+local function getInventoryItems(ignoreLocks)
     local inventory = PlayerData:Get("Inventory") or PlayerData.Data.Inventory
     local runic, evo, secret = {}, {}, {}
     
@@ -32,7 +32,8 @@ local function getInventoryItems()
                     end
                     local isFavorited = (item.Favorited == true)
                     
-                    if not isLocked and not isFavorited then
+                    -- Loloskan jika ignoreLocks true, ATAU jika item memang tidak di-lock/favorit
+                    if ignoreLocks or (not isLocked and not isFavorited) then
                         local id = tonumber(item.Id)
                         local data = {UUID = item.UUID, Category = itemData.Data.Type}
                         
@@ -55,7 +56,8 @@ local function getInventoryItems()
 end
 
 local function getTargetItems(targetItemString)
-    local runic, evo, secret = getInventoryItems()
+    -- Auto trade TIDAK mengabaikan lock (ignoreLocks = false)
+    local runic, evo, secret = getInventoryItems(false)
     if targetItemString == "Runic Enchant Stone" then return runic
     elseif targetItemString == "Evolved Enchant Stone" then return evo
     elseif targetItemString == "Forgotten & Secret Fish" then return secret
@@ -1219,7 +1221,8 @@ TradeSection:AddButton({
     Title = "Check Inventory",
     Icon = "10088146947", 
     Callback = function()
-        local r, e, s = getInventoryItems()
+        -- visual check MENGABAIKAN lock dengan passing true
+        local r, e, s = getInventoryItems(true)
         InventoryStatus:SetDesc(string.format("x%d Runic, x%d Evo, x%d Forgotten & Secret Fish", #r, #e, #s))
         CustomLib:Notify("Inventory", "Inventory check completed successfully!", 3)
     end
