@@ -1220,6 +1220,7 @@ task.spawn(function()
     task.wait(3)
     if getconnections then
         pcall(function()
+            -- Mengambil koneksi bawaan game untuk TradeOfferReceived
             originalTradeConnections = getconnections(TradeData.Remotes.TradeOfferReceived.OnClientEvent)
         end)
     end
@@ -1232,6 +1233,8 @@ Tabs.Utilities:AddToggle({
         State.AutoAccept = state
         if getconnections then
             pcall(function()
+                -- Bypass UI Pop-up Trade Offer (PromptController) 
+                -- dengan mematikan/menyalakan koneksi bawaan game
                 for _, conn in pairs(originalTradeConnections) do
                     if state then
                         conn:Disable()
@@ -1263,30 +1266,40 @@ Tabs.Utilities:AddToggle({
     end
 })
 
-
+-- STANDALONE: Auto Accept TradeOffer (Bypass Pop-up UI PromptController)
 TradeData.Remotes.TradeOfferReceived.OnClientEvent:Connect(function(sender)
     if State.AutoAccept then
         task.wait(0.2)
+        -- Langsung invoke accept tanpa trigger visual pop-up
         pcall(function() TradeData.Remotes.AcceptTradeOffer:InvokeServer(sender) end)
     end
 end)
 
+-- STANDALONE: Auto Confirm didalam Trade UI (Tanpa menutup/hide Trade UI)
+local function handleStandaloneAutoConfirm()
+    task.spawn(function()
+        while LocalPlayer:GetAttribute("IsTrading") == true do
+            if not State.AutoAccept then break end
+            
+            pcall(function()
+                -- Cukup set ready dan confirm, biarkan UI Trade tetap muncul/berjalan normal
+                TradeData.Remotes.SetReady:InvokeServer(true)
+                task.wait(0.2)
+                TradeData.Remotes.ConfirmTrade:InvokeServer()
+            end)
+            
+            task.wait(0.5) 
+        end
+    end)
+end
+
 LocalPlayer:GetAttributeChangedSignal("IsTrading"):Connect(function()
     if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
-        task.spawn(function()
-            while LocalPlayer:GetAttribute("IsTrading") == true do
-                if not State.AutoAccept then break end
-                
-                if not isAddingItems then
-                    pcall(function()
-                        TradeData.Remotes.SetReady:InvokeServer(true)
-                        task.wait(0.2)
-                        TradeData.Remotes.ConfirmTrade:InvokeServer()
-                    end)
-                end
-                
-                task.wait(0.5) 
-            end
-        end)
+        handleStandaloneAutoConfirm()
     end
 end)
+
+-- Handle jika toggle dinyalakan pada saat Player sudah terlanjur berada dalam state trading
+if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
+    handleStandaloneAutoConfirm()
+end
