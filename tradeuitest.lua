@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 -- logic modul game
@@ -551,15 +552,37 @@ function CustomLib:CreateWindow(config)
                 paraLayout.Padding = UDim.new(0, 4)
                 paraLayout.FillDirection = Enum.FillDirection.Vertical
 
-                local Title = Instance.new("TextLabel", ParaFrame)
-                Title.LayoutOrder = 1
+                local TitleContainer = Instance.new("Frame", ParaFrame)
+                TitleContainer.LayoutOrder = 1
+                TitleContainer.BackgroundTransparency = 1
+                TitleContainer.Size = UDim2.new(1, 0, 0, 20)
+
+                local Title = Instance.new("TextLabel", TitleContainer)
                 Title.BackgroundTransparency = 1
-                Title.Size = UDim2.new(1, 0, 0, 20)
+                Title.Size = UDim2.new(1, config.Icon and -24 or 0, 1, 0)
                 Title.Font = Enum.Font.GothamBold
                 Title.Text = config.Title or "Title"
                 Title.TextColor3 = COLOR_WHITE
                 Title.TextSize = CONFIG_FONT_SECTION
                 Title.TextXAlignment = Enum.TextXAlignment.Left
+
+                if config.Icon then
+                    local iconId = config.Icon
+                    if string.match(iconId, "rbxassetid://(%d+)") then
+                        local extractedId = string.match(iconId, "rbxassetid://(%d+)")
+                        iconId = "rbxthumb://type=Asset&id=" .. extractedId .. "&w=150&h=150"
+                    elseif string.match(iconId, "^%d+$") then
+                        iconId = "rbxthumb://type=Asset&id=" .. iconId .. "&w=150&h=150"
+                    end
+
+                    local ParaIcon = Instance.new("ImageLabel", TitleContainer)
+                    ParaIcon.BackgroundTransparency = 1
+                    ParaIcon.AnchorPoint = Vector2.new(1, 0.5)
+                    ParaIcon.Position = UDim2.new(1, 0, 0.5, 0)
+                    ParaIcon.Size = UDim2.new(0, 16, 0, 16)
+                    ParaIcon.Image = iconId
+                    ParaIcon.ScaleType = Enum.ScaleType.Fit
+                end
 
                 local Desc = Instance.new("TextLabel", ParaFrame)
                 Desc.LayoutOrder = 2
@@ -624,6 +647,54 @@ function CustomLib:CreateWindow(config)
                 Btn.MouseButton1Click:Connect(function()
                     if config.Callback then pcall(config.Callback) end
                 end)
+            end
+
+            function ElementAPI:AddButtonGrid(btn1Config, btn2Config)
+                local GridFrame = Instance.new("Frame", parentContainer)
+                GridFrame.BackgroundTransparency = 1
+                GridFrame.Size = UDim2.new(1, 0, 0, CONFIG_ELEMENT_HEIGHT)
+                GridFrame.BorderSizePixel = 0
+
+                local layout = Instance.new("UIListLayout", GridFrame)
+                layout.FillDirection = Enum.FillDirection.Horizontal
+                layout.SortOrder = Enum.SortOrder.LayoutOrder
+                layout.Padding = UDim.new(0, 6)
+                layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+                local function createHalfButton(config, order)
+                    config = config or {}
+                    local Btn = Instance.new("TextButton", GridFrame)
+                    Btn.LayoutOrder = order
+                    Btn.BackgroundColor3 = COLOR_SECTION_BG
+                    Btn.BackgroundTransparency = 0.4
+                    Btn.Size = UDim2.new(0.5, -3, 1, 0)
+                    Btn.Text = ""
+                    Btn.AutoButtonColor = true
+                    Btn.BorderSizePixel = 0
+                    
+                    local bc = Instance.new("UICorner", Btn)
+                    bc.CornerRadius = UDim.new(0, 6)
+                    local bcs = Instance.new("UIStroke", Btn)
+                    bcs.Color = Color3.fromRGB(60, 60, 75)
+                    bcs.Thickness = 1
+                    bcs.Transparency = 0.5
+
+                    local Title = Instance.new("TextLabel", Btn)
+                    Title.BackgroundTransparency = 1
+                    Title.Size = UDim2.new(1, 0, 1, 0)
+                    Title.Font = Enum.Font.GothamBold
+                    Title.Text = config.Title or "Button"
+                    Title.TextColor3 = COLOR_WHITE
+                    Title.TextSize = CONFIG_FONT_GENERAL
+                    Title.TextXAlignment = Enum.TextXAlignment.Center
+
+                    Btn.MouseButton1Click:Connect(function()
+                        if config.Callback then pcall(config.Callback) end
+                    end)
+                end
+
+                createHalfButton(btn1Config, 1)
+                createHalfButton(btn2Config, 2)
             end
 
             function ElementAPI:AddToggle(config)
@@ -735,12 +806,20 @@ function CustomLib:CreateWindow(config)
                 TextBox.TextXAlignment = Enum.TextXAlignment.Left
                 TextBox.BorderSizePixel = 0
 
+                TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+                    if config.Callback then pcall(config.Callback, TextBox.Text) end
+                end)
+
                 TextBox.FocusLost:Connect(function()
                     if config.Callback then pcall(config.Callback, TextBox.Text) end
                 end)
 
                 local iAPI = {}
                 function iAPI:GetValue() return TextBox.Text end
+                function iAPI:SetValue(val)
+                    TextBox.Text = tostring(val)
+                    if config.Callback then pcall(config.Callback, TextBox.Text) end
+                end
                 return iAPI
             end
 
@@ -1075,7 +1154,8 @@ local State = {
 local Tabs = {
     Info = Window:AddTab("Info"),
     Trading = Window:AddTab("Trading"),
-    Utilities = Window:AddTab("Utilities")
+    Utilities = Window:AddTab("Utilities"),
+    Configuration = Window:AddTab("Configuration")
 }
 
 local InfoSection = Tabs.Info:AddCollapsibleSection("About Orvion", true)
@@ -1126,7 +1206,7 @@ TradeSection:AddDropdown({
     end
 })
 
-TradeSection:AddInput({
+local SendAmountInput = TradeSection:AddInput({
     Title = "Set Amount",
     Default = "1",
     Placeholder = "Enter amount",
@@ -1326,7 +1406,7 @@ StartToggle = TradeSection:AddToggle({
 })
 
 -- ==========================================
--- LOGIC BYPASS UI TRADE OFFER & AUTO ACCEPT (REFERENSI DARI USER)
+-- UTILITIES & CONFIG MANAGER IMPLEMENTATION
 -- ==========================================
 task.spawn(function()
     task.wait(3)
@@ -1349,7 +1429,7 @@ task.spawn(function()
     end)
 end)
 
-Tabs.Utilities:AddToggle({
+local AutoAcceptToggleObj = Tabs.Utilities:AddToggle({
     Title = "Auto Accept & Confirm Trade", 
     Default = false,
     Callback = function(state)
@@ -1357,7 +1437,7 @@ Tabs.Utilities:AddToggle({
     end
 })
 
-Tabs.Utilities:AddToggle({
+local AntiAfkToggleObj = Tabs.Utilities:AddToggle({
     Title = "Anti-AFK", 
     Default = false,
     Callback = function(state)
@@ -1423,3 +1503,235 @@ end)
 if LocalPlayer:GetAttribute("IsTrading") == true and State.AutoAccept then
     watchTradingState()
 end
+
+-- ==========================================
+-- CONFIG MANAGER (TAB CONFIGURATION)
+-- ==========================================
+local CONFIG_FOLDER = "OrvionFishit"
+local AUTOLOAD_FILE = CONFIG_FOLDER .. "/autoload.txt"
+
+if not isfolder(CONFIG_FOLDER) then
+    makefolder(CONFIG_FOLDER)
+end
+
+local selectedConfigName = ""
+local inputConfigName = ""
+
+local ConfigInfoParagraph = Tabs.Configuration:AddParagraph({
+    Title = "Config Manager",
+    Icon = "rbxassetid://129719449898933",
+    Content = "Current: None | Autoload: None"
+})
+
+Tabs.Configuration:AddInput({
+    Title = "Config Name",
+    Placeholder = "Enter config name...",
+    Default = "",
+    Callback = function(v)
+        inputConfigName = v
+    end
+})
+
+local function getExistingConfigs()
+    local list = {}
+    if isfolder(CONFIG_FOLDER) then
+        for _, file in ipairs(listfiles(CONFIG_FOLDER)) do
+            if string.sub(file, -5) == ".json" then
+                local name = file:match("([^/\\]+)%.json$")
+                if name then
+                    table.insert(list, name)
+                end
+            end
+        end
+    end
+    if #list == 0 then table.insert(list, "No Configs Found") end
+    return list
+end
+
+local function updateConfigStatus()
+    local cur = (selectedConfigName ~= "" and selectedConfigName ~= nil) and selectedConfigName or "None"
+    local auto = "None"
+    if isfile(AUTOLOAD_FILE) then
+        local content = readfile(AUTOLOAD_FILE)
+        if content and content ~= "" then
+            auto = content
+        end
+    end
+    ConfigInfoParagraph:SetDesc(string.format("Current: %s | Autoload: %s", cur, auto))
+end
+
+local SelectConfigDropdown = Tabs.Configuration:AddDropdown({
+    Title = "Select Config",
+    Values = getExistingConfigs(),
+    DefaultValue = "Select Option",
+    Callback = function(v)
+        if v and v ~= "No Configs Found" and v ~= "Select Option" then
+            selectedConfigName = v
+            updateConfigStatus()
+        end
+    end
+})
+
+-- Action Buttons using AddButtonGrid (2 columns per row)
+Tabs.Configuration:AddButtonGrid(
+    {
+        Title = "Save Config",
+        Callback = function()
+            local targetName = inputConfigName ~= "" and inputConfigName or selectedConfigName
+            if not targetName or targetName == "" or targetName == "Select Option" or targetName == "No Configs Found" then
+                CustomLib:Notify("Config Error", "Please enter or select a valid config name!", 3)
+                return
+            end
+            local filePath = CONFIG_FOLDER .. "/" .. targetName .. ".json"
+            local configData = {
+                AntiAfk = State.AntiAfk,
+                AutoAccept = State.AutoAccept,
+                TargetItem = State.TargetItem,
+                SendAmount = State.SendAmount
+            }
+            local success, encoded = pcall(function()
+                return HttpService:JSONEncode(configData)
+            end)
+            if success then
+                writefile(filePath, encoded)
+                selectedConfigName = targetName
+                SelectConfigDropdown:SetValues(getExistingConfigs())
+                SelectConfigDropdown:SetValue(targetName)
+                updateConfigStatus()
+                CustomLib:Notify("Config Manager", string.format("Successfully saved config '%s'!", targetName), 3)
+            else
+                CustomLib:Notify("Config Error", "Failed to encode configuration data!", 3)
+            end
+        end
+    },
+    {
+        Title = "Load Config",
+        Callback = function()
+            if not selectedConfigName or selectedConfigName == "" or selectedConfigName == "Select Option" or selectedConfigName == "No Configs Found" then
+                CustomLib:Notify("Config Error", "Please select a config to load!", 3)
+                return
+            end
+            local filePath = CONFIG_FOLDER .. "/" .. selectedConfigName .. ".json"
+            if isfile(filePath) then
+                local success, decoded = pcall(function()
+                    return HttpService:JSONDecode(readfile(filePath))
+                end)
+                if success and type(decoded) == "table" then
+                    if decoded.AntiAfk ~= nil then
+                        State.AntiAfk = decoded.AntiAfk
+                        if AntiAfkToggleObj then AntiAfkToggleObj:SetValue(decoded.AntiAfk) end
+                    end
+                    if decoded.AutoAccept ~= nil then
+                        State.AutoAccept = decoded.AutoAccept
+                        if AutoAcceptToggleObj then AutoAcceptToggleObj:SetValue(decoded.AutoAccept) end
+                    end
+                    if decoded.TargetItem ~= nil then
+                        State.TargetItem = decoded.TargetItem
+                    end
+                    if decoded.SendAmount ~= nil then
+                        State.SendAmount = decoded.SendAmount
+                    end
+                    updateConfigStatus()
+                    CustomLib:Notify("Config Manager", string.format("Successfully loaded config '%s'!", selectedConfigName), 3)
+                else
+                    CustomLib:Notify("Config Error", "Failed to decode configuration file!", 3)
+                end
+            else
+                CustomLib:Notify("Config Error", "Config file does not exist!", 3)
+            end
+        end
+    }
+)
+
+Tabs.Configuration:AddButtonGrid(
+    {
+        Title = "Delete Config",
+        Callback = function()
+            if not selectedConfigName or selectedConfigName == "" or selectedConfigName == "Select Option" or selectedConfigName == "No Configs Found" then
+                CustomLib:Notify("Config Error", "Please select a config to delete!", 3)
+                return
+            end
+            local filePath = CONFIG_FOLDER .. "/" .. selectedConfigName .. ".json"
+            if isfile(filePath) then
+                delfile(filePath)
+                local deletedName = selectedConfigName
+                selectedConfigName = "None"
+                SelectConfigDropdown:SetValues(getExistingConfigs())
+                SelectConfigDropdown:SetValue("Select Option")
+                updateConfigStatus()
+                CustomLib:Notify("Config Manager", string.format("Successfully deleted config '%s'!", deletedName), 3)
+            else
+                CustomLib:Notify("Config Error", "Config file not found!", 3)
+            end
+        end
+    },
+    {
+        Title = "Set Autoload",
+        Callback = function()
+            if not selectedConfigName or selectedConfigName == "" or selectedConfigName == "Select Option" or selectedConfigName == "No Configs Found" then
+                CustomLib:Notify("Config Error", "Please select a config to set as autoload!", 3)
+                return
+            end
+            writefile(AUTOLOAD_FILE, selectedConfigName)
+            updateConfigStatus()
+            CustomLib:Notify("Config Manager", string.format("Autoload set to '%s'!", selectedConfigName), 3)
+        end
+    }
+)
+
+Tabs.Configuration:AddButtonGrid(
+    {
+        Title = "Refresh List",
+        Callback = function()
+            SelectConfigDropdown:SetValues(getExistingConfigs())
+            updateConfigStatus()
+            CustomLib:Notify("Config Manager", "Refreshed config list!", 3)
+        end
+    },
+    {
+        Title = "Clear Autoload",
+        Callback = function()
+            if isfile(AUTOLOAD_FILE) then
+                writefile(AUTOLOAD_FILE, "")
+            end
+            updateConfigStatus()
+            CustomLib:Notify("Config Manager", "Cleared autoload configuration!", 3)
+        end
+    }
+)
+
+-- Autoload on Startup Check
+task.spawn(function()
+    task.wait(1)
+    if isfolder(CONFIG_FOLDER) and isfile(AUTOLOAD_FILE) then
+        local autoloadName = readfile(AUTOLOAD_FILE)
+        if autoloadName and autoloadName ~= "" then
+            local filePath = CONFIG_FOLDER .. "/" .. autoloadName .. ".json"
+            if isfile(filePath) then
+                local success, decoded = pcall(function()
+                    return HttpService:JSONDecode(readfile(filePath))
+                end)
+                if success and type(decoded) == "table" then
+                    if decoded.AntiAfk ~= nil then
+                        State.AntiAfk = decoded.AntiAfk
+                        if AntiAfkToggleObj then AntiAfkToggleObj:SetValue(decoded.AntiAfk) end
+                    end
+                    if decoded.AutoAccept ~= nil then
+                        State.AutoAccept = decoded.AutoAccept
+                        if AutoAcceptToggleObj then AutoAcceptToggleObj:SetValue(decoded.AutoAccept) end
+                    end
+                    if decoded.TargetItem ~= nil then
+                        State.TargetItem = decoded.TargetItem
+                    end
+                    if decoded.SendAmount ~= nil then
+                        State.SendAmount = decoded.SendAmount
+                    end
+                    selectedConfigName = autoloadName
+                    SelectConfigDropdown:SetValue(autoloadName)
+                    updateConfigStatus()
+                    CustomLib:Notify("Autoload", string.format("Successfully loaded config '%s' on startup!", autoloadName), 4)
+                end
+            end
+        end
+    end
+end)
