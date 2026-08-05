@@ -302,39 +302,38 @@ task.spawn(function()
     end
 end)
 
-local HiddenGui = gethui and gethui()
-local function safeDestroy(inst)
-    pcall(function() inst:Destroy() end)
+--[[
+    Delta Hider
+    Last Updated: 29th July 2026
+]]
+
+if identifyexecutor() ~= "Delta" then 
+    warn("You are not using Delta.")
+    return
 end
 
-task.spawn(function()
-    local whitelist = { ["LynxGui"] = true, ["PingTimerUI"] = true, ["LynxCloseButton"] = true, ["ToggleBtn"] = true }
-    local closed = false
-    
-    while not closed and task.wait(3) do
-        local target = HiddenGui or CoreGui
-        local found = false
-        
-        for _, gui in ipairs(target:GetChildren()) do
-            if gui:IsA("ScreenGui") and not whitelist[gui.Name] then
-                local weird = false
-                for i = 1, #gui.Name do
-                    if not gui.Name:sub(i,i):match("[%w_]") then weird = true; break end
-                end
-                if weird then
-                    if gui:FindFirstChild("Console", true) then
-                        for _, obj in ipairs(gui:GetChildren()) do
-                            if obj.Name ~= "Console" and obj.Name ~= "Network" then task.defer(safeDestroy, obj) end
-                        end
-                    else
-                        task.defer(safeDestroy, gui)
-                    end
-                    found = true
-                end
-            end
+local i = 0
+
+for _, v in pairs(gethui():GetChildren()) do
+    if v:IsA("ScreenGui") then
+
+        local ImageButton = v:FindFirstChildOfClass("ImageButton");
+
+        if ImageButton and tostring(ImageButton.Image):find("Logo.png", 1, true) then
+            v.Enabled = false
+            i = i + 1
         end
-        if found then closed = true end
+
+        if v:FindFirstChild("Console") and v:FindFirstChild("IsTween") and v:FindFirstChild("Executor") then
+            v.Enabled = false
+            i = i + 1
+        end
+
+        if i == 2 then 
+            break
+        end
+
     end
-end)
+end
 
 applyAutoSettings()
