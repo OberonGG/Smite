@@ -1,8 +1,12 @@
+-- ==========================================
+-- ORVION | MAIN LOGIC
+-- Fish it Trade Hub
+-- ==========================================
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Game modules
@@ -185,7 +189,6 @@ local Tabs = {
     Info          = Window:AddTab("Info"),
     Trading       = Window:AddTab("Trading"),
     Utilities     = Window:AddTab("Utilities"),
-    Configuration = Window:AddTab("Configuration"),
 }
 
 -- ==========================================
@@ -230,6 +233,7 @@ local function runTradeLoop(opts)
     local failed     = 0
     local isStopping = false
     local isAddingItems = false
+    isAddingItemsGlobal = false
 
     local function setStatus(txt)
         statusPara:SetDesc(txt)
@@ -297,6 +301,7 @@ local function runTradeLoop(opts)
             end)
 
             isAddingItems = true
+            isAddingItemsGlobal = true
             local ok, sendSuccess = pcall(function()
                 return TradeData.Remotes.SendTradeOffer:InvokeServer(targetPlayer)
             end)
@@ -306,6 +311,7 @@ local function runTradeLoop(opts)
                 compConn:Disconnect()
                 failed = failed + 1
                 isAddingItems = false
+                isAddingItemsGlobal = false
                 setStatus(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", retryCount, success, failed, totalSent))
                 task.wait(2.5)
                 continue
@@ -327,6 +333,7 @@ local function runTradeLoop(opts)
                 compConn:Disconnect()
                 failed = failed + 1
                 isAddingItems = false
+                isAddingItemsGlobal = false
                 setStatus(string.format("Retry: %d | Success: %d | Failed: %d | Sent: %d", retryCount, success, failed, totalSent))
                 task.wait(2.5)
                 continue
@@ -347,6 +354,7 @@ local function runTradeLoop(opts)
             end
 
             isAddingItems = false
+            isAddingItemsGlobal = false
 
             local waitElapsed = 0
             while not tradeFinished and LocalPlayer:GetAttribute("IsTrading") == true and waitElapsed < 30 do
@@ -383,14 +391,14 @@ local function runTradeLoop(opts)
             CustomLib:Notify("Trade Complete", string.format("Done! %d item(s) sent successfully.", totalSent), 5)
         end
 
-        setStatus(string.format("Done — Retry: %d | Success: %d | Failed: %d | Sent: %d", retryCount, success, failed, totalSent))
+        setStatus(string.format("Done -- Retry: %d | Success: %d | Failed: %d | Sent: %d", retryCount, success, failed, totalSent))
     end)
 
     return function() return isAddingItems end
 end
 
 -- ==========================================
--- SECTION 1 — SELECT PLAYER
+-- SECTION 1 â€” SELECT PLAYER
 -- ==========================================
 local PlayerSection = Tabs.Trading:AddCollapsibleSection("Select Player", false)
 
@@ -414,7 +422,7 @@ PlayerSection:AddButton({
 })
 
 -- ==========================================
--- SECTION 2 — TRADE BY NAME
+-- SECTION 2 â€” TRADE BY NAME
 -- ==========================================
 local ByNameSection = Tabs.Trading:AddCollapsibleSection("Trade by Name", false)
 
@@ -432,7 +440,7 @@ local ByNameDropdown = ByNameSection:AddDropdown({
     end
 })
 
-ByNameSection:AddInput({
+local ByNameAmountInput = ByNameSection:AddInput({
     Title = "Set Amount",
     Default = "1",
     Placeholder = "Enter amount",
@@ -516,7 +524,7 @@ local ByNameToggle = ByNameSection:AddToggle({
 ByNameToggleRef.toggle = ByNameToggle
 
 -- ==========================================
--- SECTION 3 — TRADE BY RARITIES
+-- SECTION 3 -- TRADE BY RARITIES
 -- ==========================================
 local ByRaritySection = Tabs.Trading:AddCollapsibleSection("Trade by Rarities", false)
 
@@ -534,7 +542,7 @@ local ByRarityDropdown = ByRaritySection:AddDropdown({
     end
 })
 
-ByRaritySection:AddInput({
+local ByRarityAmountInput = ByRaritySection:AddInput({
     Title = "Set Amount",
     Default = "1",
     Placeholder = "Enter amount",
@@ -577,7 +585,7 @@ local ByRarityToggle = ByRaritySection:AddToggle({
 ByRarityToggleRef.toggle = ByRarityToggle
 
 -- ==========================================
--- SECTION 4 — TRADE BY ENCHANT STONE
+-- SECTION 4 â€” TRADE BY ENCHANT STONE
 -- ==========================================
 local ByStoneSection = Tabs.Trading:AddCollapsibleSection("Trade Enchant Stone", false)
 
@@ -595,7 +603,7 @@ local ByStoneDropdown = ByStoneSection:AddDropdown({
     end
 })
 
-ByStoneSection:AddInput({
+local ByStoneAmountInput = ByStoneSection:AddInput({
     Title = "Set Amount",
     Default = "1",
     Placeholder = "Enter amount",
@@ -684,7 +692,7 @@ local ByStoneToggle = ByStoneSection:AddToggle({
 ByStoneToggleRef.toggle = ByStoneToggle
 
 -- ==========================================
--- AUTO ACCEPT — Trading tab
+-- AUTO ACCEPT -- Trading tab
 -- ==========================================
 local AutoAcceptSection = Tabs.Trading:AddCollapsibleSection("Auto Accept Trade", false)
 local AutoAcceptToggleObj = AutoAcceptSection:AddToggle({
@@ -721,7 +729,10 @@ task.spawn(function()
     end)
 end)
 
+local _watchRunning = false
 local function watchTradingState()
+    if _watchRunning then return end
+    _watchRunning = true
     task.spawn(function()
         local timeStuck = 0
         while LocalPlayer:GetAttribute("IsTrading") == true do
@@ -742,6 +753,7 @@ local function watchTradingState()
             task.wait(0.5)
             timeStuck = timeStuck + 0.5
         end
+        _watchRunning = false
     end)
 end
 
@@ -837,11 +849,22 @@ Tabs.Utilities:AddToggle({
 })
 
 -- 2. Reduce Map (Potato Mode)
-Tabs.Utilities:AddToggle({
+local _potatoConns = {}
+local _potatoModeOn = false
+local function disconnectPotato()
+    for _, c in ipairs(_potatoConns) do
+        pcall(function() c:Disconnect() end)
+    end
+    table.clear(_potatoConns)
+end
+
+local PotatoToggleObj
+PotatoToggleObj = Tabs.Utilities:AddToggle({
     Title = "Reduce Map (Potato Mode)",
     Default = false,
     Callback = function(state)
-        if not state then return end
+        _potatoModeOn = state
+        if not state then disconnectPotato() return end
         local l = game:GetService("Lighting")
         local w = game:GetService("Workspace")
         local p = game:GetService("Players")
@@ -885,17 +908,17 @@ Tabs.Utilities:AddToggle({
         end
 
         lockLighting()
-        l:GetPropertyChangedSignal("ClockTime"):Connect(lockLighting)
-        l:GetPropertyChangedSignal("TimeOfDay"):Connect(lockLighting)
+        table.insert(_potatoConns, l:GetPropertyChangedSignal("ClockTime"):Connect(lockLighting))
+        table.insert(_potatoConns, l:GetPropertyChangedSignal("TimeOfDay"):Connect(lockLighting))
 
-        l.ChildAdded:Connect(function(child)
+        table.insert(_potatoConns, l.ChildAdded:Connect(function(child)
             task.wait()
             if child:IsA("Sky") and child.Name ~= "BlackSkyNoStars" then
                 pcall(function() child:Destroy() end)
             elseif child:IsA("Atmosphere") or child:IsA("PostEffect") or child:IsA("Clouds") then
                 pcall(function() child:Destroy() end)
             end
-        end)
+        end))
 
         local function disableWeatherVFX(v)
             pcall(function()
@@ -910,7 +933,7 @@ Tabs.Utilities:AddToggle({
 
         if c then
             for _, v in pairs(c:GetDescendants()) do disableWeatherVFX(v) end
-            c.DescendantAdded:Connect(disableWeatherVFX)
+            table.insert(_potatoConns, c.DescendantAdded:Connect(disableWeatherVFX))
         end
 
         if t then
@@ -969,18 +992,18 @@ Tabs.Utilities:AddToggle({
         end
 
         for _, o in pairs(w:GetDescendants()) do opt(o) end
-        w.DescendantAdded:Connect(opt)
+        table.insert(_potatoConns, w.DescendantAdded:Connect(opt))
 
         local function sp(pl)
             if pl.Character then blk(pl.Character) end
-            pl.CharacterAdded:Connect(function(nc)
+            table.insert(_potatoConns, pl.CharacterAdded:Connect(function(nc)
                 task.wait(1)
                 blk(nc)
-            end)
+            end))
         end
 
         for _, pl in pairs(p:GetPlayers()) do sp(pl) end
-        p.PlayerAdded:Connect(sp)
+        table.insert(_potatoConns, p.PlayerAdded:Connect(sp))
     end
 })
 
@@ -1005,244 +1028,75 @@ local AntiAfkToggleObj = Tabs.Utilities:AddToggle({
 })
 
 -- ==========================================
--- CONFIGURATION TAB
+-- CONFIGURATION TAB (via library)
 -- ==========================================
-local CONFIG_FOLDER  = "OrvionFishit"
-local AUTOLOAD_FILE  = CONFIG_FOLDER .. "/autoload.txt"
-
-if not isfolder(CONFIG_FOLDER) then
-    makefolder(CONFIG_FOLDER)
-end
-
-local selectedConfigName = ""
-local inputConfigName    = ""
-
-local ConfigInfoParagraph = Tabs.Configuration:AddParagraph({
-    Title   = "Config Manager",
-    Icon    = "rbxassetid://129719449898933",
-    Content = "Current: None | Autoload: None"
-})
-
-Tabs.Configuration:AddInput({
-    Title       = "Config Name",
-    Placeholder = "Enter config name...",
-    Default     = "",
-    Callback    = function(v)
-        inputConfigName = v
-    end
-})
-
-local function getExistingConfigs()
-    local list = {}
-    if isfolder(CONFIG_FOLDER) then
-        for _, file in ipairs(listfiles(CONFIG_FOLDER)) do
-            if string.sub(file, -5) == ".json" then
-                local name = file:match("([^/\\]+)%.json$")
-                if name then
-                    table.insert(list, name)
-                end
-            end
-        end
-    end
-    return list
-end
-
-local function updateConfigStatus()
-    local cur  = (selectedConfigName ~= "" and selectedConfigName ~= nil) and selectedConfigName or "None"
-    local auto = "None"
-    if isfile(AUTOLOAD_FILE) then
-        local content = readfile(AUTOLOAD_FILE)
-        if content and content ~= "" then
-            auto = content
-        end
-    end
-    ConfigInfoParagraph:SetDesc(string.format("Current: %s | Autoload: %s", cur, auto))
-end
-
-local SelectConfigDropdown = Tabs.Configuration:AddDropdown({
-    Title        = "Select Config",
-    Values       = getExistingConfigs(),
-    DefaultValue = "Select Option",
-    Callback     = function(v)
-        if v and v ~= "" and v ~= "Select Option" then
-            selectedConfigName = v
-            updateConfigStatus()
-        end
-    end
-})
-
-local function buildConfigData()
-    return {
-        AntiAfk         = State.AntiAfk,
-        AutoAccept      = State.AutoAccept,
-        ByRarity        = State.ByRarity_Rarity,
-        ByName_Amount   = State.ByName_Amount,
-        ByRarity_Amount = State.ByRarity_Amount,
-        ByStone_Amount  = State.ByStone_Amount,
-    }
-end
-
-local function applyConfigData(decoded)
-    if decoded.AntiAfk ~= nil then
-        State.AntiAfk = decoded.AntiAfk
-        if AntiAfkToggleObj then AntiAfkToggleObj:SetValue(decoded.AntiAfk) end
-    end
-    if decoded.AutoAccept ~= nil then
-        State.AutoAccept = decoded.AutoAccept
-        if AutoAcceptToggleObj then AutoAcceptToggleObj:SetValue(decoded.AutoAccept) end
-    end
-    if decoded.ByRarity and decoded.ByRarity ~= "" then
-        State.ByRarity_Rarity = decoded.ByRarity
-        ByRarityDropdown:SetValue(decoded.ByRarity)
-    end
-    if decoded.ByName_Amount and decoded.ByName_Amount ~= "" then
-        State.ByName_Amount = decoded.ByName_Amount
-    end
-    if decoded.ByRarity_Amount and decoded.ByRarity_Amount ~= "" then
-        State.ByRarity_Amount = decoded.ByRarity_Amount
-    end
-    if decoded.ByStone_Amount and decoded.ByStone_Amount ~= "" then
-        State.ByStone_Amount = decoded.ByStone_Amount
-    end
-end
-
-Tabs.Configuration:AddButtonGrid(
-    {
-        Title = "Save Config",
-        Callback = function()
-            local targetName = inputConfigName ~= "" and inputConfigName or selectedConfigName
-            if not targetName or targetName == "" then
-                CustomLib:Notify("Config Error", "Enter or select a config name first!", 3)
-                return
-            end
-            local filePath = CONFIG_FOLDER .. "/" .. targetName .. ".json"
-            local configData = buildConfigData()
-            for k, v in pairs(configData) do
-                if v == "" then configData[k] = nil end
-            end
-            local ok, encoded = pcall(function()
-                return HttpService:JSONEncode(configData)
-            end)
-            if ok then
-                writefile(filePath, encoded)
-                selectedConfigName = targetName
-                local list = getExistingConfigs()
-                SelectConfigDropdown:SetValues(list)
-                SelectConfigDropdown:SetValue(targetName)
-                updateConfigStatus()
-                CustomLib:Notify("Config Manager", string.format("Config '%s' saved!", targetName), 3)
-            else
-                CustomLib:Notify("Config Error", "Failed to encode config data!", 3)
-            end
-        end
+Window:AddConfigTab({
+    TabName   = "Configuration",
+    Folder    = "OrvionFishIt",
+    SubFolder = "Config",
+    Settings  = {
+        {
+            Key = "AutoAccept", Type = "toggle",
+            Get = function() return State.AutoAccept end,
+            Set = function(v) AutoAcceptToggleObj:SetValue(v) end,
+        },
+        {
+            Key = "AntiAfk", Type = "toggle",
+            Get = function() return State.AntiAfk end,
+            Set = function(v) AntiAfkToggleObj:SetValue(v) end,
+        },
+        {
+            Key = "PotatoMode", Type = "toggle",
+            Get = function() return _potatoModeOn end,
+            Set = function(v) PotatoToggleObj:SetValue(v) end,
+        },
+        {
+            Key = "TargetPlayer", Type = "dropdown",
+            Get = function() return State.TargetPlayer end,
+            Set = function(v)
+                State.TargetPlayer = v
+                PlayerDropdown:SetValue(v)
+            end,
+        },
+        {
+            Key = "ByName_Amount", Type = "input",
+            Get = function() return State.ByName_Amount end,
+            Set = function(v)
+                State.ByName_Amount = v
+                ByNameAmountInput:SetValue(v)
+            end,
+        },
+        {
+            Key = "ByRarity_Rarity", Type = "dropdown",
+            Get = function() return State.ByRarity_Rarity end,
+            Set = function(v)
+                State.ByRarity_Rarity = v
+                ByRarityDropdown:SetValue(v)
+            end,
+        },
+        {
+            Key = "ByRarity_Amount", Type = "input",
+            Get = function() return State.ByRarity_Amount end,
+            Set = function(v)
+                State.ByRarity_Amount = v
+                ByRarityAmountInput:SetValue(v)
+            end,
+        },
+        {
+            Key = "ByStone_Stone", Type = "dropdown",
+            Get = function() return State.ByStone_Stone end,
+            Set = function(v)
+                State.ByStone_Stone = v
+                ByStoneDropdown:SetValue(v)
+            end,
+        },
+        {
+            Key = "ByStone_Amount", Type = "input",
+            Get = function() return State.ByStone_Amount end,
+            Set = function(v)
+                State.ByStone_Amount = v
+                ByStoneAmountInput:SetValue(v)
+            end,
+        },
     },
-    {
-        Title = "Load Config",
-        Callback = function()
-            if not selectedConfigName or selectedConfigName == "" then
-                CustomLib:Notify("Config Error", "Please select a config first!", 3)
-                return
-            end
-            local filePath = CONFIG_FOLDER .. "/" .. selectedConfigName .. ".json"
-            if isfile(filePath) then
-                local ok, decoded = pcall(function()
-                    return HttpService:JSONDecode(readfile(filePath))
-                end)
-                if ok and type(decoded) == "table" then
-                    applyConfigData(decoded)
-                    updateConfigStatus()
-                    CustomLib:Notify("Config Manager", string.format("Config '%s' loaded!", selectedConfigName), 3)
-                else
-                    CustomLib:Notify("Config Error", "Failed to decode config file!", 3)
-                end
-            else
-                CustomLib:Notify("Config Error", "Config file not found!", 3)
-            end
-        end
-    }
-)
-
-Tabs.Configuration:AddButtonGrid(
-    {
-        Title = "Delete Config",
-        Callback = function()
-            if not selectedConfigName or selectedConfigName == "" then
-                CustomLib:Notify("Config Error", "Please select a config first!", 3)
-                return
-            end
-            local filePath = CONFIG_FOLDER .. "/" .. selectedConfigName .. ".json"
-            if isfile(filePath) then
-                delfile(filePath)
-                local deletedName = selectedConfigName
-                selectedConfigName = ""
-                local list = getExistingConfigs()
-                SelectConfigDropdown:SetValues(list)
-                updateConfigStatus()
-                CustomLib:Notify("Config Manager", string.format("Config '%s' deleted!", deletedName), 3)
-            else
-                CustomLib:Notify("Config Error", "Config file not found!", 3)
-            end
-        end
-    },
-    {
-        Title = "Set Autoload",
-        Callback = function()
-            if not selectedConfigName or selectedConfigName == "" then
-                CustomLib:Notify("Config Error", "Please select a config first!", 3)
-                return
-            end
-            writefile(AUTOLOAD_FILE, selectedConfigName)
-            updateConfigStatus()
-            CustomLib:Notify("Config Manager", string.format("Autoload set to '%s'!", selectedConfigName), 3)
-        end
-    }
-)
-
-Tabs.Configuration:AddButtonGrid(
-    {
-        Title = "Refresh List",
-        Callback = function()
-            local list = getExistingConfigs()
-            SelectConfigDropdown:SetValues(list)
-            updateConfigStatus()
-            CustomLib:Notify("Config Manager", "Config list refreshed!", 3)
-        end
-    },
-    {
-        Title = "Clear Autoload",
-        Callback = function()
-            if isfile(AUTOLOAD_FILE) then
-                writefile(AUTOLOAD_FILE, "")
-            end
-            updateConfigStatus()
-            CustomLib:Notify("Config Manager", "Autoload cleared!", 3)
-        end
-    }
-)
-
--- ==========================================
--- AUTOLOAD ON STARTUP
--- ==========================================
-task.spawn(function()
-    task.wait(1)
-    if isfolder(CONFIG_FOLDER) and isfile(AUTOLOAD_FILE) then
-        local autoloadName = readfile(AUTOLOAD_FILE)
-        if autoloadName and autoloadName ~= "" then
-            local filePath = CONFIG_FOLDER .. "/" .. autoloadName .. ".json"
-            if isfile(filePath) then
-                local ok, decoded = pcall(function()
-                    return HttpService:JSONDecode(readfile(filePath))
-                end)
-                if ok and type(decoded) == "table" then
-                    applyConfigData(decoded)
-                    selectedConfigName = autoloadName
-                    local list = getExistingConfigs()
-                    SelectConfigDropdown:SetValues(list)
-                    SelectConfigDropdown:SetValue(autoloadName)
-                    updateConfigStatus()
-                    CustomLib:Notify("Autoload", string.format("Successfully loaded config '%s'!", autoloadName), 4)
-                end
-            end
-        end
-    end
-end)
+})
